@@ -1,0 +1,33 @@
+<svg width="400" height="130" viewBox="0 0 400 130" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- Dark background -->
+  <rect x="0" y="0" width="400" height="130" rx="14" fill="#0f1923"/>
+
+  <!-- Paper: top=28, height=74, center y=65 -->
+  <rect x="16" y="28" width="56" height="74" rx="6" fill="#19293a" stroke="#243648" stroke-width="1.5"/>
+  <line x1="29" y1="46" x2="63" y2="46" stroke="#243648" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="29" y1="57" x2="63" y2="57" stroke="#243648" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="29" y1="68" x2="63" y2="68" stroke="#243648" stroke-width="1.5" stroke-linecap="round"/>
+  <line x1="29" y1="79" x2="56" y2="79" stroke="#243648" stroke-width="1.5" stroke-linecap="round"/>
+
+  <!-- Checkmark -->
+  <polyline points="29,66 41,82 69,42" fill="none" stroke="#1ca3fd" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+
+  <!-- Pencil -->
+  <g transform="rotate(-42, 69, 28)">
+    <rect x="61" y="1" width="16" height="10" rx="3.5" fill="#ffb3b3"/>
+    <rect x="61" y="11" width="16" height="5" rx="0" fill="#c0082a" opacity="0.45"/>
+    <rect x="61" y="16" width="16" height="34" rx="0" fill="#de0b2e"/>
+    <polygon points="61,50 77,50 69,65" fill="#f5d5a0"/>
+    <polygon points="64,56 74,56 69,65" fill="#888888"/>
+  </g>
+
+  <!-- NEB -->
+  <text x="94" y="47" dominant-baseline="central"
+    font-family="Georgia, serif" font-weight="bold" font-size="42" fill="#de0b2e">NEB</text>
+
+  <!-- EXAM -->
+  <text x="94" y="87" dominant-baseline="central"
+    font-family="Georgia, serif" font-weight="bold" font-size="30" fill="#1ca3fd" letter-spacing="6">EXAM</text>
+
+</svg>

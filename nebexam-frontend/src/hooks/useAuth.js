@@ -1,0 +1,45 @@
+import { useEffect } from 'react';
+import useAuthStore from '@/store/authStore';
+import { authService } from '@/services/users.service';
+
+const useAuth = () => {
+  const { user, accessToken, isAuthenticated, login, logout, setUser } = useAuthStore();
+
+  useEffect(() => {
+    if (accessToken && !user) {
+      authService.getProfile()
+        .then((res) => setUser(res.data))
+        .catch(() => logout());
+    }
+  }, [accessToken]);
+
+  const handleLogin = async (credentials, force = false) => {
+    const res = await authService.login({ ...credentials, force });
+    const { access, refresh, user: userData } = res.data;
+    login(access, refresh, userData);
+    return res.data;
+  };
+
+  const handleLogout = async () => {
+    try { await authService.logout(); } finally { logout(); }
+  };
+
+  const handleRegister = async (data) => {
+    const res = await authService.register(data);
+    const { access, refresh, user: userData } = res.data;
+    login(access, refresh, userData);
+    return res.data;
+  };
+
+  return {
+    user,
+    token: accessToken,      // compat alias
+    accessToken,
+    isAuthenticated,
+    handleLogin,
+    handleLogout,
+    handleRegister,
+  };
+};
+
+export default useAuth;
