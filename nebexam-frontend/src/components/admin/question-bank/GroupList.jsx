@@ -97,17 +97,33 @@ function GroupCard({ group, entryId, onRefresh, subjectSlug }) {
         <div className="divide-y divide-gray-100">
           {qCount > 0 && (
             <div className="p-4 space-y-2">
-              {group.questions.map((node, index) => (
-                <QuestionNodeItem
-                  key={node.id}
-                  node={node}
-                  index={index}
-                  entryId={entryId}
-                  groupId={group.id}
-                  onRefresh={onRefresh}
-                  subjectSlug={subjectSlug}
-                />
-              ))}
+              {(() => {
+                let counter = 0;
+                let prevWasOrSep = false;
+                return group.questions.map((node) => {
+                  let index;
+                  if (node.question_type === 'or_separator') {
+                    prevWasOrSep = true;
+                    index = counter - 1;
+                  } else if (prevWasOrSep) {
+                    prevWasOrSep = false;
+                    index = counter - 1;
+                  } else {
+                    index = counter++;
+                  }
+                  return (
+                    <QuestionNodeItem
+                      key={node.id}
+                      node={node}
+                      index={index}
+                      entryId={entryId}
+                      groupId={group.id}
+                      onRefresh={onRefresh}
+                      subjectSlug={subjectSlug}
+                    />
+                  );
+                });
+              })()}
             </div>
           )}
           <div className="p-4">

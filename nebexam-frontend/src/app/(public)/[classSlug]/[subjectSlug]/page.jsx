@@ -4,11 +4,12 @@ import { subjectsService } from '@/services/subjects.service';
 function ChapterCard({ chapter, idx, classSlug, subjectSlug }) {
   const hasNotes = !!chapter.rich_text_notes;
   const hasPdf   = !!chapter.pdf_notes;
+  const hasContent = hasNotes || hasPdf;
 
   return (
     <Link
       href={`/${classSlug}/${subjectSlug}/${chapter.slug}`}
-      className="group flex items-start gap-4 p-4 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl hover:border-[#1CA3FD]/30 hover:shadow-lg hover:shadow-slate-100/60 dark:hover:shadow-slate-900/40 transition-all duration-200"
+      className="group flex items-center gap-4 p-4 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-2xl hover:border-[#1CA3FD]/40 hover:shadow-md hover:shadow-[#1CA3FD]/5 dark:hover:shadow-slate-900/40 transition-all duration-200"
     >
       {/* Chapter number badge */}
       <div className="w-9 h-9 rounded-xl bg-slate-50 dark:bg-slate-700 border border-gray-100 dark:border-slate-600 flex items-center justify-center text-xs font-extrabold text-slate-400 dark:text-slate-500 shrink-0 group-hover:bg-[#1CA3FD] group-hover:text-white group-hover:border-[#1CA3FD] transition-all">
@@ -16,31 +17,30 @@ function ChapterCard({ chapter, idx, classSlug, subjectSlug }) {
       </div>
 
       <div className="min-w-0 flex-1">
-        <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 group-hover:text-[#1CA3FD] transition-colors leading-snug line-clamp-2 mb-2">
+        <p className="text-sm font-semibold text-slate-800 dark:text-slate-100 group-hover:text-[#1CA3FD] transition-colors leading-snug line-clamp-2">
           {chapter.name}
         </p>
-        <div className="flex items-center gap-2">
-          {hasNotes && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#1CA3FD] bg-[#EEF6FF] dark:bg-[#1CA3FD]/10 px-2 py-0.5 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-[#1CA3FD]" />
-              Notes
-            </span>
-          )}
-          {hasPdf && (
-            <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-full">
-              <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
-              PDF
-            </span>
-          )}
-          {!hasNotes && !hasPdf && (
-            <span className="text-[10px] text-slate-300 dark:text-slate-600 font-medium">Coming soon</span>
-          )}
-        </div>
+        {hasContent && (
+          <div className="flex items-center gap-1.5 mt-1.5">
+            {hasNotes && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-[#1CA3FD] bg-[#EEF6FF] dark:bg-[#1CA3FD]/10 px-2 py-0.5 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-[#1CA3FD]" />
+                Notes
+              </span>
+            )}
+            {hasPdf && (
+              <span className="inline-flex items-center gap-1 text-[10px] font-semibold text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-700 px-2 py-0.5 rounded-full">
+                <span className="w-1.5 h-1.5 rounded-full bg-slate-400" />
+                PDF
+              </span>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Arrow */}
       <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"
-        className="shrink-0 mt-1 text-slate-200 dark:text-slate-600 group-hover:text-[#1CA3FD] transition-colors">
+        className="shrink-0 text-slate-200 dark:text-slate-600 group-hover:text-[#1CA3FD] transition-colors">
         <polyline points="9 18 15 12 9 6"/>
       </svg>
     </Link>

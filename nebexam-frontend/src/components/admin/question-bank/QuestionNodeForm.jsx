@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react';
 import McqOptionsEditor from './McqOptionsEditor';
 import AnswerEditor from './AnswerEditor';
 import RichTextEditor from '@/components/ui/RichTextEditor';
+import SearchableSelect from '@/components/ui/SearchableSelect';
 import { chaptersService } from '@/services/chapters.service';
 import { getErrorMessage } from '@/lib/utils';
 
@@ -130,18 +131,20 @@ export default function QuestionNodeForm({ initial = {}, onSubmit, onCancel, loa
         {chapters.length > 0 && (
           <div className="mt-3">
             <Field label="Chapter (optional)">
-              <select
-                value={form.chapter ?? ''}
-                onChange={(e) => set('chapter', e.target.value || null)}
-                className={inputCls}
-              >
-                <option value="">— No chapter —</option>
-                {chapters.map((ch) => (
-                  <option key={ch.id} value={ch.id}>
-                    {ch.area_name ? `${ch.area_name} → ` : ''}{ch.name}
-                  </option>
-                ))}
-              </select>
+              <SearchableSelect
+                value={form.chapter ? String(form.chapter) : ''}
+                onChange={(val) => set('chapter', val || null)}
+                placeholder="— No chapter —"
+                options={[
+                  ...chapters.map((ch) => ({
+                    value: String(ch.id),
+                    label: [
+                      ch.subject_class_level ? `Class ${ch.subject_class_level}` : null,
+                      ch.area_name ? `${ch.area_name} → ${ch.name}` : ch.name,
+                    ].filter(Boolean).join(' · '),
+                  })),
+                ]}
+              />
             </Field>
           </div>
         )}

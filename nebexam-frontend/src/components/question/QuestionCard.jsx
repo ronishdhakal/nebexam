@@ -65,14 +65,114 @@ function ContentBlock({ content }) {
   return <RichTextRenderer content={content} />;
 }
 
-function AnswerReveal({ answer, explanation }) {
-  const [open, setOpen]             = useState(false);
-  const [blocked, setBlocked]       = useState(null); // 'login' | 'upgrade'
-  const [loading, setLoading]       = useState(false);
+function WaIcon() {
+  return (
+    <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
+      <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
+    </svg>
+  );
+}
+
+function AnswerModal({ node, onClose }) {
+  const { answer, explanation, content, question_type, options } = node;
+  return (
+    <div
+      className="fixed inset-0 z-50 bg-black/50 backdrop-blur-sm flex items-end sm:items-center justify-center p-0 sm:p-6"
+      onClick={onClose}
+    >
+      <div
+        className="bg-white dark:bg-slate-900 rounded-t-3xl sm:rounded-2xl shadow-2xl w-full sm:max-w-2xl lg:max-w-3xl flex flex-col max-h-[92vh] sm:max-h-[88vh]"
+        onClick={(e) => e.stopPropagation()}
+      >
+        {/* Mobile drag handle */}
+        <div className="flex justify-center pt-3 pb-1 sm:hidden shrink-0">
+          <div className="w-10 h-1 rounded-full bg-slate-200 dark:bg-slate-700" />
+        </div>
+
+        {/* Header */}
+        <div className="flex items-center justify-between px-5 sm:px-7 py-3 sm:py-4 border-b border-gray-100 dark:border-slate-800 shrink-0">
+          <div className="flex items-center gap-2">
+            <span className="inline-flex items-center justify-center w-6 h-6 rounded-md bg-[#1CA3FD]/10">
+              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#1CA3FD" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="20 6 9 17 4 12"/>
+              </svg>
+            </span>
+            <span className="text-xs font-bold text-[#1CA3FD] uppercase tracking-widest">Answer</span>
+          </div>
+          <button
+            onClick={onClose}
+            className="w-8 h-8 flex items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition text-slate-500 dark:text-slate-400"
+          >
+            <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
+            </svg>
+          </button>
+        </div>
+
+        {/* Scrollable body */}
+        <div className="overflow-y-auto overscroll-contain px-5 sm:px-7 py-5 space-y-5 flex-1 min-h-0">
+
+          {/* Question */}
+          {content && (
+            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-4 sm:p-5">
+              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-2.5">Question</span>
+              <div className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
+                <ContentBlock content={content} />
+              </div>
+              {question_type === 'mcq' && options?.length > 0 && (
+                <div className="mt-4 grid sm:grid-cols-2 gap-2">
+                  {options.map((opt, i) => (
+                    <div key={i} className="flex items-start gap-2.5 bg-white dark:bg-slate-800 rounded-lg px-3 py-2 border border-slate-100 dark:border-slate-700">
+                      <span className="shrink-0 w-6 h-6 rounded-md bg-[#1CA3FD]/10 text-[#1CA3FD] text-xs font-bold flex items-center justify-center mt-0.5">
+                        {MCQ_CARD_LABELS[i]}
+                      </span>
+                      <div className="text-sm text-slate-700 dark:text-slate-300 leading-relaxed pt-0.5 flex-1 min-w-0">
+                        <ContentBlock content={opt} />
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Answer */}
+          {answer && (
+            <div className="rounded-xl border border-[#1CA3FD]/20 bg-[#1CA3FD]/5 dark:bg-[#1CA3FD]/10 p-4 sm:p-5">
+              <span className="text-[10px] font-bold text-[#1CA3FD] uppercase tracking-widest block mb-2.5">Answer</span>
+              <div className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
+                <ContentBlock content={answer} />
+              </div>
+            </div>
+          )}
+
+          {/* Hint / explanation */}
+          {explanation && (
+            <div className="rounded-xl border border-amber-100 dark:border-amber-900/30 bg-amber-50/60 dark:bg-amber-900/10 p-4 sm:p-5">
+              <span className="text-[10px] font-bold text-amber-600 dark:text-amber-400 uppercase tracking-widest block mb-2.5">Hint</span>
+              <div className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed">
+                <ContentBlock content={explanation} />
+              </div>
+            </div>
+          )}
+
+          <div className="h-1" />
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function AnswerReveal({ node }) {
+  const { answer, explanation } = node;
+  const [open, setOpen]               = useState(false);
+  const [blocked, setBlocked]         = useState(null); // 'login' | 'upgrade'
+  const [loading, setLoading]         = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const { isAuthenticated, user, setUser } = useAuthStore();
   const subscriptionRequired = useConfigStore((s) => s.subscriptionRequired);
   const esewaEnabled         = useConfigStore((s) => s.esewaEnabled);
+  const contactWa            = useConfigStore((s) => s.contactWa);
   const currentTier          = user?.subscription_tier || 'free';
 
   if (!answer && !explanation) return null;
@@ -80,8 +180,7 @@ function AnswerReveal({ answer, explanation }) {
   const isPaid = user?.subscription_tier && user.subscription_tier !== 'free';
   const used   = user?.free_answers_used ?? 0;
 
-  const handleToggle = async () => {
-    if (open) { setOpen(false); return; }
+  const handleReveal = async () => {
     // Subscription disabled — reveal freely without any gate
     if (!subscriptionRequired) { setOpen(true); return; }
     if (!isAuthenticated) { setBlocked('login'); return; }
@@ -109,21 +208,17 @@ function AnswerReveal({ answer, explanation }) {
   return (
     <div className="mt-3 clear-right">
 
-      {/* ── Inline toggle link ── */}
+      {/* ── Reveal button ── */}
       {!blocked && (
         <button
-          onClick={handleToggle}
+          onClick={handleReveal}
           disabled={loading}
           className="inline-flex items-center gap-1 text-[11px] font-medium text-slate-400 hover:text-[#1CA3FD] transition-colors disabled:opacity-50"
         >
-          <svg
-            width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor"
-            strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"
-            style={{ transform: open ? 'rotate(90deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }}
-          >
+          <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round">
             <polyline points="9 18 15 12 9 6"/>
           </svg>
-          {loading ? '…' : open ? 'Hide Answer' : 'Answer'}
+          {loading ? '…' : 'Answer'}
         </button>
       )}
 
@@ -157,13 +252,11 @@ function AnswerReveal({ answer, explanation }) {
             </button>
           ) : (
             <a
-              href={`https://wa.me/9779745450062?text=${encodeURIComponent('Hi, I would like to purchase a NEB Exam subscription.')}`}
+              href={`https://wa.me/${contactWa}?text=${encodeURIComponent('Hi, I would like to purchase a NEB Exam subscription.')}`}
               target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-1 text-[11px] font-semibold text-green-600 hover:underline"
             >
-              <svg width="11" height="11" viewBox="0 0 24 24" fill="currentColor">
-                <path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347m-5.421 7.403h-.004a9.87 9.87 0 01-5.031-1.378l-.361-.214-3.741.982.998-3.648-.235-.374a9.86 9.86 0 01-1.51-5.26c.001-5.45 4.436-9.884 9.888-9.884 2.64 0 5.122 1.03 6.988 2.898a9.825 9.825 0 012.893 6.994c-.003 5.45-4.437 9.884-9.885 9.884m8.413-18.297A11.815 11.815 0 0012.05 0C5.495 0 .16 5.335.157 11.892c0 2.096.547 4.142 1.588 5.945L.057 24l6.305-1.654a11.882 11.882 0 005.683 1.448h.005c6.554 0 11.89-5.335 11.893-11.893a11.821 11.821 0 00-3.48-8.413z"/>
-              </svg>
+              <WaIcon />
               Upgrade via WhatsApp
             </a>
           )}
@@ -174,26 +267,9 @@ function AnswerReveal({ answer, explanation }) {
         <UpgradePlanModal currentTier={currentTier} onClose={() => setShowUpgrade(false)} />
       )}
 
-      {/* ── Answer content ── */}
+      {/* ── Answer popup ── */}
       {open && (
-        <div className="mt-2 border-l-2 border-[#1CA3FD]/40 pl-3 space-y-2">
-          {answer && (
-            <div>
-              <span className="text-[10px] font-bold text-[#1CA3FD] uppercase tracking-widest block mb-1">Ans.</span>
-              <div className="text-sm text-slate-800 dark:text-slate-200 leading-relaxed">
-                <ContentBlock content={answer} />
-              </div>
-            </div>
-          )}
-          {explanation && (
-            <div className="pt-1 border-t border-dashed border-slate-200 dark:border-slate-700">
-              <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest block mb-1">Hint</span>
-              <div className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
-                <ContentBlock content={explanation} />
-              </div>
-            </div>
-          )}
-        </div>
+        <AnswerModal node={node} onClose={() => setOpen(false)} />
       )}
     </div>
   );
@@ -205,9 +281,17 @@ function PaperQuestionCard({ node, index, depth, isNepali = false }) {
   if (node.question_type === 'or_separator') {
     return (
       <>
-        <div className="py-1 text-center">
-          <span className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase">Or</span>
-        </div>
+        {depth === 0 ? (
+          <div className="flex items-center gap-3 py-1">
+            <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+            <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-3">Or</span>
+            <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+          </div>
+        ) : (
+          <div className="py-1 text-center">
+            <span className="text-sm font-bold text-slate-500 dark:text-slate-400 uppercase">Or</span>
+          </div>
+        )}
         {node.children?.length > 0 && indexChildren(node.children).map(({ child, labelIndex }) => (
           <PaperQuestionCard key={child.id} node={child} index={labelIndex} depth={Math.max(depth, 1)} isNepali={isNepali} />
         ))}
@@ -323,7 +407,7 @@ function PaperQuestionCard({ node, index, depth, isNepali = false }) {
           </div>
         )}
 
-        <AnswerReveal answer={node.answer} explanation={node.explanation} />
+        <AnswerReveal node={node} />
       </div>
     </div>
   );
@@ -334,9 +418,17 @@ function CardQuestionCard({ node, index, depth, hideMeta = false }) {
   if (node.question_type === 'or_separator') {
     return (
       <>
-        <div className="py-1 text-center">
-          <span className="text-xs font-bold text-slate-400 uppercase">Or</span>
-        </div>
+        {depth === 0 ? (
+          <div className="flex items-center gap-3 py-1">
+            <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+            <span className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest px-3">Or</span>
+            <div className="flex-1 h-px bg-slate-200 dark:bg-slate-700" />
+          </div>
+        ) : (
+          <div className="py-1 text-center">
+            <span className="text-xs font-bold text-slate-400 uppercase">Or</span>
+          </div>
+        )}
         {node.children?.length > 0 && indexChildren(node.children).map(({ child, labelIndex }) => (
           <CardQuestionCard key={child.id} node={child} index={labelIndex} depth={Math.max(depth, 1)} hideMeta={hideMeta} />
         ))}
@@ -454,7 +546,7 @@ function CardQuestionCard({ node, index, depth, hideMeta = false }) {
         </div>
       </div>
 
-      <AnswerReveal answer={node.answer} explanation={node.explanation} />
+      <AnswerReveal node={node} />
 
       {node.children?.length > 0 && (
         <div className="mt-4 space-y-4 border-t border-gray-50 dark:border-slate-700 pt-4">

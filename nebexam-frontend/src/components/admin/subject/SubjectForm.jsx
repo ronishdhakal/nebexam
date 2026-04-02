@@ -14,6 +14,7 @@ const defaultForm = {
   name: '',
   class_level: '11',
   streams: [],
+  order: 0,
   is_published: false,
 };
 
@@ -78,6 +79,16 @@ export default function SubjectForm({ initial = {}, onSubmit, loading }) {
       <div>
         <label className={lbl}>Streams</label>
         <StreamSelector value={form.streams} onChange={(streams) => setForm({ ...form, streams })} />
+      </div>
+
+      <div>
+        <label className={lbl}>Order</label>
+        <input
+          type="number"
+          value={form.order}
+          onChange={(e) => setForm({ ...form, order: parseInt(e.target.value) || 0 })}
+          className={inp}
+        />
       </div>
 
       <div className="flex items-center gap-2">

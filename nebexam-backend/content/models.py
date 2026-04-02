@@ -20,7 +20,7 @@ class Subject(models.Model):
     syllabus = models.JSONField(null=True, blank=True)  # Tiptap JSON
     book_text = models.JSONField(null=True, blank=True)  # Tiptap JSON — textbook rich text
     book_pdf = models.FileField(upload_to='subject_books/', null=True, blank=True)
-    order = models.PositiveIntegerField(default=0)
+    order = models.PositiveIntegerField(default=999)
     is_published = models.BooleanField(default=False)
     created_at = models.DateTimeField(auto_now_add=True)
     updated_at = models.DateTimeField(auto_now=True)
@@ -41,7 +41,7 @@ class Area(models.Model):
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='areas')
     name = models.CharField(max_length=255)
     slug = models.SlugField(blank=True)
-    order = models.PositiveIntegerField(default=0)
+    order = models.PositiveIntegerField(default=999)
     created_at = models.DateTimeField(auto_now_add=True)
 
     class Meta:
@@ -69,7 +69,7 @@ class Chapter(models.Model):
     )
     name = models.CharField(max_length=255)
     slug = models.SlugField(blank=True, unique=True)
-    order = models.PositiveIntegerField(default=0)
+    order = models.PositiveIntegerField(default=999)
     rich_text_notes = models.JSONField(null=True, blank=True)  # Tiptap JSON
     pdf_notes = models.FileField(upload_to='chapter_pdfs/', null=True, blank=True)
     is_published = models.BooleanField(default=False)

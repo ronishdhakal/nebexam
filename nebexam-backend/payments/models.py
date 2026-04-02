@@ -57,6 +57,7 @@ class Payment(models.Model):
     tier             = models.CharField(max_length=10)
     amount           = models.PositiveIntegerField()
     coupon           = models.ForeignKey(Coupon, null=True, blank=True, on_delete=models.SET_NULL, related_name='payments')
+    referred_by      = models.ForeignKey(settings.AUTH_USER_MODEL, null=True, blank=True, on_delete=models.SET_NULL, related_name='referral_payments')
     transaction_uuid = models.CharField(max_length=100, unique=True)
     esewa_ref_id     = models.CharField(max_length=100, blank=True)
     status           = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDING)
@@ -68,3 +69,65 @@ class Payment(models.Model):
 
     def __str__(self):
         return f'{self.user.email} — {self.tier} — {self.status}'
+
+
+class CheckoutAttempt(models.Model):
+    """Updated every time an authenticated user lands on the checkout page."""
+    user         = models.OneToOneField(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='checkout_attempt')
+    tier         = models.CharField(max_length=10)
+    attempted_at = models.DateTimeField(auto_now=True)
+
+    def __str__(self):
+        return f'{self.user.email} → {self.tier} @ {self.attempted_at:%Y-%m-%d %H:%M}'
+
+
+class PayoutRequest(models.Model):
+    """A student's request to withdraw their referral balance."""
+    STATUS_PENDING  = 'pending'
+    STATUS_APPROVED = 'approved'
+    STATUS_REJECTED = 'rejected'
+    STATUS_CHOICES  = [
+        (STATUS_PENDING,  'Pending'),
+        (STATUS_APPROVED, 'Approved'),
+        (STATUS_REJECTED, 'Rejected'),
+    ]
+
+    user           = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='payout_requests')
+    amount         = models.DecimalField(max_digits=10, decimal_places=2, help_text='Balance snapshot at time of request')
+    payment_method = models.CharField(max_length=50, help_text='e.g. eSewa, Bank Transfer')
+    payment_detail = models.CharField(max_length=255, help_text='eSewa number / bank account / etc.')
+    status         = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    admin_note     = models.TextField(blank=True)
+    created_at     = models.DateTimeField(auto_now_add=True)
+    updated_at     = models.DateTimeField(auto_now=True)
+    paid_at        = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.user.email} — Rs. {self.amount} ({self.status})'
+
+
+class ReferralReward(models.Model):
+    """Tracks the 10% reward earned by a referrer when their code is used in a successful payment."""
+    STATUS_PENDING  = 'pending'
+    STATUS_RELEASED = 'released'
+    STATUS_CHOICES  = [
+        (STATUS_PENDING,  'Pending'),
+        (STATUS_RELEASED, 'Released'),
+    ]
+
+    referrer      = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='referral_rewards_earned')
+    referee       = models.ForeignKey(settings.AUTH_USER_MODEL, on_delete=models.CASCADE, related_name='referral_rewards_given')
+    payment       = models.OneToOneField(Payment, on_delete=models.CASCADE, related_name='referral_reward')
+    reward_amount = models.DecimalField(max_digits=10, decimal_places=2)
+    status        = models.CharField(max_length=10, choices=STATUS_CHOICES, default=STATUS_PENDING)
+    created_at    = models.DateTimeField(auto_now_add=True)
+    released_at   = models.DateTimeField(null=True, blank=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'{self.referrer.email} ← {self.referee.email} — Rs. {self.reward_amount} ({self.status})'

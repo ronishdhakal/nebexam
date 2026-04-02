@@ -281,11 +281,41 @@ function SectionView({ node, entryId, groupId, onRefresh, index, subjectSlug }) 
   );
 }
 
+function OrSeparatorView({ node, onRefresh }) {
+  const handleDelete = async () => {
+    if (!confirm('Remove this OR separator?')) return;
+    try {
+      await nodesService.delete(node.id);
+      onRefresh();
+    } catch (err) {
+      alert(getErrorMessage(err));
+    }
+  };
+
+  return (
+    <div className="flex items-center gap-3 py-1">
+      <div className="flex-1 h-px bg-gray-200" />
+      <div className="flex items-center gap-2">
+        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest px-3 py-1 bg-gray-50 border border-gray-200 rounded-full">
+          OR
+        </span>
+        <button onClick={handleDelete} className="text-xs text-red-400 hover:text-red-600 font-medium">✕</button>
+      </div>
+      <div className="flex-1 h-px bg-gray-200" />
+    </div>
+  );
+}
+
 export default function QuestionNodeItem({ node, entryId, groupId, onRefresh, depth = 0, index = 0, subjectSlug }) {
   const [isOpen, setIsOpen] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [showAddChild, setShowAddChild] = useState(false);
   const [loading, setLoading] = useState(false);
+
+  // OR separator — rendered as a visual divider, not a question row
+  if (node.question_type === 'or_separator') {
+    return <OrSeparatorView node={node} onRefresh={onRefresh} />;
+  }
 
   // Delegate to specialised views
   if (node.question_type === 'passage' && depth === 0) {

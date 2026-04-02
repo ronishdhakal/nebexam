@@ -1,3 +1,5 @@
+import uuid
+
 from django.contrib.auth.models import AbstractBaseUser, BaseUserManager, PermissionsMixin
 from django.db import models
 
@@ -52,15 +54,43 @@ class User(AbstractBaseUser, PermissionsMixin):
         max_length=10, choices=SubscriptionTier.choices, default=SubscriptionTier.FREE
     )
     subscription_expires_at = models.DateTimeField(null=True, blank=True)
-    free_answers_used = models.PositiveIntegerField(default=0)
+    free_answers_used  = models.PositiveIntegerField(default=0)
+    referral_code      = models.CharField(max_length=10, unique=True, blank=True)
+    referral_balance   = models.DecimalField(max_digits=10, decimal_places=2, default=0)
     is_active = models.BooleanField(default=True)
     is_staff = models.BooleanField(default=False)
     date_joined = models.DateTimeField(auto_now_add=True)
+
+    CRM_NONE       = 'none'
+    CRM_FOLLOW_UP  = 'follow_up'
+    CRM_CONTACTED  = 'contacted'
+    CRM_DONE       = 'done'
+    CRM_CHOICES    = [
+        (CRM_NONE,      'None'),
+        (CRM_FOLLOW_UP, 'Follow Up'),
+        (CRM_CONTACTED, 'Contacted'),
+        (CRM_DONE,      'Done'),
+    ]
+    crm_status = models.CharField(max_length=20, choices=CRM_CHOICES, default=CRM_NONE)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['name']
 
     objects = UserManager()
+
+    def save(self, *args, **kwargs):
+        if not self.referral_code:
+            self.referral_code = self._generate_referral_code()
+        super().save(*args, **kwargs)
+
+    @staticmethod
+    def _generate_referral_code():
+        import random, string
+        chars = string.ascii_uppercase + string.digits
+        while True:
+            code = ''.join(random.choices(chars, k=8))
+            if not User.objects.filter(referral_code=code).exists():
+                return code
 
     def __str__(self):
         return f'{self.name} ({self.email})'
@@ -135,20 +165,21 @@ class StudySession(models.Model):
 
 
 class UserSession(models.Model):
-    """Tracks active JWT sessions per device type (max 1 desktop + 1 mobile)."""
+    """Tracks active sessions per device type (max 1 desktop + 1 mobile)."""
     DEVICE_DESKTOP = 'desktop'
     DEVICE_MOBILE  = 'mobile'
     DEVICE_CHOICES = [(DEVICE_DESKTOP, 'Desktop'), (DEVICE_MOBILE, 'Mobile')]
 
     user        = models.ForeignKey(User, on_delete=models.CASCADE, related_name='device_sessions')
     device_type = models.CharField(max_length=10, choices=DEVICE_CHOICES)
-    jti         = models.CharField(max_length=255, unique=True)   # JWT token ID
+    jti         = models.CharField(max_length=255, unique=True)
     user_agent  = models.TextField(blank=True)
+    device_id   = models.CharField(max_length=64, blank=True)   # persistent client-generated UUID
     created_at  = models.DateTimeField(auto_now_add=True)
     last_used   = models.DateTimeField(auto_now=True)
 
     class Meta:
-        unique_together = ('user', 'device_type')   # one slot per device type per user
+        unique_together = ('user', 'device_type')
 
     def __str__(self):
         return f'{self.user.email} — {self.device_type}'

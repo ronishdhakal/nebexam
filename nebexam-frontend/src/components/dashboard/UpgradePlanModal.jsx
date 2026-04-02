@@ -6,8 +6,6 @@ import Image from 'next/image';
 import { paymentService } from '@/services/users.service';
 import useConfigStore from '@/store/configStore';
 
-const WA_NUMBER = '9779745450062';
-
 const PLAN_META = [
   {
     id: 'free',
@@ -51,13 +49,14 @@ function WaIcon() {
   );
 }
 
-function waLink(planName) {
+function waLink(number, planName) {
   const msg = encodeURIComponent(`Hi, I would like to purchase the ${planName} Plan on NEB Exam. Please assist me with the payment process.`);
-  return `https://wa.me/${WA_NUMBER}?text=${msg}`;
+  return `https://wa.me/${number}?text=${msg}`;
 }
 
 export default function UpgradePlanModal({ currentTier, onClose }) {
   const esewaEnabled = useConfigStore((s) => s.esewaEnabled);
+  const contactWa    = useConfigStore((s) => s.contactWa);
   const router       = useRouter();
 
   const [prices, setPrices]           = useState({});
@@ -196,17 +195,17 @@ export default function UpgradePlanModal({ currentTier, onClose }) {
                         }`}
                       >
                         Pay with
-                        <Image
+                        <span className="inline-flex items-center bg-white rounded px-1 py-0.5"><Image
                           src="/assets/esewa.png"
                           alt="eSewa"
-                          width={36}
-                          height={13}
-                          className={`h-3.5 w-auto object-contain ${!isHighlight && !isBestValue ? 'brightness-0 invert' : ''}`}
-                        />
+                          width={42}
+                          height={15}
+                          className="h-[15px] w-auto object-contain"
+                        /></span>
                       </button>
                     ) : (
                       <a
-                        href={waLink(plan.name)}
+                        href={waLink(contactWa, plan.name)}
                         target="_blank" rel="noopener noreferrer"
                         className={`w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition ${
                           isHighlight ? 'bg-white text-[#1CA3FD] hover:bg-white/90'
@@ -229,7 +228,7 @@ export default function UpgradePlanModal({ currentTier, onClose }) {
               {esewaEnabled ? (
                 <>
                   <span className="text-xs text-slate-400">Secure payment via</span>
-                  <Image src="/assets/esewa.png" alt="eSewa" width={44} height={16} className="h-4 w-auto object-contain" />
+                  <span className="inline-flex items-center bg-white rounded px-1.5 py-0.5"><Image src="/assets/esewa.png" alt="eSewa" width={52} height={19} className="h-[19px] w-auto object-contain" /></span>
                   <span className="text-xs text-slate-400">· Activated instantly.</span>
                 </>
               ) : (
@@ -237,7 +236,7 @@ export default function UpgradePlanModal({ currentTier, onClose }) {
               )}
             </div>
             <a
-              href={`https://wa.me/${WA_NUMBER}`}
+              href={`https://wa.me/${contactWa}`}
               target="_blank" rel="noopener noreferrer"
               className="text-xs text-slate-500 hover:text-[#1CA3FD] transition font-medium whitespace-nowrap"
             >

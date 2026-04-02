@@ -24,7 +24,7 @@ export default function AreaList({ areas, onDelete }) {
               <td className="px-5 py-3.5">
                 <div className="flex items-center gap-3">
                   <Link href={`/admin/areas/${area.id}`} className="text-[#1CA3FD] hover:text-[#0e8fe0] text-xs font-medium">Edit</Link>
-                  <button onClick={() => onDelete(area.slug)} className="text-red-500 hover:text-red-700 text-xs font-medium">Delete</button>
+                  <button onClick={() => onDelete(area.id)} className="text-red-500 hover:text-red-700 text-xs font-medium">Delete</button>
                 </div>
               </td>
             </tr>

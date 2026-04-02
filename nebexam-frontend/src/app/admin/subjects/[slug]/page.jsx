@@ -35,7 +35,9 @@ export default function EditSubjectPage({ params: rawParams }) {
   const handleSubmit = async (data) => {
     setLoading(true);
     try {
-      await subjectsService.update(params.slug, data);
+      // eslint-disable-next-line no-unused-vars
+      const { book_pdf, book_text, syllabus, ...details } = data;
+      await subjectsService.update(params.slug, details);
       router.push('/admin/subjects');
     } finally {
       setLoading(false);

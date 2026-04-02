@@ -3,11 +3,12 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import api from '@/lib/api';
+import { paymentService } from '@/services/users.service';
 import { getErrorMessage, formatDate } from '@/lib/utils';
 import PageHeader from '@/components/admin/shared/PageHeader';
 
 const TIER_STYLES = {
-  free:    'bg-slate-100 text-slate-600 ring-slate-200',
+  free:     'bg-slate-100 text-slate-600 ring-slate-200',
   '1month': 'bg-blue-50 text-blue-700 ring-blue-200',
   '3month': 'bg-[#1CA3FD]/10 text-[#1CA3FD] ring-[#1CA3FD]/20',
   '1year':  'bg-violet-50 text-violet-700 ring-violet-200',
@@ -19,8 +20,27 @@ const STREAM_STYLES = {
   management: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
 };
 
+const CRM_CONFIG = {
+  none:       { label: 'No Status',  bg: 'bg-slate-100 text-slate-500',        dot: 'bg-slate-400' },
+  follow_up:  { label: 'Follow Up',  bg: 'bg-amber-50 text-amber-700',         dot: 'bg-amber-400' },
+  contacted:  { label: 'Contacted',  bg: 'bg-blue-50 text-blue-700',           dot: 'bg-blue-500' },
+  done:       { label: 'Done',       bg: 'bg-emerald-50 text-emerald-700',     dot: 'bg-emerald-500' },
+};
+
+const PURCHASE_STATUS_CONFIG = {
+  active:    { label: 'Subscribed',    bg: 'bg-emerald-50 text-emerald-700 ring-emerald-200' },
+  attempted: { label: 'Attempted',     bg: 'bg-amber-50 text-amber-700 ring-amber-200' },
+  never:     { label: 'Never visited', bg: 'bg-slate-50 text-slate-500 ring-slate-200' },
+};
+
+function getPurchaseStatus(user) {
+  if (user.subscription_tier !== 'free') return 'active';
+  if (user.last_checkout_at)             return 'attempted';
+  return 'never';
+}
+
 function exportCSV(users) {
-  const cols = ['ID', 'Name', 'Email', 'Phone', 'Class', 'Stream', 'Plan', 'Expires', 'Status', 'Joined'];
+  const cols = ['ID', 'Name', 'Email', 'Phone', 'Class', 'Stream', 'Plan', 'Expires', 'Status', 'Last Checkout', 'CRM', 'Joined'];
   const rows = users.map((u) => [
     u.id,
     `"${u.name || ''}"`,
@@ -31,9 +51,11 @@ function exportCSV(users) {
     TIER_DISPLAY[u.subscription_tier] || u.subscription_tier,
     u.subscription_expires_at ? new Date(u.subscription_expires_at).toLocaleDateString() : '',
     u.is_active ? 'Active' : 'Disabled',
+    u.last_checkout_at ? new Date(u.last_checkout_at).toLocaleDateString() : '',
+    u.crm_status || '',
     u.date_joined ? new Date(u.date_joined).toLocaleDateString() : '',
   ]);
-  const csv = [cols, ...rows].map((r) => r.join(',')).join('\n');
+  const csv  = [cols, ...rows].map((r) => r.join(',')).join('\n');
   const blob = new Blob([csv], { type: 'text/csv' });
   const url  = URL.createObjectURL(blob);
   const a    = document.createElement('a');
@@ -41,6 +63,59 @@ function exportCSV(users) {
   a.download = `neb-users-${new Date().toISOString().slice(0, 10)}.csv`;
   a.click();
   URL.revokeObjectURL(url);
+}
+
+// ─── CRM Status Dropdown ───────────────────────────────────────────────────────
+function CrmDropdown({ userId, value, onChange }) {
+  const [open, setOpen]       = useState(false);
+  const [saving, setSaving]   = useState(false);
+
+  const select = async (status) => {
+    setOpen(false);
+    if (status === value) return;
+    setSaving(true);
+    try {
+      await paymentService.setCrmStatus(userId, status);
+      onChange(userId, status);
+    } catch { /* silent */ } finally {
+      setSaving(false);
+    }
+  };
+
+  const cfg = CRM_CONFIG[value] || CRM_CONFIG.none;
+
+  return (
+    <div className="relative">
+      <button
+        onClick={() => setOpen((v) => !v)}
+        disabled={saving}
+        className={`inline-flex items-center gap-1.5 text-[11px] font-semibold px-2.5 py-1 rounded-lg ring-1 ring-inset transition ${cfg.bg} ${saving ? 'opacity-50' : 'hover:opacity-80'}`}
+      >
+        <span className={`w-1.5 h-1.5 rounded-full shrink-0 ${cfg.dot}`} />
+        {saving ? '…' : cfg.label}
+        <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" className="opacity-60">
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+      {open && (
+        <>
+          <div className="fixed inset-0 z-10" onClick={() => setOpen(false)} />
+          <div className="absolute left-0 top-full mt-1 z-20 bg-white border border-gray-100 rounded-xl shadow-lg py-1 min-w-[150px]">
+            {Object.entries(CRM_CONFIG).map(([key, c]) => (
+              <button
+                key={key}
+                onClick={() => select(key)}
+                className={`w-full text-left px-3 py-2 text-xs font-semibold flex items-center gap-2 hover:bg-slate-50 transition ${value === key ? 'opacity-50 pointer-events-none' : ''}`}
+              >
+                <span className={`w-2 h-2 rounded-full shrink-0 ${c.dot}`} />
+                {c.label}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+    </div>
+  );
 }
 
 // ─── Bulk Promote Panel ────────────────────────────────────────────────────────
@@ -148,17 +223,21 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
   const [query, setQuery]     = useState('');
-  const [filters, setFilters] = useState({ level: '', stream: '', tier: '', status: '' });
+  const [filters, setFilters] = useState({
+    level: '', stream: '', tier: '', status: '', purchase_status: '', crm_status: '',
+  });
 
   const fetchUsers = useCallback(async (q, f) => {
     try {
       setLoading(true);
       const params = {};
-      if (q)        params.search = q;
-      if (f.level)  params.level  = f.level;
-      if (f.stream) params.stream = f.stream;
-      if (f.tier)   params.tier   = f.tier;
-      if (f.status) params.status = f.status;
+      if (q)                    params.search          = q;
+      if (f.level)              params.level           = f.level;
+      if (f.stream)             params.stream          = f.stream;
+      if (f.tier)               params.tier            = f.tier;
+      if (f.status)             params.status          = f.status;
+      if (f.purchase_status)    params.purchase_status = f.purchase_status;
+      if (f.crm_status)         params.crm_status      = f.crm_status;
       const res = await api.get('/users/all/', { params });
       setUsers(res.data.results || res.data);
     } catch (err) { setError(getErrorMessage(err)); }
@@ -174,6 +253,11 @@ export default function UsersPage() {
 
   const setFilter = (key, val) => setFilters((prev) => ({ ...prev, [key]: val }));
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
+
+  // Optimistic CRM update — avoids full refetch
+  const handleCrmChange = (userId, newStatus) => {
+    setUsers((prev) => prev.map((u) => u.id === userId ? { ...u, crm_status: newStatus } : u));
+  };
 
   const SelectFilter = ({ label, value, onChange, options }) => (
     <select
@@ -218,10 +302,23 @@ export default function UsersPage() {
         <SelectFilter label="All Status" value={filters.status} onChange={(v) => setFilter('status', v)} options={[
           { value: 'active', label: 'Active' }, { value: 'disabled', label: 'Disabled' },
         ]} />
+        <SelectFilter label="Purchase Intent" value={filters.purchase_status} onChange={(v) => setFilter('purchase_status', v)} options={[
+          { value: 'active',    label: 'Subscribed' },
+          { value: 'attempted', label: 'Attempted (not paid)' },
+          { value: 'never',     label: 'Never visited checkout' },
+        ]} />
+        <SelectFilter label="CRM Status" value={filters.crm_status} onChange={(v) => setFilter('crm_status', v)} options={[
+          { value: 'follow_up', label: 'Follow Up' },
+          { value: 'contacted', label: 'Contacted' },
+          { value: 'done',      label: 'Done' },
+          { value: 'none',      label: 'No Status' },
+        ]} />
 
         {activeFilterCount > 0 && (
-          <button onClick={() => setFilters({ level: '', stream: '', tier: '', status: '' })}
-            className="text-xs text-slate-500 hover:text-red-500 border border-gray-200 px-3 py-1.5 rounded-lg transition-colors">
+          <button
+            onClick={() => setFilters({ level: '', stream: '', tier: '', status: '', purchase_status: '', crm_status: '' })}
+            className="text-xs text-slate-500 hover:text-red-500 border border-gray-200 px-3 py-1.5 rounded-lg transition-colors"
+          >
             Clear {activeFilterCount} filter{activeFilterCount > 1 ? 's' : ''}
           </button>
         )}
@@ -247,61 +344,74 @@ export default function UsersPage() {
       {!loading && (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[1000px]">
+            <table className="w-full text-sm min-w-[1200px]">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Name</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Email</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Phone</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Class</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Stream</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Plan</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Expires</th>
-                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Purchase</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Last Attempt</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">CRM</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Joined</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {users.map((user) => (
-                  <tr key={user.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-5 py-3.5">
-                      <div className="flex items-center gap-2.5">
-                        <div className="w-7 h-7 rounded-full bg-[#1CA3FD]/10 flex items-center justify-center shrink-0">
-                          <span className="text-xs font-semibold text-[#1CA3FD]">{user.name?.[0]?.toUpperCase() ?? '?'}</span>
+                {users.map((user) => {
+                  const purchaseStatus = getPurchaseStatus(user);
+                  const psCfg = PURCHASE_STATUS_CONFIG[purchaseStatus];
+                  return (
+                    <tr key={user.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-2.5">
+                          <div className="w-7 h-7 rounded-full bg-[#1CA3FD]/10 flex items-center justify-center shrink-0">
+                            <span className="text-xs font-semibold text-[#1CA3FD]">{user.name?.[0]?.toUpperCase() ?? '?'}</span>
+                          </div>
+                          <span className="font-medium text-slate-900">{user.name}</span>
                         </div>
-                        <span className="font-medium text-slate-900">{user.name}</span>
-                      </div>
-                    </td>
-                    <td className="px-5 py-3.5 text-slate-500">{user.email}</td>
-                    <td className="px-5 py-3.5 text-slate-400">{user.phone || '—'}</td>
-                    <td className="px-5 py-3.5 text-slate-500 font-medium">{user.level ? `Class ${user.level}` : '—'}</td>
-                    <td className="px-5 py-3.5">
-                      {user.stream ? (
-                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ring-1 capitalize ${STREAM_STYLES[user.stream] || 'bg-gray-50 text-gray-600 ring-gray-200'}`}>
-                          {user.stream}
+                      </td>
+                      <td className="px-5 py-3.5 text-slate-500">{user.email}</td>
+                      <td className="px-5 py-3.5 text-slate-400">{user.phone || '—'}</td>
+                      <td className="px-5 py-3.5 text-slate-500 font-medium">{user.level ? `Class ${user.level}` : '—'}</td>
+                      <td className="px-5 py-3.5">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ring-1 ${TIER_STYLES[user.subscription_tier] || TIER_STYLES.free}`}>
+                          {TIER_DISPLAY[user.subscription_tier] || user.subscription_tier}
                         </span>
-                      ) : <span className="text-slate-300">—</span>}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ring-1 ${TIER_STYLES[user.subscription_tier] || TIER_STYLES.free}`}>
-                        {TIER_DISPLAY[user.subscription_tier] || user.subscription_tier}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5 text-slate-400 text-xs">
-                      {user.subscription_expires_at ? formatDate(user.subscription_expires_at) : '—'}
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ring-1 ${user.is_active ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-red-50 text-red-600 ring-red-200'}`}>
-                        {user.is_active ? 'Active' : 'Disabled'}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5 text-slate-400 text-xs">{formatDate(user.date_joined)}</td>
-                    <td className="px-5 py-3.5">
-                      <Link href={`/admin/users/${user.id}`} className="text-[#1CA3FD] hover:text-[#0e8fe0] text-xs font-medium">Edit</Link>
-                    </td>
-                  </tr>
-                ))}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ring-1 ${psCfg.bg}`}>
+                          {psCfg.label}
+                        </span>
+                        {purchaseStatus === 'attempted' && user.last_checkout_tier && (
+                          <span className="ml-1.5 text-[10px] text-slate-400 font-medium">
+                            ({TIER_DISPLAY[user.last_checkout_tier] || user.last_checkout_tier})
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-5 py-3.5 text-slate-400 text-xs">
+                        {user.last_checkout_at ? (
+                          <span title={new Date(user.last_checkout_at).toLocaleString()}>
+                            {formatDate(user.last_checkout_at)}
+                          </span>
+                        ) : '—'}
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <CrmDropdown
+                          userId={user.id}
+                          value={user.crm_status || 'none'}
+                          onChange={handleCrmChange}
+                        />
+                      </td>
+                      <td className="px-5 py-3.5 text-slate-400 text-xs">{formatDate(user.date_joined)}</td>
+                      <td className="px-5 py-3.5">
+                        <Link href={`/admin/users/${user.id}`} className="text-[#1CA3FD] hover:text-[#0e8fe0] text-xs font-medium">Edit</Link>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

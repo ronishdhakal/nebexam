@@ -5,6 +5,7 @@ import { subjectsService } from '@/services/subjects.service';
 import { areasService } from '@/services/areas.service';
 import { getErrorMessage } from '@/lib/utils';
 import RichTextEditor from '@/components/ui/RichTextEditor';
+import SearchableSelect from '@/components/ui/SearchableSelect';
 
 const inp = 'w-full border border-slate-300 bg-white rounded-lg px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1CA3FD] focus:border-transparent transition';
 const lbl = 'block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide';
@@ -95,19 +96,12 @@ export default function ChapterForm({ initial = {}, onSubmit, loading }) {
       {/* Subject */}
       <div>
         <label className={lbl}>Subject <span className="text-red-400">*</span></label>
-        <select
+        <SearchableSelect
+          options={subjects.map((s) => ({ value: s.slug, label: `Class ${s.class_level} — ${s.name}` }))}
           value={subjectSlug}
-          onChange={(e) => handleSubjectChange(e.target.value)}
-          className={inp}
-          required
-        >
-          <option value="">Select subject</option>
-          {subjects.map((s) => (
-            <option key={s.id} value={s.slug}>
-              Class {s.class_level} — {s.name}
-            </option>
-          ))}
-        </select>
+          onChange={(slug) => handleSubjectChange(slug)}
+          placeholder="Select subject"
+        />
       </div>
 
       {/* Area (optional) */}
@@ -116,17 +110,13 @@ export default function ChapterForm({ initial = {}, onSubmit, loading }) {
           Area
           <span className="ml-1.5 text-[10px] font-medium text-slate-400 normal-case tracking-normal">(optional — leave blank to add directly under subject)</span>
         </label>
-        <select
+        <SearchableSelect
+          options={areas.map((a) => ({ value: String(a.id), label: a.name }))}
           value={areaId}
-          onChange={(e) => setAreaId(e.target.value)}
+          onChange={(val) => setAreaId(val)}
+          placeholder="No area — directly under subject"
           disabled={!subjectSlug}
-          className={`${inp} disabled:opacity-50 disabled:cursor-not-allowed`}
-        >
-          <option value="">No area — directly under subject</option>
-          {areas.map((a) => (
-            <option key={a.id} value={String(a.id)}>{a.name}</option>
-          ))}
-        </select>
+        />
         {subjectSlug && areas.length === 0 && (
           <p className="text-xs text-slate-400 mt-1">No areas for this subject — chapter will be added directly.</p>
         )}

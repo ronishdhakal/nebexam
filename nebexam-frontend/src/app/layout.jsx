@@ -20,12 +20,17 @@ const devanagari = Noto_Sans_Devanagari({
 export const metadata = {
   title: 'NEB Exam — NEB Exam Preparation Platform',
   description: 'Notes, past papers, model questions and chapter resources for NEB — Class 10, 11 and 12.',
+  icons: {
+    icon: '/assets/icon.png',
+    shortcut: '/assets/icon.png',
+    apple: '/assets/icon.png',
+  },
 };
 
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning className={`${jakarta.variable} ${devanagari.variable}`}>
-      <body className="font-sans antialiased">
+      <body className="font-sans antialiased" suppressHydrationWarning>
         <ThemeProvider>
           <ConfigLoader />
           {children}

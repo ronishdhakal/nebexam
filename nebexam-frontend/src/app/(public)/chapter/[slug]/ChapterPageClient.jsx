@@ -233,9 +233,9 @@ function ImportantQuestionsSection({ questions }) {
   return (
     <div className="space-y-6">
       {manual.length > 0 && (
-        <div className="space-y-4">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm px-6 py-5 space-y-5">
           {manual.map((node) => (
-            <QuestionCard key={node.id} node={node} index={counter++} depth={0} />
+            <QuestionCard key={node.id} node={node} index={counter++} depth={0} paperMode />
           ))}
         </div>
       )}
@@ -252,9 +252,9 @@ function ImportantQuestionsSection({ questions }) {
               </span>
               <div className="flex-1 h-px bg-amber-100" />
             </div>
-            <div className="space-y-4">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm px-6 py-5 space-y-5">
               {group.questions.map((node) => (
-                <QuestionCard key={node.id} node={node} index={counter++} depth={0} hideMeta />
+                <QuestionCard key={node.id} node={node} index={counter++} depth={0} paperMode />
               ))}
             </div>
           </div>

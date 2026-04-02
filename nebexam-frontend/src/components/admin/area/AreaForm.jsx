@@ -3,6 +3,7 @@
 import { useState, useEffect } from 'react';
 import { subjectsService } from '@/services/subjects.service';
 import { getErrorMessage } from '@/lib/utils';
+import SearchableSelect from '@/components/ui/SearchableSelect';
 
 const inp = 'w-full border border-slate-300 bg-white rounded-lg px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1CA3FD] focus:border-transparent transition';
 const lbl = 'block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide';
@@ -46,17 +47,12 @@ export default function AreaForm({ initial = {}, onSubmit, loading }) {
 
       <div>
         <label className={lbl}>Subject</label>
-        <select
-          required
-          value={form.subject}
-          onChange={(e) => setForm({ ...form, subject: e.target.value })}
-          className={inp}
-        >
-          <option value="">Select subject</option>
-          {subjects.map((s) => (
-            <option key={s.id} value={s.id}>{s.name} (Class {s.class_level})</option>
-          ))}
-        </select>
+        <SearchableSelect
+          options={subjects.map((s) => ({ value: String(s.id), label: `${s.name} (Class ${s.class_level})` }))}
+          value={String(form.subject)}
+          onChange={(val) => setForm({ ...form, subject: val })}
+          placeholder="Select subject"
+        />
       </div>
 
       <div>

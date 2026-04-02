@@ -87,6 +87,10 @@ export default function Footer() {
               <li><FooterLink href="/about">About Us</FooterLink></li>
               <li><FooterLink href="/contact">Contact</FooterLink></li>
               <li><FooterLink href="/how-to-use">How to Use</FooterLink></li>
+              <li><FooterLink href="/subscription">Subscription</FooterLink></li>
+              {esewaEnabled && (
+                <li><FooterLink href="/referral-program">Refer &amp; Earn</FooterLink></li>
+              )}
             </ul>
           </div>
 
@@ -110,13 +114,13 @@ export default function Footer() {
             <div className="flex items-center gap-2">
               <span className="text-xs text-slate-400 dark:text-slate-500">Official Payment Partner</span>
               <span className="text-slate-200 dark:text-slate-700 text-xs">·</span>
-              <Image
+              <span className="inline-flex items-center bg-white rounded px-1.5 py-0.5"><Image
                 src="/assets/esewa.png"
                 alt="eSewa"
-                width={56}
-                height={20}
-                className="h-5 w-auto object-contain"
-              />
+                width={66}
+                height={24}
+                className="h-6 w-auto object-contain"
+              /></span>
             </div>
           )}
         </div>

@@ -1,9 +1,9 @@
 import api from '@/lib/api';
-import { getRefreshToken } from '@/lib/auth';
+import { getRefreshToken, getDeviceId } from '@/lib/auth';
 
 export const authService = {
-  register:       (data) => api.post('/users/register/', data),
-  login:          (data) => api.post('/users/login/', data),
+  register:       (data) => api.post('/users/register/', { ...data, device_id: getDeviceId() }),
+  login:          (data) => api.post('/users/login/', { ...data, device_id: getDeviceId() }),
   logout:         ()     => api.post('/users/logout/', { refresh: getRefreshToken() }),
   getProfile:     ()     => api.get('/users/profile/'),
   updateProfile:  (data) => api.patch('/users/profile/', data),
@@ -22,6 +22,8 @@ export const paymentService = {
   createCoupon:    (data)               => api.post('/payments/coupons/', data),
   updateCoupon:    (id, data)           => api.patch(`/payments/coupons/${id}/`, data),
   deleteCoupon:    (id)                 => api.delete(`/payments/coupons/${id}/`),
+  recordCheckoutVisit: (tier)           => api.post('/payments/checkout-visit/', { tier }),
+  setCrmStatus:    (userId, crm_status) => api.patch(`/payments/crm/${userId}/`, { crm_status }),
 };
 
 export const studyService = {
@@ -29,7 +31,17 @@ export const studyService = {
   getStats: (period) => api.get('/users/study/stats/', { params: { period } }),
 };
 
+export const referralService = {
+  getMyStats:          ()                   => api.get('/users/referral/'),
+  getAdminStats:       ()                   => api.get('/payments/referral-stats/'),
+  clearBalance:        (userId)             => api.post(`/users/${userId}/clear-referral/`),
+  requestPayout:       (data)               => api.post('/payments/payout-request/', data),
+  getPayoutRequests:   (status)             => api.get('/payments/payout-requests/', { params: status ? { status } : {} }),
+  actionPayoutRequest: (id, data)           => api.patch(`/payments/payout-requests/${id}/`, data),
+};
+
 export const configService = {
   getSiteSettings:    ()     => api.get('/users/site-settings/'),
   updateSiteSettings: (data) => api.patch('/users/site-settings/', data),
+  clearCache:         ()     => api.post('/users/clear-cache/'),
 };

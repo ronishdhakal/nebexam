@@ -136,6 +136,28 @@ export default function Navbar() {
 
             <ClassDropdown level="11" label="Class 11" isActive={pathname?.startsWith('/class-11')} />
             <ClassDropdown level="12" label="Class 12" isActive={pathname?.startsWith('/class-12')} />
+
+            <Link
+              href="/news"
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                pathname?.startsWith('/news')
+                  ? 'bg-[#1CA3FD]/10 text-[#1CA3FD]'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              News
+            </Link>
+
+            <Link
+              href="/blog"
+              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
+                pathname?.startsWith('/blog')
+                  ? 'bg-[#1CA3FD]/10 text-[#1CA3FD]'
+                  : 'text-slate-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+              }`}
+            >
+              Blog
+            </Link>
           </div>
 
           {/* Right side */}
@@ -249,6 +271,21 @@ export default function Navbar() {
                 )}
               </div>
             ))}
+
+            <Link
+              href="/news"
+              onClick={() => setMenuOpen(false)}
+              className="block px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800"
+            >
+              News
+            </Link>
+            <Link
+              href="/blog"
+              onClick={() => setMenuOpen(false)}
+              className="block px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800"
+            >
+              Blog
+            </Link>
 
             <div className="border-t border-gray-100 dark:border-slate-800 pt-2 mt-2">
               {isAuthenticated ? (

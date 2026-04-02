@@ -23,6 +23,13 @@ export default function EditUserPage({ params: rawParams }) {
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState(null);
+
+  const [pwForm, setPwForm]   = useState({ password: '', confirm: '' });
+  const [pwLoading, setPwLoading] = useState(false);
+  const [pwError, setPwError] = useState(null);
+  const [pwSaved, setPwSaved] = useState(false);
+
+
   const router = useRouter();
 
   useEffect(() => {
@@ -61,6 +68,30 @@ export default function EditUserPage({ params: rawParams }) {
       setError(getErrorMessage(err));
     } finally {
       setLoading(false);
+    }
+  };
+
+  const handleSetPassword = async (e) => {
+    e.preventDefault();
+    setPwError(null);
+    if (pwForm.password !== pwForm.confirm) {
+      setPwError('Passwords do not match.');
+      return;
+    }
+    if (pwForm.password.length < 8) {
+      setPwError('Password must be at least 8 characters.');
+      return;
+    }
+    setPwLoading(true);
+    try {
+      await api.post(`/users/${params.id}/set-password/`, { password: pwForm.password });
+      setPwSaved(true);
+      setPwForm({ password: '', confirm: '' });
+      setTimeout(() => setPwSaved(false), 2500);
+    } catch (err) {
+      setPwError(getErrorMessage(err));
+    } finally {
+      setPwLoading(false);
     }
   };
 
@@ -201,7 +232,14 @@ export default function EditUserPage({ params: rawParams }) {
               onClick={() => setForm({ ...form, subscription_expires_at: '' })}
               className="text-xs px-3 py-1.5 rounded-lg border border-slate-200 text-slate-400 hover:border-red-300 hover:text-red-500 transition-colors"
             >
-              Clear
+              Clear expiry
+            </button>
+            <button
+              type="button"
+              onClick={() => setForm({ ...form, subscription_tier: 'free', subscription_expires_at: '' })}
+              className="text-xs px-3 py-1.5 rounded-lg border border-red-200 text-red-500 hover:bg-red-50 transition-colors font-semibold"
+            >
+              Clear subscription
             </button>
           </div>
         </div>
@@ -253,6 +291,63 @@ export default function EditUserPage({ params: rawParams }) {
             Cancel
           </button>
         </div>
+      </form>
+
+      {/* ── Set Password ── */}
+      <form onSubmit={handleSetPassword} className="space-y-4 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <div className="flex items-center gap-2 mb-1">
+          <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" className="text-slate-400">
+            <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/>
+            <path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+          </svg>
+          <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest">Set Password</p>
+        </div>
+        <p className="text-xs text-slate-400 -mt-1">
+          Setting a new password will immediately log the user out of all devices.
+        </p>
+
+        {pwError && (
+          <div className="p-3 bg-red-50 border border-red-200 text-red-600 text-sm rounded-lg">{pwError}</div>
+        )}
+        {pwSaved && (
+          <div className="p-3 bg-green-50 border border-green-200 text-green-700 text-sm rounded-lg">
+            Password updated. User has been logged out of all devices.
+          </div>
+        )}
+
+        <div className="grid grid-cols-2 gap-4">
+          <div>
+            <label className={lbl}>New Password</label>
+            <input
+              type="password"
+              required
+              minLength={8}
+              value={pwForm.password}
+              onChange={(e) => setPwForm({ ...pwForm, password: e.target.value })}
+              placeholder="Min 8 characters"
+              className={inp}
+            />
+          </div>
+          <div>
+            <label className={lbl}>Confirm Password</label>
+            <input
+              type="password"
+              required
+              value={pwForm.confirm}
+              onChange={(e) => setPwForm({ ...pwForm, confirm: e.target.value })}
+              placeholder="Repeat password"
+              className={inp}
+            />
+          </div>
+        </div>
+
+        <button
+          type="submit"
+          disabled={pwLoading}
+          className="inline-flex items-center gap-2 bg-slate-800 hover:bg-slate-700 text-white px-5 py-2.5 rounded-xl text-sm font-semibold shadow-sm transition-colors disabled:opacity-50"
+        >
+          {pwLoading ? 'Updating…' : 'Set Password'}
+        </button>
       </form>
     </div>
   );

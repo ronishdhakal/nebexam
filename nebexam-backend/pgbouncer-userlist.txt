@@ -1,0 +1,5 @@
+; PgBouncer userlist — passwords are MD5 hashed: md5(password + username)
+; Generate with: echo -n "Abroad@@##77postgres" | md5sum  → prefix with "md5"
+; Or use SCRAM-SHA-256 if PostgreSQL 14+ and auth_type = scram-sha-256
+
+"postgres" "md5d12030bc8fa10124155f84b525fe3597"

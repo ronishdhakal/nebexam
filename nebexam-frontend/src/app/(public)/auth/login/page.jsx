@@ -22,27 +22,27 @@ function EyeIcon({ open }) {
 }
 
 function LoginForm() {
-  const [form, setForm]               = useState({ email: '', password: '' });
-  const [showPw, setShowPw]           = useState(false);
-  const [error, setError]             = useState(null);
-  const [loading, setLoading]         = useState(false);
-  const [deviceLimit, setDeviceLimit] = useState(null);
+  const [form, setForm]         = useState({ email: '', password: '' });
+  const [showPw, setShowPw]     = useState(false);
+  const [error, setError]       = useState(null);
+  const [loading, setLoading]   = useState(false);
+  const [newDevice, setNewDevice] = useState(null);
   const { handleLogin } = useAuth();
   const router  = useRouter();
   const params  = useSearchParams();
   const resetOk = params.get('reset') === '1';
 
-  const submit = async (force = false) => {
+  const submit = async () => {
     setError(null);
-    setDeviceLimit(null);
+    setNewDevice(null);
     setLoading(true);
     try {
-      const data = await handleLogin(form, force);
+      const data = await handleLogin(form);
       router.push(data.user.is_staff ? '/admin' : '/dashboard');
     } catch (err) {
       const body = err.response?.data;
-      if (err.response?.status === 403 && body?.code === 'device_limit') {
-        setDeviceLimit(body);
+      if (err.response?.status === 403 && body?.code === 'new_device') {
+        setNewDevice(body);
       } else {
         const msg = body?.detail || body?.non_field_errors?.[0] || 'Invalid credentials.';
         setError(typeof msg === 'string' ? msg : JSON.stringify(msg));
@@ -75,18 +75,18 @@ function LoginForm() {
             </div>
           )}
 
-          {deviceLimit && (
+          {newDevice && (
             <div className="mb-5 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm">
-              <p className="font-semibold text-amber-800 mb-1">Device limit reached</p>
+              <p className="font-semibold text-amber-800 mb-1">New device detected</p>
               <p className="text-amber-700 mb-3">
-                You are already logged in on another <strong>{deviceLimit.device_type}</strong>.
-                To sign in on this device, reset your password — this will sign out all other devices automatically.
+                Your account is already active on another <strong>{newDevice.device_type}</strong>.
+                To sign in here, reset your password — this will automatically log out all other devices.
               </p>
               <Link
-                href="/auth/forgot-password"
+                href={`/auth/forgot-password?email=${encodeURIComponent(form.email)}`}
                 className="inline-block w-full text-center bg-amber-500 hover:bg-amber-600 text-white font-semibold py-2.5 rounded-xl transition-colors text-sm"
               >
-                Reset password to continue
+                Reset password to sign in →
               </Link>
             </div>
           )}

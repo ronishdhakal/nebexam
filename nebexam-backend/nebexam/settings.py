@@ -30,10 +30,12 @@ INSTALLED_APPS = [
     'content',
     'questionbank',
     'payments',
+    'news',
 ]
 
 MIDDLEWARE = [
     'django.middleware.security.SecurityMiddleware',
+    'whitenoise.middleware.WhiteNoiseMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -65,8 +67,16 @@ WSGI_APPLICATION = 'nebexam.wsgi.application'
 
 DATABASES = {
     'default': {
-        'ENGINE': 'django.db.backends.sqlite3',
-        'NAME': BASE_DIR / 'db.sqlite3',
+        'ENGINE': 'django.db.backends.postgresql',
+        'NAME':     os.getenv('DB_NAME', 'nebexam_db'),
+        'USER':     os.getenv('DB_USER', 'postgres'),
+        'PASSWORD': os.getenv('DB_PASSWORD', ''),
+        'HOST':     os.getenv('DB_HOST', '127.0.0.1'),
+        'PORT':     os.getenv('DB_PORT', '5432'),
+        'CONN_MAX_AGE': 0,  # let PgBouncer own the pooling, Django keeps connections stateless
+        'OPTIONS': {
+            'connect_timeout': 10,
+        },
     }
 }
 
@@ -83,6 +93,7 @@ USE_I18N = True
 USE_TZ = True
 
 STATIC_URL = 'static/'
+STATIC_ROOT = BASE_DIR / 'staticfiles'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 # ── Cloudflare R2 Storage ──────────────────────────────────────────────────
@@ -154,6 +165,18 @@ FRONTEND_URL = os.getenv('FRONTEND_URL', 'http://localhost:3000')
 ESEWA_URL          = os.getenv('ESEWA_URL', 'https://rc-epay.esewa.com.np/api/epay/main/v2/form')
 ESEWA_PRODUCT_CODE = os.getenv('ESEWA_PRODUCT_CODE', 'EPAYTEST')
 ESEWA_SECRET_KEY   = os.getenv('ESEWA_SECRET_KEY', '8gBm/:&EnhH.1/q')
+
+# ── Cache (file-based) ────────────────────────────────────────────────────
+CACHES = {
+    'default': {
+        'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
+        'LOCATION': BASE_DIR / '.cache',
+        'TIMEOUT': 60 * 60,  # 1 hour default
+        'OPTIONS': {
+            'MAX_ENTRIES': 1000,
+        },
+    }
+}
 
 SPECTACULAR_SETTINGS = {
     'TITLE': 'NEB Exam API',

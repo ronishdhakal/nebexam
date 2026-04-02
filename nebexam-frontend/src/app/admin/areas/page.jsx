@@ -43,10 +43,10 @@ export default function AreasPage() {
     fetchAreas(params);
   }, [subjectFilter]);
 
-  const handleDelete = async (slug) => {
+  const handleDelete = async (id) => {
     if (!confirm('Delete this area?')) return;
     try {
-      await areasService.delete(slug);
+      await areasService.delete(id);
       const params = {};
       if (subjectFilter) params.subject = subjectFilter;
       fetchAreas(params);

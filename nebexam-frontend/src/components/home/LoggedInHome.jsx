@@ -3,32 +3,63 @@
 import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import useAuthStore from '@/store/authStore';
+import useConfigStore from '@/store/configStore';
 import { authService } from '@/services/users.service';
 import { subjectsService } from '@/services/subjects.service';
 import SubjectCard from '@/components/subject/SubjectCard';
+import { mediaUrl } from '@/lib/utils';
 
-const LEVELS = ['10', '11', '12'];
-const STREAMS = [
-  { value: 'science',    label: 'Science',    activeClass: 'bg-blue-500 text-white border-blue-500',    inactiveClass: 'border-blue-200 text-blue-600 hover:bg-blue-50 dark:border-blue-800 dark:text-blue-400' },
-  { value: 'management', label: 'Management', activeClass: 'bg-emerald-500 text-white border-emerald-500', inactiveClass: 'border-emerald-200 text-emerald-600 hover:bg-emerald-50 dark:border-emerald-800 dark:text-emerald-400' },
-];
+// ── helpers ──────────────────────────────────────────────────────────────────
+
+function getDaysLeft(expiresAt) {
+  if (!expiresAt) return null;
+  return Math.max(0, Math.ceil((new Date(expiresAt) - new Date()) / 86400000));
+}
+
+const TIER_LABEL = { free: 'Free', '1month': '1 Month', '3month': '3 Months', '1year': '1 Year' };
+
+// ── Skeleton ─────────────────────────────────────────────────────────────────
+
+function Skeleton() {
+  return (
+    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+      {Array.from({ length: 6 }).map((_, i) => (
+        <div key={i} className="h-[120px] rounded-2xl bg-gray-100 dark:bg-surface-2 animate-pulse" style={{ animationDelay: `${i * 60}ms` }} />
+      ))}
+    </div>
+  );
+}
+
+// ── Main ─────────────────────────────────────────────────────────────────────
 
 export default function LoggedInHome({ user }) {
-  const { setUser } = useAuthStore();
-  const [level, setLevel]     = useState(user.level || '12');
-  const [stream, setStream]   = useState(user.stream || '');
+  const { setUser }    = useAuthStore();
+  const esewaEnabled   = useConfigStore((s) => s.esewaEnabled);
+
+  const [level, setLevel]       = useState(user.level || '12');
+  const [stream, setStream]     = useState(user.stream || '');
   const [subjects, setSubjects] = useState([]);
   const [loading, setLoading]   = useState(true);
   const [saving, setSaving]     = useState(false);
 
   const isStreamed = level === '11' || level === '12';
+  const isFree     = (user.subscription_tier || 'free') === 'free';
+  const daysLeft   = getDaysLeft(user.subscription_expires_at);
+  const browseHref = isStreamed && stream ? `/class-${level}/${stream}` : `/class-${level}`;
 
+  const picUrl   = mediaUrl(user.profile_picture);
+  const initials = user.name?.split(' ').map((n) => n[0]).join('').slice(0, 2).toUpperCase() ?? 'U';
+
+  const hour     = new Date().getHours();
+  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+
+  // ── fetch subjects ──────────────────────────────────────────────────────────
   const fetchSubjects = useCallback(async () => {
     setLoading(true);
     try {
       const params = { class_level: level };
       if (isStreamed && stream) params.stream = stream;
-      const res = await subjectsService.getAll(params);
+      const res  = await subjectsService.getAll(params);
       const list = res.data.results ?? res.data;
       setSubjects(Array.isArray(list) ? list : []);
     } catch {
@@ -40,226 +71,252 @@ export default function LoggedInHome({ user }) {
 
   useEffect(() => { fetchSubjects(); }, [fetchSubjects]);
 
+  // ── save class/stream preference ───────────────────────────────────────────
   const savePreference = async (newLevel, newStream) => {
     setSaving(true);
     try {
       const res = await authService.updateProfile({ level: newLevel, stream: newStream });
       setUser(res.data);
-    } catch {
-      // silent — local state already updated, preference just didn't persist
-    } finally {
+    } catch { /* silent */ } finally {
       setSaving(false);
     }
   };
 
-  const handleLevelChange = (newLevel) => {
-    const newStream = (newLevel === '11' || newLevel === '12') ? stream : '';
-    setLevel(newLevel);
-    setStream(newStream);
-    savePreference(newLevel, newStream);
+  const handleLevel = (l) => {
+    const s = (l === '11' || l === '12') ? stream : '';
+    setLevel(l); setStream(s);
+    savePreference(l, s);
   };
 
-  const handleStreamChange = (newStream) => {
-    const next = stream === newStream ? '' : newStream;
+  const handleStream = (s) => {
+    const next = stream === s ? '' : s;
     setStream(next);
     savePreference(level, next);
   };
 
-  const hour = new Date().getHours();
-  const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  const firstName = user.name?.split(' ')[0];
-
-  const streamLabel = stream ? (stream === 'science' ? 'Science' : 'Management') : 'All subjects';
-  const browseHref = isStreamed && stream ? `/class-${level}/${stream}` : `/class-${level}`;
-
   return (
-    <div className="bg-white dark:bg-slate-900 min-h-[80vh]">
+    <div className="min-h-screen bg-gray-50 dark:bg-background">
 
-      {/* ── Personalized header ── */}
-      <div className="border-b border-gray-100 dark:border-slate-800 bg-white dark:bg-slate-900">
-        <div className="max-w-6xl mx-auto px-6 py-8">
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
-            <div>
-              <p className="text-xs font-bold text-[#1CA3FD] uppercase tracking-widest mb-1">
-                {saving ? 'Saving…' : 'Your Study Hub'}
-              </p>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-slate-900 dark:text-white">
-                {greeting}, {firstName} 👋
-              </h1>
-              <p className="text-sm text-slate-500 mt-1">
-                Class {level} {isStreamed && stream ? `· ${streamLabel}` : ''}
-              </p>
-            </div>
-            <Link
-              href="/dashboard"
-              className="inline-flex items-center gap-2 text-sm font-semibold text-[#1CA3FD] hover:text-[#0e8fe0] transition-colors"
-            >
-              Go to Dashboard
-              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
-              </svg>
-            </Link>
-          </div>
+      {/* ═══════════════════════════════════════════════════════════════════════
+          HERO HEADER
+      ══════════════════════════════════════════════════════════════════════ */}
+      <div className="bg-white dark:bg-surface border-b border-gray-100 dark:border-border-col">
+        <div className="max-w-6xl mx-auto px-5 sm:px-8 py-6 sm:py-8">
+          <div className="flex items-start justify-between gap-4">
 
-          {/* ── Class + Stream toggles ── */}
-          <div className="flex flex-wrap items-center gap-3 mt-5">
-            {/* Class pills */}
-            <div className="flex items-center gap-1.5 bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
-              {LEVELS.map((l) => (
-                <button
-                  key={l}
-                  onClick={() => handleLevelChange(l)}
-                  className={`px-4 py-1.5 rounded-lg text-sm font-bold transition-all ${
-                    level === l
-                      ? 'bg-[#1CA3FD] text-white shadow-sm'
-                      : 'text-slate-500 hover:text-slate-800 dark:hover:text-slate-200'
-                  }`}
-                >
-                  Class {l}
-                </button>
-              ))}
-            </div>
+            {/* Left: greeting + selectors */}
+            <div className="flex-1 min-w-0">
 
-            {/* Stream pills — only for 11/12 */}
-            {isStreamed && (
-              <div className="flex items-center gap-2">
-                {STREAMS.map(({ value, label, activeClass, inactiveClass }) => (
-                  <button
-                    key={value}
-                    onClick={() => handleStreamChange(value)}
-                    className={`px-3.5 py-1.5 rounded-xl border text-xs font-bold transition-all ${
-                      stream === value ? activeClass : inactiveClass
-                    }`}
-                  >
-                    {label}
-                  </button>
-                ))}
+              {/* Greeting row */}
+              <div className="flex items-center gap-3 mb-4">
+                {/* Avatar */}
+                <div className="w-10 h-10 rounded-full bg-[#1CA3FD]/10 flex items-center justify-center shrink-0 overflow-hidden">
+                  {picUrl
+                    ? <img src={picUrl} alt={user.name} className="w-full h-full object-cover" />
+                    : <span className="text-sm font-black text-[#1CA3FD]">{initials}</span>
+                  }
+                </div>
+                <div>
+                  <p className="text-xs font-semibold text-slate-400 dark:text-muted">{greeting}</p>
+                  <h1 className="text-lg sm:text-xl font-extrabold text-slate-900 dark:text-foreground leading-tight">
+                    {user.name?.split(' ')[0]}
+                    {saving && <span className="ml-2 text-xs font-normal text-slate-400 dark:text-muted">saving…</span>}
+                  </h1>
+                  {esewaEnabled && user.referral_code && (
+                    <Link
+                      href="/referral-program"
+                      className="inline-flex items-center gap-2 mt-1.5 group"
+                    >
+                      <span className="font-mono text-xs font-bold text-violet-600 dark:text-violet-400 bg-violet-50 dark:bg-violet-950/40 border border-violet-200 dark:border-violet-800 px-2 py-0.5 rounded-lg tracking-wider">
+                        {user.referral_code}
+                      </span>
+                      <span className="hidden sm:inline text-xs text-slate-400 dark:text-muted group-hover:text-violet-500 transition">
+                        Invite friends — they get 10% off, you earn 10%
+                      </span>
+                      <svg width="10" height="10" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" className="text-slate-300 group-hover:text-violet-500 transition">
+                        <polyline points="9 18 15 12 9 6"/>
+                      </svg>
+                    </Link>
+                  )}
+                </div>
               </div>
-            )}
+
+              {/* Class + Stream selector */}
+              <div className="flex flex-wrap items-center gap-2">
+
+                {/* Class tabs */}
+                <div className="flex items-center bg-gray-100 dark:bg-surface-2 rounded-xl p-1 gap-0.5">
+                  {['10', '11', '12'].map((l) => (
+                    <button
+                      key={l}
+                      onClick={() => handleLevel(l)}
+                      className={`px-3.5 py-1.5 rounded-lg text-sm font-bold transition-all ${
+                        level === l
+                          ? 'bg-white dark:bg-surface text-slate-900 dark:text-foreground shadow-sm'
+                          : 'text-slate-400 dark:text-muted hover:text-slate-600 dark:hover:text-foreground'
+                      }`}
+                    >
+                      {l}
+                    </button>
+                  ))}
+                </div>
+
+                {/* Stream toggle */}
+                {isStreamed && (
+                  <div className="flex items-center gap-1.5">
+                    {[
+                      { value: 'science',    label: 'Science',    on: 'bg-blue-500 text-white',    off: 'bg-white dark:bg-surface text-blue-600 border border-blue-200 dark:border-blue-900 hover:bg-blue-50 dark:hover:bg-blue-950' },
+                      { value: 'management', label: 'Management', on: 'bg-emerald-500 text-white',  off: 'bg-white dark:bg-surface text-emerald-600 border border-emerald-200 dark:border-emerald-900 hover:bg-emerald-50 dark:hover:bg-emerald-950' },
+                    ].map(({ value, label, on, off }) => (
+                      <button
+                        key={value}
+                        onClick={() => handleStream(value)}
+                        className={`px-3 py-1.5 rounded-xl text-xs font-bold transition-all ${stream === value ? on : off}`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Right: plan badge + dashboard link */}
+            <div className="flex flex-col items-end gap-2 shrink-0">
+              {/* Plan/expiry */}
+              {isFree ? (
+                <Link
+                  href={esewaEnabled ? `/checkout/1month` : '/dashboard'}
+                  className="inline-flex items-center gap-1.5 text-xs font-bold px-3 py-1.5 rounded-xl bg-[#1CA3FD] text-white hover:bg-[#0e8fe0] transition shadow-sm shadow-[#1CA3FD]/20"
+                >
+                  <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                    <polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                  </svg>
+                  Upgrade Plan
+                </Link>
+              ) : (
+                <div className="text-right">
+                  <span className={`inline-block text-[11px] font-bold px-2.5 py-1 rounded-lg ${
+                    daysLeft !== null && daysLeft <= 7  ? 'bg-red-50 text-red-600' :
+                    daysLeft !== null && daysLeft <= 30 ? 'bg-amber-50 text-amber-600' :
+                    'bg-emerald-50 text-emerald-600'
+                  }`}>
+                    {TIER_LABEL[user.subscription_tier]}
+                    {daysLeft !== null && ` · ${daysLeft}d left`}
+                  </span>
+                </div>
+              )}
+
+              <Link
+                href="/dashboard"
+                className="text-xs font-semibold text-slate-400 dark:text-muted hover:text-[#1CA3FD] transition flex items-center gap-1"
+              >
+                Dashboard
+                <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                  <polyline points="9 18 15 12 9 6"/>
+                </svg>
+              </Link>
+            </div>
+
           </div>
         </div>
       </div>
 
-      {/* ── Subjects grid ── */}
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        {loading ? (
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-            {Array.from({ length: 6 }).map((_, i) => (
-              <div key={i} className="h-28 rounded-2xl bg-slate-100 dark:bg-slate-800 animate-pulse" />
-            ))}
+      {/* ═══════════════════════════════════════════════════════════════════════
+          SUBJECTS
+      ══════════════════════════════════════════════════════════════════════ */}
+      <div className="max-w-6xl mx-auto px-5 sm:px-8 py-8">
+
+        {/* Section label */}
+        <div className="flex items-center justify-between mb-5">
+          <div className="flex items-center gap-2.5">
+            <p className="text-sm font-bold text-slate-800 dark:text-foreground">
+              Class {level} Subjects
+              {isStreamed && stream && (
+                <span className={`ml-1.5 text-xs font-semibold ${stream === 'science' ? 'text-blue-600' : 'text-emerald-600'}`}>
+                  · {stream === 'science' ? 'Science' : 'Management'}
+                </span>
+              )}
+            </p>
+            {!loading && subjects.length > 0 && (
+              <span className="text-xs font-semibold text-slate-400 dark:text-muted bg-white dark:bg-surface border border-gray-100 dark:border-border-col px-2 py-0.5 rounded-lg">
+                {subjects.length}
+              </span>
+            )}
           </div>
+          <Link href={browseHref} className="text-xs font-semibold text-[#1CA3FD] hover:text-[#0e8fe0] transition">
+            See all →
+          </Link>
+        </div>
+
+        {loading ? (
+          <Skeleton />
         ) : subjects.length === 0 ? (
-          <div className="text-center py-20 text-slate-400 text-sm">No subjects found for this selection.</div>
+          <div className="flex flex-col items-center justify-center py-20 text-center">
+            <div className="w-14 h-14 rounded-2xl bg-gray-100 dark:bg-surface-2 flex items-center justify-center mb-4">
+              <svg width="22" height="22" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" className="text-slate-300 dark:text-muted">
+                <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
+              </svg>
+            </div>
+            <p className="text-sm font-semibold text-slate-500 dark:text-muted mb-1">No subjects found</p>
+            <p className="text-xs text-slate-400 dark:text-muted">Try selecting a different class or stream.</p>
+          </div>
         ) : (
-          <>
-            <div className="flex items-center justify-between mb-5">
-              <p className="text-xs font-bold text-slate-400 uppercase tracking-widest">
-                {subjects.length} subject{subjects.length !== 1 ? 's' : ''}
-              </p>
-              <Link href={browseHref} className="text-xs font-semibold text-[#1CA3FD] hover:text-[#0e8fe0] transition-colors">
-                Browse all →
-              </Link>
-            </div>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {subjects.map((s) => <SubjectCard key={s.id} subject={s} />)}
-            </div>
-          </>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            {subjects.map((s) => <SubjectCard key={s.id} subject={s} />)}
+          </div>
         )}
       </div>
 
-      {/* ── Quick Access ── */}
-      <div className="border-t border-gray-100 dark:border-slate-800 bg-slate-50/60 dark:bg-slate-800/30">
-        <div className="max-w-6xl mx-auto px-6 py-8">
-          <p className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-5">Quick Access</p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
-            {[
-              {
-                label: 'Past Papers',
-                desc: 'Previous NEB board questions',
-                href: browseHref,
-                color: 'text-[#1CA3FD]',
-                bg: 'bg-[#EEF6FF] dark:bg-[#1CA3FD]/10',
-                icon: (
-                  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                    <circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/>
-                  </svg>
-                ),
-              },
-              {
-                label: 'Chapter Notes',
-                desc: 'Subject & chapter wise notes',
-                href: browseHref,
-                color: 'text-violet-600',
-                bg: 'bg-violet-50 dark:bg-violet-950/20',
-                icon: (
-                  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
-                  </svg>
-                ),
-              },
-              {
-                label: 'Syllabus',
-                desc: 'Official NEB curriculum',
-                href: browseHref,
-                color: 'text-emerald-600',
-                bg: 'bg-emerald-50 dark:bg-emerald-950/20',
-                icon: (
-                  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                    <line x1="8" y1="6" x2="21" y2="6"/><line x1="8" y1="12" x2="21" y2="12"/><line x1="8" y1="18" x2="21" y2="18"/>
-                    <line x1="3" y1="6" x2="3.01" y2="6"/><line x1="3" y1="12" x2="3.01" y2="12"/><line x1="3" y1="18" x2="3.01" y2="18"/>
-                  </svg>
-                ),
-              },
-              {
-                label: 'Dashboard',
-                desc: 'Your profile & subscription',
-                href: '/dashboard',
-                color: 'text-amber-600',
-                bg: 'bg-amber-50 dark:bg-amber-950/20',
-                icon: (
-                  <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                    <rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/>
-                  </svg>
-                ),
-              },
-            ].map((item) => (
-              <Link
-                key={item.label}
-                href={item.href}
-                className="group flex flex-col gap-3 p-4 bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 hover:border-transparent hover:shadow-lg transition-all"
-              >
-                <div className={`w-10 h-10 rounded-xl ${item.bg} ${item.color} flex items-center justify-center`}>
-                  {item.icon}
-                </div>
-                <div>
-                  <p className="text-sm font-bold text-slate-800 dark:text-slate-100 group-hover:text-[#1CA3FD] transition-colors">{item.label}</p>
-                  <p className="text-xs text-slate-400 mt-0.5 leading-snug">{item.desc}</p>
-                </div>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </div>
-
-      {/* ── Study tip strip ── */}
-      <div className="max-w-6xl mx-auto px-6 py-8">
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-[#1CA3FD] to-[#0e8fe0] px-6 py-5 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4">
-          <div className="absolute inset-0 pointer-events-none opacity-10" style={{ backgroundImage: 'radial-gradient(circle at 10% 50%, white 0%, transparent 55%)' }} />
-          <div className="relative">
-            <p className="text-xs font-bold text-white/70 uppercase tracking-widest mb-1">Today&apos;s tip</p>
-            <p className="text-white font-semibold text-sm leading-snug max-w-md">
-              Consistency beats intensity. Even 30 minutes of focused study daily will put you ahead by exam time.
-            </p>
-          </div>
-          <Link
-            href={browseHref}
-            className="relative shrink-0 inline-flex items-center gap-2 bg-white/15 hover:bg-white/25 border border-white/20 text-white font-semibold text-sm px-5 py-2.5 rounded-xl transition-colors"
-          >
-            Start Studying
-            <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-              <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
-            </svg>
-          </Link>
+      {/* ═══════════════════════════════════════════════════════════════════════
+          QUICK LINKS
+      ══════════════════════════════════════════════════════════════════════ */}
+      <div className="max-w-6xl mx-auto px-5 sm:px-8 pb-12">
+        <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+          {[
+            {
+              label: 'Past Papers',
+              desc:  'Board questions',
+              href:  browseHref,
+              icon:  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>,
+              accent: 'bg-[#1CA3FD]/8 text-[#1CA3FD]',
+            },
+            {
+              label: 'Chapter Notes',
+              desc:  'Subject-wise notes',
+              href:  browseHref,
+              icon:  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>,
+              accent: 'bg-violet-50 text-violet-600',
+            },
+            {
+              label: 'Model Sets',
+              desc:  'Full-length practice',
+              href:  browseHref,
+              icon:  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>,
+              accent: 'bg-emerald-50 text-emerald-600',
+            },
+            {
+              label: 'Dashboard',
+              desc:  'Profile & progress',
+              href:  '/dashboard',
+              icon:  <svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="1.75" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1"/><rect x="14" y="3" width="7" height="7" rx="1"/><rect x="14" y="14" width="7" height="7" rx="1"/><rect x="3" y="14" width="7" height="7" rx="1"/></svg>,
+              accent: 'bg-amber-50 text-amber-600',
+            },
+          ].map((item) => (
+            <Link
+              key={item.label}
+              href={item.href}
+              className="group flex items-center gap-3 bg-white dark:bg-surface rounded-2xl border border-gray-100 dark:border-border-col hover:border-gray-200 dark:hover:border-surface-2 hover:shadow-sm p-4 transition-all"
+            >
+              <div className={`w-9 h-9 rounded-xl flex items-center justify-center shrink-0 ${item.accent}`}>
+                {item.icon}
+              </div>
+              <div className="min-w-0">
+                <p className="text-sm font-bold text-slate-800 dark:text-foreground group-hover:text-[#1CA3FD] transition truncate">{item.label}</p>
+                <p className="text-[11px] text-slate-400 dark:text-muted truncate">{item.desc}</p>
+              </div>
+            </Link>
+          ))}
         </div>
       </div>
 

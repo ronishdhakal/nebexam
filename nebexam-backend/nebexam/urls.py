@@ -22,6 +22,7 @@ urlpatterns = [
     path('api/payments/', include('payments.urls')),
     path('api/content/', include('content.urls')),
     path('api/questionbank/', include('questionbank.urls')),
+    path('api/', include('news.urls')),
     path('api/schema/', SpectacularAPIView.as_view(), name='schema'),
     path('api/docs/', SpectacularSwaggerView.as_view(url_name='schema'), name='swagger-ui'),
     re_path(r'^uploads/(?P<path>.*)$', media_serve),

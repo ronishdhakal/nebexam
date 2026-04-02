@@ -9,10 +9,21 @@ export default function QuestionTree({ questions, paperMode = false, isNepali = 
     );
   }
 
-  // Build a list with resolved numeric indices — separators don't consume a number
+  // Build a list with resolved numeric indices — separators don't consume a number,
+  // and the question immediately after an OR separator shares the same number as
+  // the question before it (both are Q17, not Q17 and Q18).
   let counter = startIndex;
+  let prevWasOrSep = false;
   const items = questions.map((node) => {
-    if (node.question_type === 'or_separator') return { node, index: undefined };
+    if (node.question_type === 'or_separator') {
+      prevWasOrSep = true;
+      return { node, index: undefined };
+    }
+    if (prevWasOrSep) {
+      prevWasOrSep = false;
+      return { node, index: counter - 1 }; // same number as the question before OR
+    }
+    prevWasOrSep = false;
     return { node, index: counter++ };
   });
 

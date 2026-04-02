@@ -13,8 +13,8 @@ const useAuth = () => {
     }
   }, [accessToken]);
 
-  const handleLogin = async (credentials, force = false) => {
-    const res = await authService.login({ ...credentials, force });
+  const handleLogin = async (credentials) => {
+    const res = await authService.login(credentials);
     const { access, refresh, user: userData } = res.data;
     login(access, refresh, userData);
     return res.data;
@@ -33,7 +33,7 @@ const useAuth = () => {
 
   return {
     user,
-    token: accessToken,      // compat alias
+    token: accessToken,
     accessToken,
     isAuthenticated,
     handleLogin,

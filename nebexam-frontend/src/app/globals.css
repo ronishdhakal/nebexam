@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "katex/dist/katex.min.css";
 
 /* ── Class-based dark mode (used by next-themes) ──────────────────── */
 @variant dark (&:where(.dark, .dark *));
@@ -59,7 +60,7 @@ body {
   padding: 0.875rem 1rem;
   font-size: 0.9rem;
   line-height: 1.75;
-  color: #1e293b;
+  color: #111111;
 }
 
 .ProseMirror p {
@@ -257,10 +258,32 @@ body {
 .prose-render .ProseMirror {
   min-height: 0 !important;
   padding: 0 !important;
+  color: #111111 !important;
   /* ProseMirror defaults to pre-wrap which stops word-wrapping on mobile */
   white-space: normal !important;
   word-break: break-word;
   overflow-wrap: break-word;
+}
+.dark .prose-render .ProseMirror {
+  color: #f1f5f9 !important;
+}
+
+/* KaTeX math rendering */
+.ProseMirror .Tiptap-mathematics-editor,
+.ProseMirror .Tiptap-mathematics-render {
+  display: inline;
+  cursor: default;
+}
+.ProseMirror .Tiptap-mathematics-editor {
+  font-family: 'Fira Mono', 'Cascadia Code', monospace;
+  font-size: 0.875em;
+  background: #f1f5f9;
+  border-radius: 3px;
+  padding: 0 3px;
+}
+.ProseMirror .Tiptap-mathematics-node--selected {
+  outline: 2px solid #1CA3FD;
+  border-radius: 3px;
 }
 
 /* Placeholder */

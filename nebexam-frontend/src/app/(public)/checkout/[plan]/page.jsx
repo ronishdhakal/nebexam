@@ -46,6 +46,8 @@ export default function CheckoutPage({ params: rawParams }) {
       .then((res) => setBasePrice(res.data[plan]?.amount ?? null))
       .catch(() => setBasePrice(null))
       .finally(() => setLoadingPrice(false));
+    // Track that this user visited checkout (fire-and-forget)
+    paymentService.recordCheckoutVisit(plan).catch(() => {});
   }, [isAuthenticated, plan, meta, router]);
 
   const finalPrice  = coupon ? coupon.final_amount : basePrice;
@@ -60,7 +62,7 @@ export default function CheckoutPage({ params: rawParams }) {
       const res = await paymentService.validateCoupon(couponInput.trim(), plan);
       setCoupon({ code: couponInput.trim().toUpperCase(), ...res.data });
     } catch (err) {
-      setCouponError(err?.response?.data?.detail || 'Invalid or inactive coupon code.');
+      setCouponError(err?.response?.data?.detail || 'Invalid or inactive code.');
     } finally {
       setCouponLoading(false);
     }
@@ -151,7 +153,7 @@ export default function CheckoutPage({ params: rawParams }) {
             <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
               <h2 className="text-sm font-bold text-slate-800 mb-4 flex items-center gap-2">
                 <span className="w-6 h-6 rounded-full bg-[#1CA3FD]/10 text-[#1CA3FD] text-xs font-bold flex items-center justify-center">2</span>
-                Coupon Code
+                Coupon / Referral Code
                 <span className="text-xs font-normal text-slate-400">(optional)</span>
               </h2>
 
@@ -177,7 +179,7 @@ export default function CheckoutPage({ params: rawParams }) {
                     value={couponInput}
                     onChange={(e) => { setCouponInput(e.target.value.toUpperCase()); setCouponError(null); }}
                     onKeyDown={(e) => e.key === 'Enter' && handleApplyCoupon()}
-                    placeholder="Enter coupon code"
+                    placeholder="Enter coupon or referral code"
                     className="flex-1 border border-slate-200 rounded-xl px-4 py-2.5 text-sm font-mono text-slate-900 placeholder:text-slate-400 placeholder:font-sans bg-white focus:outline-none focus:ring-2 focus:ring-[#1CA3FD] focus:border-transparent uppercase tracking-wider"
                   />
                   <button
@@ -257,7 +259,7 @@ export default function CheckoutPage({ params: rawParams }) {
                 ) : (
                   <>
                     Pay Rs. {finalPrice ?? '—'} with
-                    <Image src="/assets/esewa.png" alt="eSewa" width={52} height={18} className="h-[18px] w-auto object-contain brightness-0 invert" />
+                    <span className="inline-flex items-center bg-white rounded px-1.5 py-0.5"><Image src="/assets/esewa.png" alt="eSewa" width={62} height={21} className="h-[21px] w-auto object-contain" /></span>
                   </>
                 )}
               </button>

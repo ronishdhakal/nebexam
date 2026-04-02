@@ -5,13 +5,19 @@ from .models import Subject, Area, Chapter
 class ChapterMinimalSerializer(serializers.ModelSerializer):
     """Lightweight serializer for sidebar/list use — omits heavy content fields."""
     area_name = serializers.SerializerMethodField()
+    subject_class_level = serializers.SerializerMethodField()
 
     def get_area_name(self, obj):
         return obj.area.name if obj.area else None
 
+    def get_subject_class_level(self, obj):
+        if obj.area:
+            return obj.area.subject.class_level
+        return obj.subject.class_level if obj.subject else None
+
     class Meta:
         model = Chapter
-        fields = ['id', 'slug', 'name', 'order', 'area_name', 'is_published']
+        fields = ['id', 'slug', 'name', 'order', 'area_name', 'subject_class_level', 'is_published']
         extra_kwargs = {'slug': {'read_only': True}}
 
 
@@ -49,9 +55,13 @@ class ChapterDetailSerializer(serializers.ModelSerializer):
 
 
 class AreaSerializer(serializers.ModelSerializer):
-    chapters = ChapterMinimalSerializer(many=True, read_only=True)
+    chapters = serializers.SerializerMethodField()
     subject_name = serializers.CharField(source='subject.name', read_only=True)
     subject_class_level = serializers.CharField(source='subject.class_level', read_only=True)
+
+    def get_chapters(self, obj):
+        qs = obj.chapters.order_by('order', 'name')
+        return ChapterMinimalSerializer(qs, many=True).data
 
     class Meta:
         model = Area
@@ -67,8 +77,16 @@ class SubjectSerializer(serializers.ModelSerializer):
 
 
 class SubjectDetailSerializer(serializers.ModelSerializer):
-    areas = AreaSerializer(many=True, read_only=True)
-    direct_chapters = ChapterSerializer(many=True, read_only=True)
+    areas = serializers.SerializerMethodField()
+    direct_chapters = serializers.SerializerMethodField()
+
+    def get_areas(self, obj):
+        qs = obj.areas.order_by('order', 'name')
+        return AreaSerializer(qs, many=True).data
+
+    def get_direct_chapters(self, obj):
+        qs = obj.direct_chapters.order_by('order', 'name')
+        return ChapterSerializer(qs, many=True).data
 
     class Meta:
         model = Subject

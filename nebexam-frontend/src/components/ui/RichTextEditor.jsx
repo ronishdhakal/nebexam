@@ -11,6 +11,7 @@ import { Table } from '@tiptap/extension-table';
 import { TableRow } from '@tiptap/extension-table-row';
 import { TableHeader } from '@tiptap/extension-table-header';
 import { TableCell } from '@tiptap/extension-table-cell';
+import Mathematics, { migrateMathStrings } from '@tiptap/extension-mathematics';
 import { useMemo, useRef, useState } from 'react';
 import api from '@/lib/api';
 
@@ -31,6 +32,7 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write h
     TableRow,
     TableHeader,
     TableCell,
+    Mathematics,
   ], [placeholder]);
 
   const editor = useEditor({
@@ -71,7 +73,10 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write h
   if (!editor) return null;
 
   return (
-    <div className="border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white">
+    <div
+      className="border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white"
+      onPaste={() => setTimeout(() => { if (editor) migrateMathStrings(editor); }, 0)}
+    >
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-0.5 px-2 py-1.5 bg-gray-50 border-b border-gray-200">
 
@@ -178,6 +183,19 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write h
 
         <Divider />
 
+        {/* Math group */}
+        <ToolGroup>
+          <ToolBtn
+            onClick={() => editor.chain().focus().insertContent('$  $').run()}
+            active={editor.isActive('math')}
+            title="Insert inline math ($...$)"
+          >
+            <MathIcon />
+          </ToolBtn>
+        </ToolGroup>
+
+        <Divider />
+
         {/* History group */}
         <ToolGroup>
           <ToolBtn onClick={() => editor.chain().focus().undo().run()} title="Undo" disabled={!editor.can().undo()}>
@@ -242,6 +260,7 @@ function LinkIcon()    { return <svg {...sz}><path d="M10 13a5 5 0 0 0 7.54.54l3
 function UndoIcon()    { return <svg {...sz}><polyline points="1 4 1 10 7 10"/><path d="M3.51 15a9 9 0 1 0 .49-3.86"/></svg>; }
 function RedoIcon()    { return <svg {...sz}><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-.49-3.86"/></svg>; }
 function TableIcon()   { return <svg {...sz}><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="3" y1="15" x2="21" y2="15"/><line x1="9" y1="3" x2="9" y2="21"/><line x1="15" y1="3" x2="15" y2="21"/></svg>; }
+function MathIcon()    { return <svg {...sz} viewBox="0 0 24 24"><text x="2" y="17" fontSize="14" fontFamily="serif" fontStyle="italic" fill="currentColor" stroke="none">∑</text></svg>; }
 
 function TableMenuItem({ label, onClick, danger }) {
   return (

@@ -6,19 +6,26 @@ from .models import User
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'email', 'name', 'phone', 'profile_picture', 'level', 'stream', 'subscription_tier', 'subscription_expires_at', 'free_answers_used', 'is_staff', 'date_joined']
-        read_only_fields = ['subscription_tier', 'subscription_expires_at', 'free_answers_used', 'is_staff', 'date_joined']
+        fields = ['id', 'email', 'name', 'phone', 'profile_picture', 'level', 'stream', 'subscription_tier', 'subscription_expires_at', 'free_answers_used', 'is_staff', 'date_joined', 'referral_code']
+        read_only_fields = ['subscription_tier', 'subscription_expires_at', 'free_answers_used', 'is_staff', 'date_joined', 'referral_code']
 
 
 class AdminUserSerializer(serializers.ModelSerializer):
+    last_checkout_at   = serializers.DateTimeField(read_only=True, default=None)
+    last_checkout_tier = serializers.CharField(read_only=True, default=None)
+    last_paid_at       = serializers.DateTimeField(read_only=True, default=None)
+
     class Meta:
         model = User
         fields = [
             'id', 'email', 'name', 'phone', 'level', 'stream',
             'subscription_tier', 'subscription_expires_at',
             'is_active', 'is_staff', 'date_joined',
+            'crm_status',
+            'referral_code', 'referral_balance',
+            'last_checkout_at', 'last_checkout_tier', 'last_paid_at',
         ]
-        read_only_fields = ['id', 'date_joined']
+        read_only_fields = ['id', 'date_joined', 'last_checkout_at', 'last_checkout_tier', 'last_paid_at', 'referral_code', 'referral_balance']
 
 
 class RegisterSerializer(serializers.ModelSerializer):

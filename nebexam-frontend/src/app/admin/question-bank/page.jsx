@@ -6,6 +6,7 @@ import { entriesService } from '@/services/questionbank.service';
 import { subjectsService } from '@/services/subjects.service';
 import { getErrorMessage } from '@/lib/utils';
 import PageHeader from '@/components/admin/shared/PageHeader';
+import SearchableSelect from '@/components/ui/SearchableSelect';
 
 const selectCls = 'text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1CA3FD]/30 focus:border-[#1CA3FD]';
 
@@ -106,12 +107,17 @@ export default function QuestionBankPage() {
           <option value="12">Class 12</option>
         </select>
 
-        <select value={subjectFilter} onChange={(e) => setSubjectFilter(e.target.value)} className={selectCls}>
-          <option value="">All Subjects</option>
-          {subjectsInDropdown.map((s) => (
-            <option key={s.slug} value={s.slug}>{s.name} {classFilter ? '' : `(Class ${s.class_level})`}</option>
-          ))}
-        </select>
+        <div className="min-w-[180px]">
+          <SearchableSelect
+            value={subjectFilter}
+            onChange={(val) => setSubjectFilter(val || '')}
+            placeholder="All Subjects"
+            options={subjectsInDropdown.map((s) => ({
+              value: s.slug,
+              label: classFilter ? s.name : `${s.name} (Class ${s.class_level})`,
+            }))}
+          />
+        </div>
 
         <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value)} className={selectCls}>
           <option value="">All Types</option>

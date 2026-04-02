@@ -5,6 +5,7 @@ import StarterKit from '@tiptap/starter-kit';
 import Underline from '@tiptap/extension-underline';
 import Placeholder from '@tiptap/extension-placeholder';
 import Image from '@tiptap/extension-image';
+import Mathematics, { migrateMathStrings } from '@tiptap/extension-mathematics';
 import { useMemo, useRef } from 'react';
 import api from '@/lib/api';
 
@@ -26,6 +27,7 @@ export default function CompactRichTextEditor({ value, onChange, placeholder = '
     Underline,
     Image.configure({ inline: true, allowBase64: false }),
     Placeholder.configure({ placeholder }),
+    Mathematics,
   ], [placeholder]);
 
   const editor = useEditor({
@@ -73,7 +75,10 @@ export default function CompactRichTextEditor({ value, onChange, placeholder = '
   const sz = { width: 12, height: 12, viewBox: '0 0 24 24', fill: 'none', stroke: 'currentColor', strokeWidth: 2.5, strokeLinecap: 'round', strokeLinejoin: 'round' };
 
   return (
-    <div className="border border-slate-300 rounded-lg overflow-hidden bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent">
+    <div
+      className="border border-slate-300 rounded-lg overflow-hidden bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent"
+      onPaste={() => setTimeout(() => { if (editor) migrateMathStrings(editor); }, 0)}
+    >
       {/* Mini toolbar */}
       <div className="flex items-center gap-0.5 px-2 py-1 bg-slate-50 border-b border-slate-200">
         {btn(editor.isActive('bold'),      () => editor.chain().focus().toggleBold().run(),      'Bold',          <svg {...sz}><path d="M6 4h8a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/><path d="M6 12h9a4 4 0 0 1 4 4 4 4 0 0 1-4 4H6z"/></svg>)}

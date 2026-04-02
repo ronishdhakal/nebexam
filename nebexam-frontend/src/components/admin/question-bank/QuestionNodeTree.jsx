@@ -31,16 +31,32 @@ export default function QuestionNodeTree({ questions, entryId, onRefresh, subjec
         </div>
       )}
 
-      {questions.map((node, index) => (
-        <QuestionNodeItem
-          key={node.id}
-          node={node}
-          index={index}
-          entryId={entryId}
-          onRefresh={onRefresh}
-          subjectSlug={subjectSlug}
-        />
-      ))}
+      {(() => {
+        let counter = 0;
+        let prevWasOrSep = false;
+        return questions.map((node) => {
+          let index;
+          if (node.question_type === 'or_separator') {
+            prevWasOrSep = true;
+            index = counter - 1;
+          } else if (prevWasOrSep) {
+            prevWasOrSep = false;
+            index = counter - 1; // same number as question before OR
+          } else {
+            index = counter++;
+          }
+          return (
+            <QuestionNodeItem
+              key={node.id}
+              node={node}
+              index={index}
+              entryId={entryId}
+              onRefresh={onRefresh}
+              subjectSlug={subjectSlug}
+            />
+          );
+        });
+      })()}
 
       {showAdd ? (
         <div className="mt-2">

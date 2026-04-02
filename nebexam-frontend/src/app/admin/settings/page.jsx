@@ -31,6 +31,10 @@ export default function SettingsPage() {
   const [contactSaved, setContactSaved]   = useState(false);
   const [contactError, setContactError]   = useState(null);
 
+  const [cacheClearing, setCacheClearing] = useState(false);
+  const [cacheCleared, setCacheCleared]   = useState(false);
+  const [cacheError, setCacheError]       = useState(null);
+
   const [fetching, setFetching] = useState(true);
 
   useEffect(() => {
@@ -59,6 +63,21 @@ export default function SettingsPage() {
       });
     }).finally(() => setFetching(false));
   }, []);
+
+  const handleClearCache = async () => {
+    setCacheClearing(true);
+    setCacheCleared(false);
+    setCacheError(null);
+    try {
+      await configService.clearCache();
+      setCacheCleared(true);
+      setTimeout(() => setCacheCleared(false), 3000);
+    } catch {
+      setCacheError('Failed to clear cache.');
+    } finally {
+      setCacheClearing(false);
+    }
+  };
 
   const handleSaveContact = async (e) => {
     e.preventDefault();
@@ -212,6 +231,24 @@ export default function SettingsPage() {
           </div>
         </form>
       )}
+
+      {/* Cache */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <h2 className="text-sm font-bold text-slate-800 mb-1">Server Cache</h2>
+        <p className="text-xs text-slate-500 mb-5">
+          Clear the file-based server cache. Use this if content changes are not reflecting for users.
+        </p>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleClearCache}
+            disabled={cacheClearing}
+            className="inline-flex items-center gap-2 bg-red-500 hover:bg-red-600 text-white px-5 py-2 rounded-xl text-sm font-semibold transition disabled:opacity-50"
+          >
+            {cacheClearing ? 'Clearing…' : cacheCleared ? '✓ Cache Cleared' : 'Clear Cache'}
+          </button>
+          {cacheError && <span className="text-xs text-red-500">{cacheError}</span>}
+        </div>
+      </div>
 
       {/* Plan Pricing */}
       {planForm && (

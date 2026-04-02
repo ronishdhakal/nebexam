@@ -30,22 +30,27 @@ def _tokens_for_user(user):
     return str(refresh), str(refresh.access_token), str(refresh['jti'])
 
 
-def _register_session(user, jti, user_agent, force=False):
+def _register_session(user, jti, user_agent, device_id=''):
     """
     Create or replace a UserSession slot.
-    Returns (session, error_code) where error_code is None on success or
-    'device_limit' if the slot is occupied and force=False.
+    - Same device (matching device_id) → always allowed, replaces old session.
+    - Either side missing a device_id → can't distinguish, allow replacement.
+    - Both sides have device_ids but they differ → 'new_device' error.
+    Returns (session, error_code).
     """
     device_type = _classify_device(user_agent)
     existing = UserSession.objects.filter(user=user, device_type=device_type).first()
 
-    if existing and not force:
-        return None, 'device_limit'
+    if existing:
+        both_have_ids = device_id and existing.device_id
+        different_device = both_have_ids and device_id != existing.device_id
+        if different_device:
+            return None, 'new_device'
+        existing.delete()
 
-    # Replace or create
-    UserSession.objects.filter(user=user, device_type=device_type).delete()
     session = UserSession.objects.create(
-        user=user, device_type=device_type, jti=jti, user_agent=user_agent
+        user=user, device_type=device_type, jti=jti,
+        user_agent=user_agent, device_id=device_id,
     )
     return session, None
 
@@ -61,9 +66,10 @@ class RegisterView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
 
-        ua = request.META.get('HTTP_USER_AGENT', '')
+        ua        = request.META.get('HTTP_USER_AGENT', '')
+        device_id = request.data.get('device_id', '')
         refresh_str, access_str, jti = _tokens_for_user(user)
-        _register_session(user, jti, ua, force=True)
+        _register_session(user, jti, ua, device_id=device_id)
 
         return Response({
             'access':  access_str,
@@ -78,20 +84,22 @@ class LoginView(APIView):
     def post(self, request):
         serializer = LoginSerializer(data=request.data)
         serializer.is_valid(raise_exception=True)
-        user  = serializer.validated_data['user']
-        force = request.data.get('force', False)
-        ua    = request.META.get('HTTP_USER_AGENT', '')
+        user      = serializer.validated_data['user']
+        ua        = request.META.get('HTTP_USER_AGENT', '')
+        device_id = request.data.get('device_id', '')
 
         refresh_str, access_str, jti = _tokens_for_user(user)
-        session, error = _register_session(user, jti, ua, force=bool(force))
+        session, error = _register_session(user, jti, ua, device_id=device_id)
 
-        if error == 'device_limit':
+        if error == 'new_device':
             device_type = _classify_device(ua)
             return Response({
-                'code':        'device_limit',
+                'code':        'new_device',
                 'device_type': device_type,
-                'detail':      f'You are already logged in on another {device_type}. '
-                               f'Send force=true to log out the other {device_type} and continue.',
+                'detail': (
+                    f'Login from a new {device_type} detected. '
+                    f'Reset your password to continue — this will log out all other devices.'
+                ),
             }, status=status.HTTP_403_FORBIDDEN)
 
         return Response({
@@ -105,13 +113,16 @@ class LogoutView(APIView):
     permission_classes = [IsAuthenticated]
 
     def post(self, request):
+        # Delete session by device type — more reliable than jti lookup
+        # (jti may have rotated since login due to silent token refresh).
+        ua = request.META.get('HTTP_USER_AGENT', '')
+        device_type = _classify_device(ua)
+        UserSession.objects.filter(user=request.user, device_type=device_type).delete()
+
         refresh_token = request.data.get('refresh')
         if refresh_token:
             try:
-                token = RefreshToken(refresh_token)
-                jti = token['jti']
-                UserSession.objects.filter(user=request.user, jti=jti).delete()
-                token.blacklist()
+                RefreshToken(refresh_token).blacklist()
             except TokenError:
                 pass
         return Response({'detail': 'Logged out.'})
@@ -266,7 +277,11 @@ class RevealAnswerView(APIView):
 
     def post(self, request):
         user = request.user
-        is_paid = user.subscription_tier and user.subscription_tier != 'free'
+        is_paid = (
+            user.subscription_tier and
+            user.subscription_tier != 'free' and
+            (user.subscription_expires_at is None or user.subscription_expires_at > timezone.now())
+        )
         if is_paid:
             return Response({'free_answers_used': 0, 'limit': FREE_ANSWER_LIMIT, 'allowed': True})
 
@@ -287,6 +302,26 @@ class RevealAnswerView(APIView):
 
 # ── Admin views ────────────────────────────────────────────────────────────
 
+class AdminSetPasswordView(APIView):
+    """POST {password} — Admin sets a user's password directly. Clears all their sessions."""
+    permission_classes = [IsAdminUser]
+
+    def post(self, request, pk):
+        try:
+            user = User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            return Response({'detail': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        password = request.data.get('password', '')
+        if len(password) < 8:
+            return Response({'detail': 'Password must be at least 8 characters.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        user.set_password(password)
+        user.save(update_fields=['password'])
+        UserSession.objects.filter(user=user).delete()
+        return Response({'detail': 'Password updated and all sessions cleared.'})
+
+
 class UserListView(generics.ListAPIView):
     serializer_class = AdminUserSerializer
     permission_classes = [IsAdminUser]
@@ -294,21 +329,69 @@ class UserListView(generics.ListAPIView):
     search_fields = ['name', 'email', 'phone']
 
     def get_queryset(self):
-        qs = User.objects.all().order_by('-date_joined')
-        level  = self.request.query_params.get('level')
-        stream = self.request.query_params.get('stream')
-        tier   = self.request.query_params.get('tier')
-        status = self.request.query_params.get('status')
-        if level  is not None:
+        from django.db.models import OuterRef, Subquery
+        from payments.models import Payment, CheckoutAttempt
+
+        # Subquery: latest successful payment date
+        paid_sq = (
+            Payment.objects
+            .filter(user=OuterRef('pk'), status=Payment.STATUS_SUCCESS)
+            .order_by('-verified_at')
+            .values('verified_at')[:1]
+        )
+        # Subquery: latest checkout attempt date
+        attempt_sq = (
+            CheckoutAttempt.objects
+            .filter(user=OuterRef('pk'))
+            .values('attempted_at')[:1]
+        )
+        # Subquery: last checkout attempt tier
+        attempt_tier_sq = (
+            CheckoutAttempt.objects
+            .filter(user=OuterRef('pk'))
+            .values('tier')[:1]
+        )
+
+        qs = (
+            User.objects
+            .annotate(
+                last_paid_at=Subquery(paid_sq),
+                last_checkout_at=Subquery(attempt_sq),
+                last_checkout_tier=Subquery(attempt_tier_sq),
+            )
+            .order_by('-last_checkout_at', '-date_joined')
+        )
+
+        level           = self.request.query_params.get('level')
+        stream          = self.request.query_params.get('stream')
+        tier            = self.request.query_params.get('tier')
+        acc_status      = self.request.query_params.get('status')
+        purchase_status = self.request.query_params.get('purchase_status')
+        crm_status      = self.request.query_params.get('crm_status')
+
+        if level is not None:
             qs = qs.filter(level=level)
         if stream:
             qs = qs.filter(stream=stream)
         if tier:
             qs = qs.filter(subscription_tier=tier)
-        if status == 'active':
+        if acc_status == 'active':
             qs = qs.filter(is_active=True)
-        elif status == 'disabled':
+        elif acc_status == 'disabled':
             qs = qs.filter(is_active=False)
+        if crm_status:
+            qs = qs.filter(crm_status=crm_status)
+
+        if purchase_status == 'active':
+            # Has a successful payment
+            qs = qs.filter(last_paid_at__isnull=False)
+        elif purchase_status == 'attempted':
+            # Visited checkout but never paid (still free tier)
+            qs = qs.filter(last_checkout_at__isnull=False, subscription_tier='free')
+        elif purchase_status == 'never':
+            # Never even visited checkout
+            qs = qs.filter(last_checkout_at__isnull=True, subscription_tier='free')
+
         return qs
 
 
@@ -383,9 +466,18 @@ class SiteSettingsView(APIView):
         }
 
     def get(self, request):
-        return Response(self._serialize(SiteSettings.get()))
+        from django.core.cache import cache
+        from nebexam.cache import make_cache_key, CACHE_TTL
+        key = make_cache_key(request)
+        cached = cache.get(key)
+        if cached is not None:
+            return Response(cached)
+        data = self._serialize(SiteSettings.get())
+        cache.set(key, data, CACHE_TTL)
+        return Response(data)
 
     def patch(self, request):
+        from django.core.cache import cache
         cfg = SiteSettings.get()
         changed = []
         if (val := request.data.get('subscription_required')) is not None:
@@ -400,6 +492,7 @@ class SiteSettingsView(APIView):
                 changed.append(field)
         if changed:
             cfg.save(update_fields=changed)
+        cache.clear()
         return Response(self._serialize(cfg))
 
 
@@ -499,3 +592,120 @@ class StudyStatsView(APIView):
 
         total = sum(s['total'] for s in bars)
         return Response({'period': period, 'total_seconds': total, 'bars': bars[-n_bars:]})
+
+
+# ── Referral ─────────────────────────────────────────────────────────────────
+
+class AdminClearReferralView(APIView):
+    """POST — Admin clears a user's referral balance (marks all as paid)."""
+    permission_classes = [IsAdminUser]
+
+    def post(self, request, pk):
+        from payments.models import ReferralReward
+        try:
+            user = User.objects.get(pk=pk)
+        except User.DoesNotExist:
+            return Response({'detail': 'User not found.'}, status=status.HTTP_404_NOT_FOUND)
+
+        ReferralReward.objects.filter(referrer=user, status=ReferralReward.STATUS_PENDING).update(
+            status=ReferralReward.STATUS_RELEASED
+        )
+        cleared = float(user.referral_balance or 0)
+        user.referral_balance = 0
+        user.save(update_fields=['referral_balance'])
+        return Response({'detail': 'Referral balance cleared.', 'cleared_amount': cleared})
+
+
+class ClearCacheView(APIView):
+    """POST — Admin clears the entire server-side file cache."""
+    permission_classes = [IsAdminUser]
+
+    def post(self, request):
+        from django.core.cache import cache
+        cache.clear()
+        return Response({'detail': 'Cache cleared successfully.'})
+
+
+class MyReferralView(APIView):
+    """GET — returns the current user's referral code, balance, and usage list."""
+    permission_classes = [IsAuthenticated]
+
+    def get(self, request):
+        from payments.models import Payment, ReferralReward, PayoutRequest
+
+        user = request.user
+
+        # Who used my referral code (successful payments)
+        usages = (
+            Payment.objects
+            .filter(referred_by=user, status=Payment.STATUS_SUCCESS)
+            .select_related('user')
+            .order_by('-verified_at')
+        )
+
+        # My own referral reward status from rewards I earned
+        rewards = (
+            ReferralReward.objects
+            .filter(referrer=user)
+            .select_related('referee', 'payment')
+            .order_by('-created_at')
+        )
+
+        # Did I use someone else's referral code?
+        my_usage = (
+            Payment.objects
+            .filter(user=user, referred_by__isnull=False, status=Payment.STATUS_SUCCESS)
+            .select_related('referred_by')
+            .order_by('-verified_at')
+            .first()
+        )
+
+        pending_balance  = float(sum(r.reward_amount for r in rewards if r.status == ReferralReward.STATUS_PENDING))
+        released_balance = float(user.referral_balance or 0)
+
+        # Current payout request (if any)
+        payout_req = (
+            PayoutRequest.objects
+            .filter(user=user)
+            .order_by('-created_at')
+            .first()
+        )
+        payout_request_info = None
+        if payout_req:
+            payout_request_info = {
+                'id':             payout_req.id,
+                'amount':         float(payout_req.amount),
+                'payment_method': payout_req.payment_method,
+                'payment_detail': payout_req.payment_detail,
+                'status':         payout_req.status,
+                'admin_note':     payout_req.admin_note,
+                'created_at':     payout_req.created_at,
+                'paid_at':        payout_req.paid_at,
+            }
+
+        return Response({
+            'referral_code':    user.referral_code,
+            'referral_balance': released_balance,
+            'pending_balance':  pending_balance,
+            'total_uses':       usages.count(),
+            'usages': [
+                {
+                    'user_id':    p.user.id,
+                    'user_name':  p.user.name,
+                    'user_email': p.user.email,
+                    'tier':       p.tier,
+                    'amount':     p.amount,
+                    'paid_at':    p.verified_at,
+                    'reward_amount':  float(p.referral_reward.reward_amount) if hasattr(p, 'referral_reward') else 0,
+                    'reward_status':  p.referral_reward.status if hasattr(p, 'referral_reward') else None,
+                }
+                for p in usages
+            ],
+            'my_referral_used': {
+                'referrer_name':  my_usage.referred_by.name,
+                'referrer_code':  my_usage.referred_by.referral_code,
+                'tier':           my_usage.tier,
+                'paid_at':        my_usage.verified_at,
+            } if my_usage else None,
+            'payout_request': payout_request_info,
+        })

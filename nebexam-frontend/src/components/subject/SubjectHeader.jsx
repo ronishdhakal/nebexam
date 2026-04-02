@@ -70,7 +70,7 @@ export default function SubjectHeader({ subject, slug }) {
 
   return (
     <div className="bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800">
-      <div className="max-w-7xl mx-auto px-6 pt-6 pb-0">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-5 sm:pt-6 pb-0">
         {/* Breadcrumb */}
         <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-4">
           <Link href="/" className="hover:text-[#1CA3FD] transition-colors">Home</Link>
@@ -113,12 +113,15 @@ export default function SubjectHeader({ subject, slug }) {
         </div>
 
         {/* Tab bar */}
-        <div className="flex gap-0 mt-5 -mb-px">
+        <div
+          className="flex gap-0 mt-5 -mb-px overflow-x-auto"
+          style={{ scrollbarWidth: 'none', msOverflowStyle: 'none' }}
+        >
           {tabs.map((tab) => (
             <Link
               key={tab.href}
               href={tab.href}
-              className={`inline-flex items-center gap-2 px-4 py-3 text-sm font-semibold border-b-2 transition-colors whitespace-nowrap ${
+              className={`inline-flex items-center gap-1.5 px-3 sm:px-4 py-3 text-xs sm:text-sm font-semibold border-b-2 transition-colors whitespace-nowrap shrink-0 ${
                 tab.active
                   ? 'border-[#1CA3FD] text-[#1CA3FD]'
                   : 'border-transparent text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-white hover:border-slate-300 dark:hover:border-slate-600'

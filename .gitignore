@@ -2,3 +2,20 @@ test.txt
 .DS_Store
 Thumbs.db
 .claude/
+
+# Environment files — NEVER commit secrets
+.env
+.env.*
+!.env.example
+nebexam-backend/.env
+nebexam-frontend/.env.local
+nebexam-frontend/.env*.local
+
+# Active color state (server-only runtime file)
+.active_color
+
+# Docker build artifacts
+.next/
+__pycache__/
+*.pyc
+staticfiles/

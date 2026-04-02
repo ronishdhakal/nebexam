@@ -4,9 +4,10 @@ from .serializers import (
     QuestionBankEntrySerializer, QuestionBankEntryDetailSerializer,
     QuestionGroupSerializer, QuestionNodeSerializer
 )
+from nebexam.cache import CachedViewSetMixin
 
 
-class QuestionBankEntryViewSet(viewsets.ModelViewSet):
+class QuestionBankEntryViewSet(CachedViewSetMixin, viewsets.ModelViewSet):
     queryset = QuestionBankEntry.objects.select_related('subject')
     lookup_field = 'slug'
     filter_backends = [filters.SearchFilter]
@@ -36,7 +37,7 @@ class QuestionBankEntryViewSet(viewsets.ModelViewSet):
         return qs
 
 
-class QuestionGroupViewSet(viewsets.ModelViewSet):
+class QuestionGroupViewSet(CachedViewSetMixin, viewsets.ModelViewSet):
     queryset = QuestionGroup.objects.prefetch_related('questions')
     serializer_class = QuestionGroupSerializer
 
@@ -48,7 +49,7 @@ class QuestionGroupViewSet(viewsets.ModelViewSet):
         return qs
 
 
-class QuestionNodeViewSet(viewsets.ModelViewSet):
+class QuestionNodeViewSet(CachedViewSetMixin, viewsets.ModelViewSet):
     queryset = QuestionNode.objects.prefetch_related('children')
     serializer_class = QuestionNodeSerializer
 

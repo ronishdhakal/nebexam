@@ -13,6 +13,7 @@ import SubscriptionWidget from '@/components/dashboard/SubscriptionWidget';
 import QuickBrowse from '@/components/dashboard/QuickBrowse';
 import ClassStreamCard from '@/components/dashboard/ClassStreamCard';
 import StudyAnalytics from '@/components/dashboard/StudyAnalytics';
+import ReferralCard from '@/components/dashboard/ReferralCard';
 
 export default function DashboardPage() {
   const { isAuthenticated, user } = useAuth();
@@ -52,7 +53,7 @@ export default function DashboardPage() {
   /* Loading */
   if (!user) {
     return (
-      <div className="min-h-screen bg-gray-50 dark:bg-slate-900 flex items-center justify-center">
+      <div className="min-h-screen bg-gray-50 dark:bg-background flex items-center justify-center">
         <div className="text-center">
           <div className="w-8 h-8 border-2 border-[#1CA3FD] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
           <p className="text-sm text-slate-400">Loading your dashboard…</p>
@@ -63,46 +64,40 @@ export default function DashboardPage() {
 
   const hour     = new Date().getHours();
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-  const today    = new Date().toLocaleDateString('en-NP', { weekday: 'long', day: 'numeric', month: 'long' });
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-slate-900">
+    <div className="min-h-screen bg-gray-50 dark:bg-background">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 pt-6 pb-12 space-y-5">
 
-      {/* ── Top header bar ── */}
-      <div className="bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800">
-        <div className="max-w-7xl mx-auto px-6 py-5 flex items-center justify-between">
-          <div>
-            <p className="text-xs font-bold text-[#1CA3FD] uppercase tracking-widest mb-0.5">Student Dashboard</p>
-            <h1 className="text-xl font-extrabold text-slate-900 dark:text-white">
-              {greeting}, {user.name?.split(' ')[0]} 👋
-            </h1>
-          </div>
-          <p className="hidden sm:block text-xs font-medium text-slate-400">{today}</p>
+        {/* ── Greeting ── */}
+        <div>
+          <p className="text-xs font-bold text-[#1CA3FD] uppercase tracking-widest mb-0.5">Student Dashboard</p>
+          <h1 className="text-2xl font-extrabold text-slate-900 dark:text-foreground">
+            {greeting}, {user.name?.split(' ')[0]}
+          </h1>
         </div>
-      </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-8 space-y-6">
-
-        {/* ── 1. Profile — first and prominent ── */}
+        {/* ── Profile ── */}
         <ProfileBanner user={user} />
 
-        {/* ── 2. Stats ── */}
+        {/* ── Stats ── */}
         <StatsGrid stats={stats} user={user} />
 
-        {/* ── 3. Main content + sidebar ── */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
+        {/* ── Main content ── */}
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5 items-start">
 
-          {/* Subjects — 2/3 width */}
-          <div className="lg:col-span-2 space-y-6">
-            <StudyAnalytics />
+          {/* Left col — 2/3 */}
+          <div className="lg:col-span-2 space-y-5">
             <SubjectsList subjects={subjects} level={user.level} />
+            <StudyAnalytics />
             <QuickBrowse currentLevel={user.level} />
           </div>
 
-          {/* Sidebar — 1/3 width */}
-          <div className="space-y-5">
-            <ClassStreamCard user={user} />
+          {/* Right sidebar — 1/3 */}
+          <div className="space-y-4">
             <SubscriptionWidget user={user} />
+            <ClassStreamCard user={user} />
+            <ReferralCard />
           </div>
 
         </div>
