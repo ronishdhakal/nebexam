@@ -44,6 +44,17 @@ export const metadata = {
 export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning className={`${jakarta.variable} ${devanagari.variable}`}>
+      <head>
+        <script async src="https://www.googletagmanager.com/gtag/js?id=G-3HYR0QNPZC"></script>
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', 'G-3HYR0QNPZC');
+          `
+        }} />
+      </head>
       <body className="font-sans antialiased" suppressHydrationWarning>
         <ThemeProvider>
           <ConfigLoader />
