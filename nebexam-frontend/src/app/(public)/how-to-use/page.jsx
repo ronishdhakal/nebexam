@@ -1,5 +1,6 @@
 export const metadata = {
-  title: 'How to Use — NEB Exam',
+  title: 'How to Use NEB Exam — Step-by-Step Guide',
+  description: 'Learn how to use NEB Exam to study notes, practise question bank, and access past papers for Class 10, 11 & 12. A step-by-step guide for NEB students.',
 };
 
 const STEPS = [

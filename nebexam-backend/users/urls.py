@@ -6,7 +6,7 @@ from .views import (
     ForgotPasswordView, ResetPasswordView, RevealAnswerView,
     SiteSettingsView, LogStudyView, StudyStatsView,
     MyReferralView, AdminSetPasswordView, AdminClearReferralView,
-    ClearCacheView,
+    ClearCacheView, TriggerBackupView,
 )
 
 urlpatterns = [
@@ -28,4 +28,5 @@ urlpatterns = [
     path('study/stats/',     StudyStatsView.as_view(),     name='study-stats'),
     path('referral/',        MyReferralView.as_view(),     name='my-referral'),
     path('clear-cache/',     ClearCacheView.as_view(),     name='clear-cache'),
+    path('trigger-backup/',  TriggerBackupView.as_view(),  name='trigger-backup'),
 ]

@@ -38,9 +38,13 @@ function StreamSection({ stream, subjects, level }) {
 export async function generateMetadata({ params }) {
   const { classSlug } = await params;
   const level = classSlug.replace('class-', '');
+  const title = `Class ${level} Notes (Subject & Stream Wise) — NEB Exam`;
+  const description = `Class ${level} notes, past papers and model questions — Science & Management streams. Browse all subjects for NEB exam preparation.`;
   return {
-    title: `Class ${level} Notes (Subject & Stream Wise) — NEB Exam`,
-    description: `Class ${level} notes, past papers and model questions — Science & Management streams. Browse all subjects for NEB exam preparation.`,
+    title,
+    description,
+    openGraph: { title, description, type: 'website' },
+    twitter: { card: 'summary', title, description },
   };
 }
 

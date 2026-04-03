@@ -18,12 +18,26 @@ const devanagari = Noto_Sans_Devanagari({
 });
 
 export const metadata = {
+  metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL || 'https://nebexam.com'),
   title: 'NEB Exam — NEB Exam Preparation Platform',
   description: 'Notes, past papers, model questions and chapter resources for NEB — Class 10, 11 and 12.',
+  keywords: ['NEB exam', 'NEB notes', 'Class 10 notes', 'Class 11 notes', 'Class 12 notes', 'SEE preparation', 'Nepal board exam', 'NEB question bank', 'NEB past papers'],
   icons: {
     icon: '/assets/icon.png',
     shortcut: '/assets/icon.png',
     apple: '/assets/icon.png',
+  },
+  openGraph: {
+    type: 'website',
+    locale: 'en_US',
+    siteName: 'NEB Exam',
+    title: 'NEB Exam — NEB Exam Preparation Platform',
+    description: 'Notes, past papers, model questions and chapter resources for NEB — Class 10, 11 and 12.',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'NEB Exam — NEB Exam Preparation Platform',
+    description: 'Notes, past papers, model questions and chapter resources for NEB — Class 10, 11 and 12.',
   },
 };
 

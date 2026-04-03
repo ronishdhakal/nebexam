@@ -1,73 +1,156 @@
-# NEB Exam — Deployment Guide
+# NEB Exam — Production Deployment Guide
 
 ## Table of Contents
 
 1. [Architecture Overview](#1-architecture-overview)
 2. [Prerequisites](#2-prerequisites)
-3. [Server Initial Setup](#3-server-initial-setup)
-4. [Environment Variables](#4-environment-variables)
-5. [First Deploy](#5-first-deploy)
-6. [CI/CD Pipeline (GitHub Actions)](#6-cicd-pipeline-github-actions)
-7. [How Blue-Green Deployment Works](#7-how-blue-green-deployment-works)
-8. [Manual Deploy & Rollback](#8-manual-deploy--rollback)
-9. [Common Operations](#9-common-operations)
-10. [Troubleshooting](#10-troubleshooting)
+3. [DNS Setup](#3-dns-setup)
+4. [SSL Certificate Setup](#4-ssl-certificate-setup)
+5. [Server Initial Setup](#5-server-initial-setup)
+6. [Environment Variables](#6-environment-variables)
+7. [First Deploy](#7-first-deploy)
+8. [How Blue-Green Deployment Works](#8-how-blue-green-deployment-works)
+9. [Ongoing Deploys](#9-ongoing-deploys)
+10. [Manual Deploy & Rollback](#10-manual-deploy--rollback)
+11. [Common Operations](#11-common-operations)
+12. [Troubleshooting](#12-troubleshooting)
+13. [Security Checklist](#13-security-checklist)
 
 ---
 
 ## 1. Architecture Overview
 
 ```
-Internet
-    │
-    ▼
- Nginx :80/:443          (always running — never restarted during deploys)
-    │
-    ├─── /api/*  ──────► backend-{active}:8000   (Django + Gunicorn)
-    └─── /*  ──────────► frontend-{active}:3000  (Next.js standalone)
+Browser
+   │
+   ├── https://www.nebexam.com  ──► Nginx :443 ──► frontend-{color}:3000  (Next.js)
+   └── https://base.nebexam.com ──► Nginx :443 ──► backend-{color}:8000   (Django + Gunicorn)
 
-Blue stack:  backend-blue  + frontend-blue
-Green stack: backend-green + frontend-green
+                                    ┌─────────────────────────┐
+                                    │   Docker network:       │
+                                    │   nebexam-net           │
+                                    │                         │
+                                    │  nebexam-backend-blue   │
+                                    │  nebexam-backend-green  │
+                                    │  nebexam-frontend-blue  │
+                                    │  nebexam-frontend-green │
+                                    │  nebexam-frontend-nginx │
+                                    └─────────────────────────┘
 
-Only ONE color is live at a time.
+Blue-Green: only ONE color is live at a time.
 nginx/conf.d/upstream.conf controls which color receives traffic.
 ```
 
-**Zero-downtime mechanism:** `nginx -s reload` swaps the upstream atomically — in-flight requests finish on the old color, new requests go to the new color. The old color is only stopped after a grace period.
+**Zero-downtime deploys:** `nginx -s reload` swaps the upstream atomically.
+In-flight requests finish on the old color; new requests go to the new color.
+The old color is only stopped after a 5-second grace period.
+
+**Compose files:**
+- `nebexam-backend/docker-compose.yml` — backend (blue + green)
+- `nebexam-frontend/docker-compose.yml` — frontend (blue + green) + nginx
+
+Both share the external Docker network `nebexam-net`.
 
 ---
 
 ## 2. Prerequisites
 
-Install these on your production server:
+Install on your Ubuntu/Debian production server:
 
 ```bash
-# Docker Engine (Ubuntu 24.04)
+# Docker Engine
 curl -fsSL https://get.docker.com | sudo sh
-sudo usermod -aG docker $USER   # allow running docker without sudo (re-login required)
+sudo usermod -aG docker $USER    # re-login after this
 
-# Docker Compose plugin (bundled with Docker Engine >= 23)
-docker compose version           # verify
-
-# Git
-sudo apt install -y git
+# Verify
+docker compose version           # should be 2.x+
+git --version
 ```
 
 > **Minimum server specs:** 2 vCPU, 2 GB RAM, 20 GB disk.
+> Open firewall ports: **22** (SSH), **80** (HTTP), **443** (HTTPS).
+> Port 8000 is only needed for local dev — do NOT open it on production.
 
 ---
 
-## 3. Server Initial Setup
+## 3. DNS Setup
+
+In your domain registrar / Cloudflare DNS panel, create these A records pointing to your server IP:
+
+| Type | Name | Value | Proxy |
+|------|------|-------|-------|
+| A | `www` | `77.37.47.54` | Proxied (orange) |
+| A | `base` | `77.37.47.54` | Proxied (orange) |
+
+> If using Cloudflare proxy (recommended), set SSL/TLS mode to **Full (strict)** in Cloudflare dashboard → SSL/TLS → Overview.
+
+---
+
+## 4. SSL Certificate Setup
+
+You need a wildcard certificate for `*.nebexam.com` covering both `www.nebexam.com` and `base.nebexam.com`. Choose one method:
+
+### Option A — Cloudflare Origin Certificate (recommended if using Cloudflare)
+
+1. Cloudflare Dashboard → your domain → **SSL/TLS → Origin Server → Create Certificate**
+2. Choose **wildcard**: `*.nebexam.com` and `nebexam.com`
+3. Set validity: 15 years
+4. Download **PEM format** — you get two files: `certificate.pem` and `private.key`
+5. On your server:
+
+```bash
+sudo mkdir -p /var/www/nebexam/nginx/ssl
+sudo cp certificate.pem /var/www/nebexam/nginx/ssl/fullchain.pem
+sudo cp private.key     /var/www/nebexam/nginx/ssl/privkey.pem
+sudo chmod 600 /var/www/nebexam/nginx/ssl/privkey.pem
+```
+
+### Option B — Let's Encrypt (if NOT using Cloudflare proxy)
+
+```bash
+sudo apt install -y certbot
+
+# Obtain wildcard cert (requires DNS challenge)
+sudo certbot certonly \
+  --manual \
+  --preferred-challenges dns \
+  -d '*.nebexam.com' \
+  -d 'nebexam.com'
+
+# Certs are placed at:
+# /etc/letsencrypt/live/nebexam.com/fullchain.pem
+# /etc/letsencrypt/live/nebexam.com/privkey.pem
+
+# Symlink into the project ssl folder
+sudo mkdir -p /var/www/nebexam/nginx/ssl
+sudo ln -s /etc/letsencrypt/live/nebexam.com/fullchain.pem \
+           /var/www/nebexam/nginx/ssl/fullchain.pem
+sudo ln -s /etc/letsencrypt/live/nebexam.com/privkey.pem  \
+           /var/www/nebexam/nginx/ssl/privkey.pem
+```
+
+> Let's Encrypt certs expire every 90 days. Set up auto-renewal:
+> ```bash
+> echo "0 3 * * * certbot renew --quiet && docker restart nebexam-frontend-nginx-1" \
+>   | sudo crontab -
+> ```
+
+---
+
+## 5. Server Initial Setup
+
+Run these **once** on the production server:
 
 ```bash
 # 1. Clone the repository
-git clone git@github.com:<your-org>/neb-exam.git /var/www/nebexam
+git clone https://github.com/ronishdhakal/nebexam.git /var/www/nebexam
 cd /var/www/nebexam
 
-# 2. Create the environment file (see Section 4)
-cp nebexam-backend/.env.example .env    # or create manually
+# 2. Create the environment files (see Section 6)
+nano nebexam-backend/.env    # Django/backend vars
+nano nebexam-frontend/.env   # Next.js frontend vars
 
-# 3. Create the initial nginx upstream (start with blue)
+# 3. Set the starting upstream (blue)
 cp nginx/conf.d/upstream-blue.conf nginx/conf.d/upstream.conf
 
 # 4. Record starting color
@@ -75,347 +158,359 @@ echo "blue" > .active_color
 
 # 5. Make deploy script executable
 chmod +x deploy.sh
+
+# 6. Create the shared Docker network
+docker network create nebexam-net
 ```
 
 ---
 
-## 4. Environment Variables
+## 6. Environment Variables
 
-Create a single `.env` file at the **repo root** (next to `docker-compose.yml`).
-**Never commit this file** — it is gitignored.
+There are **two separate `.env` files** — one per service directory.
+**Never commit either file** — both must be in `.gitignore`.
+
+### `nebexam-backend/.env`
 
 ```dotenv
-# ── Django ─────────────────────────────────────────────────────────────────
-SECRET_KEY=<generate with: python -c "from django.core.management.utils import get_random_secret_key; print(get_random_secret_key())">
+SECRET_KEY=<generate: python3 -c "import secrets; print(secrets.token_urlsafe(50))">
 DEBUG=False
-ALLOWED_HOSTS=nebexam.com,www.nebexam.com
-CORS_ALLOWED_ORIGINS=https://nebexam.com,https://www.nebexam.com
-FRONTEND_URL=https://nebexam.com
+ALLOWED_HOSTS=base.nebexam.com,www.nebexam.com,nebexam-backend-blue,nebexam-backend-green
+CORS_ALLOWED_ORIGINS=https://www.nebexam.com
+CSRF_TRUSTED_ORIGINS=https://www.nebexam.com,https://base.nebexam.com
+FRONTEND_URL=https://www.nebexam.com
 
-# ── Database (PostgreSQL) ───────────────────────────────────────────────────
 DB_NAME=nebexam_db
 DB_USER=postgres
-DB_PASSWORD=<your-db-password>
-DB_HOST=<your-db-host>        # IP of your PostgreSQL server or PgBouncer host
-DB_PORT=5432                  # 6432 if using PgBouncer
+DB_PASSWORD=<your-strong-db-password>
+DB_HOST=host.docker.internal
+DB_PORT=5432
 
-# ── Email (Gmail SMTP with App Password) ───────────────────────────────────
 EMAIL_HOST_USER=your-email@gmail.com
-EMAIL_HOST_PASSWORD=<gmail-app-password>  # 16-char app password, not your login password
+EMAIL_HOST_PASSWORD=<16-char gmail app password>
 
-# ── Cloudflare R2 Storage ───────────────────────────────────────────────────
-R2_ACCESS_KEY_ID=<r2-access-key-id>
-R2_SECRET_ACCESS_KEY=<r2-secret-access-key>
+CLOUDFLARE_ACCOUNT_ID=<your-account-id>
+R2_ACCESS_KEY_ID=<your-r2-key-id>
+R2_SECRET_ACCESS_KEY=<your-r2-secret>
 R2_ENDPOINT=https://<account-id>.r2.cloudflarestorage.com
 R2_BUCKET_NAME=nebexam-media
 MEDIA_BASE_URL=https://media.nebexam.com
 
-# ── eSewa Payment ───────────────────────────────────────────────────────────
-ESEWA_URL=https://epay.esewa.com.np/api/epay/main/v2/form   # production URL
+ESEWA_URL=https://epay.esewa.com.np/api/epay/main/v2/form
 ESEWA_PRODUCT_CODE=<your-merchant-code>
 ESEWA_SECRET_KEY=<your-esewa-secret>
-
-# ── Next.js (baked into the Docker image at build time) ────────────────────
-NEXT_PUBLIC_API_URL=https://nebexam.com/api
-NEXT_PUBLIC_MEDIA_URL=https://media.nebexam.com
 ```
 
-> **`NEXT_PUBLIC_*` variables** are embedded into the frontend bundle at build time.
-> If you change them you must rebuild the frontend image (`docker compose build frontend-blue`).
+### `nebexam-frontend/.env`
+
+```dotenv
+# IMPORTANT: baked into the Docker image at build time.
+# Rebuild the frontend image if you change these.
+NEXT_PUBLIC_API_URL=https://base.nebexam.com/api
+NEXT_PUBLIC_MEDIA_URL=https://media.nebexam.com
+NEXT_PUBLIC_SITE_URL=https://www.nebexam.com
+```
 
 ---
 
-## 5. First Deploy
+## 7. First Deploy
 
-Run these commands **once** on the server to bring up the initial stack:
+Run these commands once on the server to bring up the initial stack:
 
 ```bash
 cd /var/www/nebexam
 
-# Start nginx + blue stack
-docker compose --profile blue up -d
+# Start backend (blue)
+docker compose -f nebexam-backend/docker-compose.yml --profile blue up -d --build
+
+# Start frontend + nginx (blue)
+docker compose -f nebexam-frontend/docker-compose.yml --profile blue up -d --build
 
 # Run database migrations
-docker compose exec backend-blue python manage.py migrate
+docker exec nebexam-backend-blue python manage.py migrate
 
-# Create a Django superuser (one-time)
-docker compose exec backend-blue python manage.py createsuperuser
+# Create Django superuser (one-time)
+docker exec -it nebexam-backend-blue python manage.py createsuperuser
 
-# Verify everything is running
-docker compose ps
+# Verify all containers are running
+docker ps
 ```
 
 Expected output:
 ```
-NAME                      STATUS          PORTS
-nebexam-backend-blue      Up (healthy)
-nebexam-frontend-blue     Up (healthy)
-nebexam-nginx-1           Up              0.0.0.0:80->80/tcp
+NAMES                        STATUS
+nebexam-backend-blue         Up (healthy)
+nebexam-frontend-blue        Up (healthy)
+nebexam-frontend-nginx-1     Up
 ```
 
----
-
-## 6. CI/CD Pipeline (GitHub Actions)
-
-Every push to `main` triggers [`.github/workflows/deploy.yml`](.github/workflows/deploy.yml), which SSHs into the server and runs `deploy.sh`.
-
-### Required GitHub Secrets
-
-Go to: **GitHub → Settings → Secrets and variables → Actions → New repository secret**
-
-| Secret | Description | Example |
-|---|---|---|
-| `SERVER_HOST` | Server IP or domain | `203.0.113.10` |
-| `SERVER_USER` | SSH username | `ubuntu` |
-| `SERVER_SSH_KEY` | Full private SSH key | `-----BEGIN OPENSSH...` |
-| `SERVER_PORT` | SSH port (optional, default 22) | `22` |
-| `APP_DIR` | Absolute path on server | `/var/www/nebexam` |
-
-### Adding the SSH key
-
+Test the endpoints:
 ```bash
-# On your local machine — generate a deploy key
-ssh-keygen -t ed25519 -C "github-deploy" -f ~/.ssh/nebexam_deploy -N ""
-
-# Copy the PUBLIC key to the server
-ssh-copy-id -i ~/.ssh/nebexam_deploy.pub ubuntu@<your-server>
-
-# Paste the PRIVATE key (~/.ssh/nebexam_deploy) into the SERVER_SSH_KEY secret
-cat ~/.ssh/nebexam_deploy
+curl -I https://www.nebexam.com          # should return 200
+curl -I https://base.nebexam.com/api/    # should return 200
 ```
 
 ---
 
-## 7. How Blue-Green Deployment Works
+## 8. How Blue-Green Deployment Works
 
 ```
 Push to main
      │
      ▼
-GitHub Actions SSHs into server
-     │
-     ▼
-deploy.sh runs:
+GitHub Actions SSHs into server → runs deploy.sh
 
   [1] git pull origin main
 
-  [2] DB migrations run on CURRENT live container
-      (safe — migrations always backwards-compatible)
+  [2] DB migrations on CURRENT live container
 
-  [3] docker compose --profile GREEN up -d --build
-      (builds new images, starts green containers)
+  [3] Build + start NEW color (backend + frontend)
+      docker compose --profile GREEN up -d --build
 
-  [4] Health check loop (up to ~200s)
-      Polls Docker healthcheck on backend-green and frontend-green
-           │
-           ├── UNHEALTHY → tear down green, old blue keeps serving, exit 1
-           │
-           └── HEALTHY → continue
+  [4] Health check loop (up to 200s)
+      ├── UNHEALTHY → tear down new color, keep old, exit 1
+      └── HEALTHY   → continue
 
-  [5] cp nginx/conf.d/upstream-green.conf nginx/conf.d/upstream.conf
+  [5] cp nginx/conf.d/upstream-GREEN.conf nginx/conf.d/upstream.conf
       docker compose exec nginx nginx -s reload
-      ← ZERO DOWNTIME: nginx reload is atomic, no dropped requests
+      ← ZERO DOWNTIME: atomic upstream swap
 
   [6] echo "green" > .active_color
-      sleep 5   # drain in-flight requests on blue
-      docker compose --profile blue down
+      sleep 5  (drain in-flight requests)
+      docker compose --profile BLUE down
 ```
 
-**Result:** Users never see downtime. If the new build is broken, they stay on the old version.
+### GitHub Actions Setup
+
+Go to: **GitHub → Settings → Secrets and variables → Actions**
+
+| Secret | Value |
+|--------|-------|
+| `SERVER_HOST` | Your server IP |
+| `SERVER_USER` | `ubuntu` (or your user) |
+| `SERVER_SSH_KEY` | Contents of your private deploy key |
+| `SERVER_PORT` | `22` |
+| `APP_DIR` | `/var/www/nebexam` |
+
+Generate a deploy key:
+```bash
+ssh-keygen -t ed25519 -C "github-deploy-nebexam" -f ~/.ssh/nebexam_deploy -N ""
+ssh-copy-id -i ~/.ssh/nebexam_deploy.pub ubuntu@77.37.47.54
+# Paste contents of ~/.ssh/nebexam_deploy into SERVER_SSH_KEY secret
+```
 
 ---
 
-## 8. Manual Deploy & Rollback
+## 9. Ongoing Deploys
 
-### Trigger a manual deploy (without pushing to GitHub)
+### Automatic (push to main)
+Just push to `main` — GitHub Actions runs `deploy.sh` automatically.
 
+### Manual deploy from server
 ```bash
 cd /var/www/nebexam
 bash deploy.sh
-```
 
-### Deploy without pulling (already have the code)
-
-```bash
+# Skip git pull if code is already on server:
 bash deploy.sh --no-pull
-```
-
-### Emergency rollback (switch back instantly)
-
-If something is wrong after a deploy and the old color is still stopped:
-
-```bash
-# Re-start the old color
-BROKEN="green"    # or "blue" — whichever is currently active and broken
-OLD="blue"        # the color you want to roll back to
-
-docker compose --profile "$OLD" up -d
-
-# Switch nginx back
-cp nginx/conf.d/upstream-${OLD}.conf nginx/conf.d/upstream.conf
-docker compose exec nginx nginx -s reload
-
-echo "$OLD" > .active_color
-
-# Stop the broken color
-docker compose --profile "$BROKEN" down
-```
-
-### Instant rollback if old color is still running
-
-If the old container is still up (within the 5s grace period window):
-
-```bash
-ACTIVE=$(cat .active_color)
-PREV=$([ "$ACTIVE" = "blue" ] && echo "green" || echo "blue")
-
-cp nginx/conf.d/upstream-${PREV}.conf nginx/conf.d/upstream.conf
-docker compose exec nginx nginx -s reload
-echo "$PREV" > .active_color
 ```
 
 ---
 
-## 9. Common Operations
+## 10. Manual Deploy & Rollback
+
+### Emergency rollback (switch back to previous color instantly)
+
+```bash
+cd /var/www/nebexam
+ACTIVE=$(cat .active_color)
+PREV=$([ "$ACTIVE" = "blue" ] && echo "green" || echo "blue")
+
+# Restart previous color if stopped
+docker compose -f nebexam-backend/docker-compose.yml  --profile "$PREV" up -d
+docker compose -f nebexam-frontend/docker-compose.yml --profile "$PREV" up -d
+
+# Switch nginx
+cp nginx/conf.d/upstream-${PREV}.conf nginx/conf.d/upstream.conf
+docker compose -f nebexam-frontend/docker-compose.yml exec nginx nginx -s reload
+
+echo "$PREV" > .active_color
+
+# Stop broken color
+docker compose -f nebexam-backend/docker-compose.yml  --profile "$ACTIVE" down
+docker compose -f nebexam-frontend/docker-compose.yml --profile "$ACTIVE" down
+```
+
+---
+
+## 11. Common Operations
 
 ### View logs
 
 ```bash
-# Tail live logs from active color
 ACTIVE=$(cat .active_color)
-docker compose logs -f backend-$ACTIVE
-docker compose logs -f frontend-$ACTIVE
 
-# nginx access logs
-docker compose logs -f nginx
+# Backend logs
+docker logs -f nebexam-backend-$ACTIVE
+
+# Frontend logs
+docker logs -f nebexam-frontend-$ACTIVE
+
+# Nginx access/error logs
+docker logs -f nebexam-frontend-nginx-1
 ```
 
 ### Run a Django management command
 
 ```bash
 ACTIVE=$(cat .active_color)
-docker compose exec backend-$ACTIVE python manage.py <command>
-
-# Examples:
-docker compose exec backend-$ACTIVE python manage.py migrate
-docker compose exec backend-$ACTIVE python manage.py createsuperuser
-docker compose exec backend-$ACTIVE python manage.py shell
-```
-
-### Rebuild images without deploying
-
-```bash
-docker compose build backend-blue backend-green
-docker compose build frontend-blue frontend-green
-```
-
-### Force a full restart of the active stack
-
-```bash
-ACTIVE=$(cat .active_color)
-docker compose --profile $ACTIVE restart
-```
-
-### Check container health
-
-```bash
-docker compose ps
-docker inspect nebexam-backend-blue --format='{{.State.Health.Status}}'
+docker exec nebexam-backend-$ACTIVE python manage.py migrate
+docker exec nebexam-backend-$ACTIVE python manage.py createsuperuser
+docker exec nebexam-backend-$ACTIVE python manage.py shell
 ```
 
 ### Clear Django cache
 
 ```bash
 ACTIVE=$(cat .active_color)
-docker compose exec backend-$ACTIVE python manage.py shell -c "from django.core.cache import cache; cache.clear(); print('Cache cleared')"
+docker exec nebexam-backend-$ACTIVE python manage.py shell \
+  -c "from django.core.cache import cache; cache.clear(); print('Cache cleared')"
 ```
 
----
-
-## 10. Troubleshooting
-
-### `nginx -s reload` fails after switching upstream
-
-The `upstream.conf` file is bind-mounted read-only (`:ro`). If you get a permission error:
+### Rebuild images only (without deploying)
 
 ```bash
-# The conf.d directory must NOT be mounted read-only
-# Check docker-compose.yml — the nginx volume should be:
-#   ./nginx/conf.d:/etc/nginx/conf.d    ← no :ro
-# (upstream.conf is written by deploy.sh on the HOST, nginx reads it)
+docker compose --project-directory . \
+  -f nebexam-backend/docker-compose.yml build
+
+docker compose --project-directory . \
+  -f nebexam-frontend/docker-compose.yml build
 ```
 
-### Frontend shows old content after deploy
-
-Next.js caches aggressively. Hard-refresh with `Ctrl+Shift+R`, or check that the new container is actually serving:
+### Check container health
 
 ```bash
-ACTIVE=$(cat .active_color)
-docker compose logs frontend-$ACTIVE | tail -20
+docker ps
+docker inspect nebexam-backend-blue --format='{{.State.Health.Status}}'
 ```
 
-### `collectstatic` fails during Docker build
-
-The backend `Dockerfile` runs `collectstatic` without a database connection. Make sure `STATIC_ROOT` is set. If the build fails because of a missing setting, add to your `.env`:
-
-```dotenv
-STATIC_ROOT=/app/staticfiles
-```
-
-Or set it directly in `nebexam/settings.py`:
-
-```python
-STATIC_ROOT = BASE_DIR / 'staticfiles'
-```
-
-### Health check keeps failing
+### Free disk space (remove old images)
 
 ```bash
-# Check what's actually wrong inside the container
-docker compose logs backend-green
-
-# Test the health endpoint manually
-docker compose exec backend-green curl -v http://localhost:8000/api/schema/
-```
-
-### Database connection refused
-
-The containers connect to the DB using `DB_HOST` from `.env`. If your DB is on the host machine (not in Docker):
-
-```bash
-# Use the Docker gateway IP instead of localhost
-DB_HOST=172.17.0.1   # default Docker bridge gateway
-```
-
-Or use `host.docker.internal` (works on Docker Desktop, not default on Linux):
-
-```bash
-# Add to docker-compose.yml under the backend services:
-extra_hosts:
-  - "host.docker.internal:host-gateway"
-
-# Then set:
-DB_HOST=host.docker.internal
-```
-
-### Out of disk space (old images accumulate)
-
-```bash
-# Remove dangling images and stopped containers
 docker system prune -f
-
-# More aggressive — removes all unused images
 docker image prune -a -f
 ```
 
 ---
 
-## Security Checklist
+## 12. Troubleshooting
 
-- [ ] `.env` file is **not** committed to git (check with `git status`)
+### 502 Bad Gateway on www.nebexam.com or base.nebexam.com
+
+Nginx is running but can't reach the upstream.
+
+```bash
+# 1. Check if upstream containers are running
+docker ps
+
+# 2. Check upstream.conf has correct container names
+cat nginx/conf.d/upstream.conf
+# Should be: server nebexam-backend-blue:8000 / server nebexam-frontend-blue:3000
+
+# 3. Verify containers are on nebexam-net
+docker network inspect nebexam-net
+
+# 4. Check nginx error log
+docker logs nebexam-frontend-nginx-1
+```
+
+### Frontend shows "0 subjects" / empty pages (SSR not fetching data)
+
+The Next.js server-side code uses `INTERNAL_API_URL` to reach the backend.
+Check it is set in the running container:
+
+```bash
+docker exec nebexam-frontend-blue env | grep INTERNAL_API_URL
+# Should be: INTERNAL_API_URL=http://nebexam-backend-blue:8000/api
+
+# Test connectivity from frontend to backend
+docker exec nebexam-frontend-blue wget -qO- http://nebexam-backend-blue:8000/api/content/subjects/
+```
+
+If it returns 400, `nebexam-backend-blue` is not in Django's `ALLOWED_HOSTS`.
+Check your `.env`: `ALLOWED_HOSTS` must include `nebexam-backend-blue,nebexam-backend-green`.
+
+### CSRF verification failed (Django admin 403)
+
+Add the relevant origins to `CSRF_TRUSTED_ORIGINS` in `.env`:
+```dotenv
+CSRF_TRUSTED_ORIGINS=https://www.nebexam.com,https://base.nebexam.com
+```
+Then restart the backend: `docker restart nebexam-backend-blue`
+
+### SSL certificate errors
+
+```bash
+# Verify cert files exist and are readable by nginx
+ls -la nginx/ssl/
+docker exec nebexam-frontend-nginx-1 nginx -t
+```
+
+If using Cloudflare Origin Certificate, make sure Cloudflare SSL mode is **Full (strict)**, not Flexible.
+
+### `host not found in upstream` in nginx logs
+
+The upstream.conf still uses old service alias names. Verify:
+```bash
+cat nginx/conf.d/upstream.conf
+# Correct format:
+# upstream backend  { server nebexam-backend-blue:8000; }
+# upstream frontend { server nebexam-frontend-blue:3000; }
+```
+
+### Database connection refused
+
+```bash
+# Test DB connectivity from inside backend container
+ACTIVE=$(cat .active_color)
+docker exec nebexam-backend-$ACTIVE python manage.py dbshell
+```
+
+If DB is on the host machine, use `host.docker.internal` as `DB_HOST` and add to both backend services in `nebexam-backend/docker-compose.yml`:
+```yaml
+extra_hosts:
+  - "host.docker.internal:host-gateway"
+```
+
+### Health check keeps failing
+
+```bash
+docker logs nebexam-backend-blue | tail -30
+docker exec nebexam-backend-blue curl -v http://localhost:8000/api/schema/
+```
+
+### Out of disk space
+
+```bash
+docker system prune -f
+docker image prune -a -f
+```
+
+---
+
+## 13. Security Checklist
+
+Before going live, verify:
+
+- [ ] `.env` is in `.gitignore` and **never committed**
 - [ ] `DEBUG=False` in production `.env`
 - [ ] `SECRET_KEY` is a long random string (not the insecure dev default)
-- [ ] `ALLOWED_HOSTS` contains only your domain(s)
-- [ ] SSH key used for GitHub Actions has no passphrase and is **deploy-only** (not your personal key)
-- [ ] eSewa `ESEWA_URL` points to the **production** endpoint, not the sandbox (`rc-epay`)
-- [ ] Firewall: only ports 80, 443, and your SSH port are open to the internet
+- [ ] `ALLOWED_HOSTS` contains only your domains + container names
+- [ ] SSL certificates are in place and nginx returns HTTPS
+- [ ] Cloudflare SSL mode is set to **Full (strict)**
+- [ ] Firewall: only ports **22**, **80**, **443** open — **not 8000**
+- [ ] `ESEWA_URL` points to the **production** endpoint (not `rc-epay` sandbox)
+- [ ] `ESEWA_PRODUCT_CODE` is your real merchant code (not `EPAYTEST`)
+- [ ] GitHub deploy key is a dedicated key — not your personal SSH key
+- [ ] Database password is strong and different from any dev password
+- [ ] `NEXT_PUBLIC_API_URL` is `https://base.nebexam.com/api` (not localhost)

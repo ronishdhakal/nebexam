@@ -11,6 +11,11 @@ function fmt(dateStr) {
 export const metadata = {
   title: 'News — NEB Exam',
   description: 'Latest news, notices and updates for NEB students in Nepal.',
+  openGraph: {
+    title: 'News — NEB Exam',
+    description: 'Latest news, notices and updates for NEB students in Nepal.',
+    type: 'website',
+  },
 };
 
 const PAGE_SIZE = 10;

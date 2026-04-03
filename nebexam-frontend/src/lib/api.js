@@ -1,8 +1,16 @@
 import axios from 'axios';
 import { getAccessToken, getRefreshToken, setTokens, removeTokens } from '@/lib/auth';
 
+// Server-side (SSR/API routes) uses the internal Docker service name so it
+// can reach the backend container directly.  Browser requests use the public
+// URL baked in at build time via NEXT_PUBLIC_API_URL.
+const baseURL =
+  typeof window === 'undefined'
+    ? (process.env.INTERNAL_API_URL || process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api')
+    : (process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api');
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api',
+  baseURL,
   headers: { 'Content-Type': 'application/json' },
 });
 

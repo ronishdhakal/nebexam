@@ -1,5 +1,6 @@
 export const metadata = {
   title: 'Terms & Conditions — NEB Exam',
+  description: 'Read the terms and conditions for using the NEB Exam platform — account rules, subscription policies, intellectual property and more.',
 };
 
 const LAST_UPDATED = 'January 2025';

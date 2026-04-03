@@ -7,9 +7,13 @@ export async function generateMetadata({ params }) {
   const level = classSlug.replace('class-', '');
   try {
     const res = await subjectsService.getOne(`${subjectSlug}-class-${level}`);
+    const title = `Class ${res.data.class_level} ${res.data.name} Question Bank — NEB Exam`;
+    const description = `Past papers and model questions for Class ${res.data.class_level} ${res.data.name} with solutions — NEB exam preparation.`;
     return {
-      title: `Class ${res.data.class_level} ${res.data.name} Question Bank — NEB Exam`,
-      description: `Past papers and model questions for Class ${res.data.class_level} ${res.data.name} with solutions — NEB exam preparation.`,
+      title,
+      description,
+      openGraph: { title, description, type: 'website' },
+      twitter: { card: 'summary', title, description },
     };
   } catch {
     return { title: 'Question Bank — NEB Exam' };

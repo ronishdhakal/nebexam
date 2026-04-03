@@ -1,0 +1,15 @@
+FROM postgres:18-alpine
+
+RUN apk add --no-cache bash python3 py3-pip && \
+    pip3 install --no-cache-dir --break-system-packages awscli
+
+COPY backup.sh /backup.sh
+COPY trigger_server.py /trigger_server.py
+RUN chmod +x /backup.sh
+
+# Run at 00:00 and 12:00 UTC every day
+RUN echo "0 0,12 * * * /backup.sh >> /var/log/backup.log 2>&1" \
+    > /etc/crontabs/root
+
+# crond + trigger HTTP server (port 8080) + tail logs to stdout
+CMD ["sh", "-c", "touch /var/log/backup.log && tail -F /var/log/backup.log & crond -f -l 2 & python3 /trigger_server.py"]

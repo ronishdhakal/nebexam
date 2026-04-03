@@ -1,5 +1,6 @@
 export const metadata = {
   title: 'Disclaimer — NEB Exam',
+  description: 'NEB Exam is an independent study platform and is not affiliated with the National Examination Board of Nepal. Read our full content disclaimer.',
 };
 
 const LAST_UPDATED = 'January 2025';

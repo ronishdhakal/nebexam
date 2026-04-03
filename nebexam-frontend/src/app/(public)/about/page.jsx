@@ -1,6 +1,10 @@
 export const metadata = {
   title: 'About — NEB Exam',
   description: 'Learn about NEB Exam — Nepal\'s platform for Class 10, 11 and 12 notes, question banks, and past papers.',
+  openGraph: {
+    title: 'About — NEB Exam',
+    description: 'Learn about NEB Exam — Nepal\'s platform for Class 10, 11 and 12 notes, question banks, and past papers.',
+  },
 };
 
 const FEATURES = [

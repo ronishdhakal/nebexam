@@ -1,0 +1,56 @@
+name: nebexam-backend
+
+x-backend: &backend-base
+  build:
+    context: .
+    dockerfile: Dockerfile
+  env_file: .env
+  restart: unless-stopped
+  networks:
+    - nebexam-net
+  healthcheck:
+    test: ["CMD", "curl", "-f", "http://localhost:8000/api/schema/"]
+    interval: 10s
+    timeout: 5s
+    retries: 5
+    start_period: 20s
+
+services:
+
+  backend-blue:
+    <<: *backend-base
+    container_name: nebexam-backend-blue
+    profiles: ["blue"]
+    volumes:
+      - cache-blue:/app/.cache
+      - uploads:/app/uploads
+
+  backend-green:
+    <<: *backend-base
+    container_name: nebexam-backend-green
+    profiles: ["green"]
+    volumes:
+      - cache-green:/app/.cache
+      - uploads:/app/uploads
+
+  # ── DB backup (always running, no blue/green profile) ──────────────────────
+  db-backup:
+    build:
+      context: .
+      dockerfile: Dockerfile.backup
+    container_name: nebexam-db-backup
+    env_file: .env
+    restart: unless-stopped
+    networks:
+      - nebexam-net
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+
+volumes:
+  uploads:
+  cache-blue:
+  cache-green:
+
+networks:
+  nebexam-net:
+    external: true

@@ -52,9 +52,13 @@ export async function generateMetadata({ params }) {
   const level = classSlug.replace('class-', '');
   try {
     const res = await subjectsService.getOne(`${subjectSlug}-class-${level}`);
+    const title = `Class ${res.data.class_level} ${res.data.name} Notes, Important Questions, Syllabus — NEB Exam`;
+    const description = `Class ${res.data.class_level} ${res.data.name} notes, important questions and syllabus for NEB exam preparation.`;
     return {
-      title: `Class ${res.data.class_level} ${res.data.name} Notes, Important Questions, Syllabus — NEB Exam`,
-      description: `Class ${res.data.class_level} ${res.data.name} notes, important questions and syllabus for NEB exam preparation.`,
+      title,
+      description,
+      openGraph: { title, description, type: 'website' },
+      twitter: { card: 'summary', title, description },
     };
   } catch {
     return { title: 'Subject — NEB Exam' };

@@ -13,6 +13,7 @@ from .views import (
     PayoutRequestCreateView,
     AdminPayoutRequestListView,
     AdminPayoutRequestActionView,
+    EarningsView,
 )
 
 urlpatterns = [
@@ -29,4 +30,5 @@ urlpatterns = [
     path('payout-request/',                 PayoutRequestCreateView.as_view(),       name='payout-request-create'),
     path('payout-requests/',                AdminPayoutRequestListView.as_view(),    name='payout-request-list'),
     path('payout-requests/<int:pk>/',       AdminPayoutRequestActionView.as_view(),  name='payout-request-action'),
+    path('earnings/',                       EarningsView.as_view(),                  name='earnings'),
 ]

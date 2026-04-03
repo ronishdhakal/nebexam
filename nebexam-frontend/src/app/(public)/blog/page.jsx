@@ -11,6 +11,11 @@ function fmt(dateStr) {
 export const metadata = {
   title: 'Blog — NEB Exam',
   description: 'Articles, tips and guides for NEB students in Nepal.',
+  openGraph: {
+    title: 'Blog — NEB Exam',
+    description: 'Articles, tips and guides for NEB students in Nepal.',
+    type: 'website',
+  },
 };
 
 const PAGE_SIZE = 12;

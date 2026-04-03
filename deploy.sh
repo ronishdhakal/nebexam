@@ -11,9 +11,16 @@ set -euo pipefail
 ACTIVE_FILE=".active_color"
 NO_PULL=false
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+DC_BACKEND="docker compose -f $SCRIPT_DIR/nebexam-backend/docker-compose.yml"
+DC_FRONTEND="docker compose -f $SCRIPT_DIR/nebexam-frontend/docker-compose.yml"
+
 for arg in "$@"; do
   [[ "$arg" == "--no-pull" ]] && NO_PULL=true
 done
+
+# ── Ensure shared Docker network exists ───────────────────────────────────────
+docker network create nebexam-net 2>/dev/null || true
 
 # ── Determine colors ──────────────────────────────────────────────────────────
 CURRENT=$(cat "$ACTIVE_FILE" 2>/dev/null || echo "blue")
@@ -33,12 +40,13 @@ fi
 
 # ── 2. Run DB migrations (against current live DB before switching) ───────────
 echo "[2/6] Running migrations..."
-docker compose --profile "$CURRENT" exec -T "backend-$CURRENT" \
+$DC_BACKEND --profile "$CURRENT" exec -T "backend-$CURRENT" \
   python manage.py migrate --noinput
 
 # ── 3. Build & start the NEW color ────────────────────────────────────────────
 echo "[3/6] Building and starting $NEW stack..."
-docker compose --profile "$NEW" up -d --build
+$DC_BACKEND  --profile "$NEW" up -d --build
+$DC_FRONTEND --profile "$NEW" up -d --build
 
 # ── 4. Health-check the new stack ─────────────────────────────────────────────
 echo "[4/6] Waiting for $NEW stack to be healthy..."
@@ -64,27 +72,30 @@ check_healthy() {
 
 if ! check_healthy "backend"; then
   echo "Rolling back: stopping $NEW stack"
-  docker compose --profile "$NEW" down
+  $DC_BACKEND  --profile "$NEW" down
+  $DC_FRONTEND --profile "$NEW" down
   exit 1
 fi
 
 if ! check_healthy "frontend"; then
   echo "Rolling back: stopping $NEW stack"
-  docker compose --profile "$NEW" down
+  $DC_BACKEND  --profile "$NEW" down
+  $DC_FRONTEND --profile "$NEW" down
   exit 1
 fi
 
 # ── 5. Switch nginx to new color ──────────────────────────────────────────────
 echo "[5/6] Switching nginx to $NEW..."
-cp "nginx/conf.d/upstream-${NEW}.conf" "nginx/conf.d/upstream.conf"
-docker compose exec nginx nginx -s reload
+cp "$SCRIPT_DIR/nginx/conf.d/upstream-${NEW}.conf" "$SCRIPT_DIR/nginx/conf.d/upstream.conf"
+$DC_FRONTEND exec nginx nginx -s reload
 echo "  ✓ nginx now routes to $NEW"
 
 # ── 6. Record new active color & stop old stack ────────────────────────────────
 echo "$NEW" > "$ACTIVE_FILE"
 echo "[6/6] Stopping old $CURRENT stack..."
 sleep 5   # brief grace period for in-flight requests to finish
-docker compose --profile "$CURRENT" down
+$DC_BACKEND  --profile "$CURRENT" down
+$DC_FRONTEND --profile "$CURRENT" down
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

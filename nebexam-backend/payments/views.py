@@ -3,7 +3,8 @@ import hashlib
 import hmac
 import json
 import uuid
-from datetime import timedelta
+from datetime import timedelta, datetime, date as date_cls
+import calendar
 
 from django.conf import settings
 from django.http import HttpResponseRedirect
@@ -611,3 +612,130 @@ class AdminPayoutRequestActionView(APIView):
             'admin_note': req.admin_note,
             'paid_at':    req.paid_at,
         })
+
+
+# ── Earnings (Admin) ───────────────────────────────────────────────────────────
+
+class EarningsView(APIView):
+    """
+    GET /payments/earnings/
+      ?period=day&date=YYYY-MM-DD   → day totals + payment list
+      ?period=week&date=YYYY-MM-DD  → week totals + daily breakdown
+      ?period=month&date=YYYY-MM    → month totals + daily breakdown
+    Admin only.
+    """
+    permission_classes = [IsAdminUser]
+
+    def _payment_row(self, p):
+        return {
+            'id':           p.id,
+            'user_name':    p.user.name,
+            'user_email':   p.user.email,
+            'tier':         p.tier,
+            'amount':       p.amount,
+            'coupon':       p.coupon.code if p.coupon else None,
+            'verified_at':  p.verified_at,
+        }
+
+    def get(self, request):
+        from django.db.models import Sum, Count
+        from django.db.models.functions import TruncDate
+        from django.utils.timezone import localdate
+
+        period   = request.query_params.get('period', 'day')
+        date_str = request.query_params.get('date', '')
+
+        base_qs = Payment.objects.filter(status=Payment.STATUS_SUCCESS)
+
+        if period == 'day':
+            try:
+                day = datetime.strptime(date_str, '%Y-%m-%d').date()
+            except (ValueError, TypeError):
+                day = localdate()
+
+            qs    = base_qs.filter(verified_at__date=day)
+            total = qs.aggregate(total=Sum('amount'), count=Count('id'))
+            rows  = [self._payment_row(p) for p in qs.select_related('user', 'coupon').order_by('-verified_at')]
+
+            return Response({
+                'period':       'day',
+                'date':         str(day),
+                'total_amount': total['total'] or 0,
+                'total_count':  total['count'] or 0,
+                'payments':     rows,
+            })
+
+        if period == 'week':
+            try:
+                anchor = datetime.strptime(date_str, '%Y-%m-%d').date()
+            except (ValueError, TypeError):
+                anchor = localdate()
+
+            week_start = anchor - timedelta(days=anchor.weekday())  # Monday
+            week_end   = week_start + timedelta(days=6)             # Sunday
+
+            qs    = base_qs.filter(verified_at__date__gte=week_start, verified_at__date__lte=week_end)
+            total = qs.aggregate(total=Sum('amount'), count=Count('id'))
+
+            daily_qs  = (
+                qs.annotate(day=TruncDate('verified_at'))
+                .values('day')
+                .annotate(amount=Sum('amount'), count=Count('id'))
+                .order_by('day')
+            )
+            daily_map = {str(d['day']): {'amount': d['amount'] or 0, 'count': d['count'] or 0} for d in daily_qs}
+            breakdown = [
+                {
+                    'date':   str(week_start + timedelta(days=i)),
+                    'amount': daily_map.get(str(week_start + timedelta(days=i)), {}).get('amount', 0),
+                    'count':  daily_map.get(str(week_start + timedelta(days=i)), {}).get('count', 0),
+                }
+                for i in range(7)
+            ]
+
+            return Response({
+                'period':       'week',
+                'week_start':   str(week_start),
+                'week_end':     str(week_end),
+                'total_amount': total['total'] or 0,
+                'total_count':  total['count'] or 0,
+                'breakdown':    breakdown,
+            })
+
+        if period == 'month':
+            try:
+                year, month = [int(x) for x in date_str.split('-')]
+            except (ValueError, TypeError, AttributeError):
+                today = localdate()
+                year, month = today.year, today.month
+
+            qs    = base_qs.filter(verified_at__year=year, verified_at__month=month)
+            total = qs.aggregate(total=Sum('amount'), count=Count('id'))
+
+            daily_qs  = (
+                qs.annotate(day=TruncDate('verified_at'))
+                .values('day')
+                .annotate(amount=Sum('amount'), count=Count('id'))
+                .order_by('day')
+            )
+            daily_map    = {str(d['day']): {'amount': d['amount'] or 0, 'count': d['count'] or 0} for d in daily_qs}
+            days_in_month = calendar.monthrange(year, month)[1]
+            breakdown = [
+                {
+                    'date':   str(date_cls(year, month, d)),
+                    'amount': daily_map.get(str(date_cls(year, month, d)), {}).get('amount', 0),
+                    'count':  daily_map.get(str(date_cls(year, month, d)), {}).get('count', 0),
+                }
+                for d in range(1, days_in_month + 1)
+            ]
+
+            return Response({
+                'period':       'month',
+                'year':         year,
+                'month':        month,
+                'total_amount': total['total'] or 0,
+                'total_count':  total['count'] or 0,
+                'breakdown':    breakdown,
+            })
+
+        return Response({'detail': 'period must be day, week, or month.'}, status=400)

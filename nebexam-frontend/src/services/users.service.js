@@ -24,6 +24,7 @@ export const paymentService = {
   deleteCoupon:    (id)                 => api.delete(`/payments/coupons/${id}/`),
   recordCheckoutVisit: (tier)           => api.post('/payments/checkout-visit/', { tier }),
   setCrmStatus:    (userId, crm_status) => api.patch(`/payments/crm/${userId}/`, { crm_status }),
+  getEarnings:     (period, date)       => api.get('/payments/earnings/', { params: { period, date } }),
 };
 
 export const studyService = {
@@ -44,4 +45,5 @@ export const configService = {
   getSiteSettings:    ()     => api.get('/users/site-settings/'),
   updateSiteSettings: (data) => api.patch('/users/site-settings/', data),
   clearCache:         ()     => api.post('/users/clear-cache/'),
+  triggerBackup:      ()     => api.post('/users/trigger-backup/'),
 };

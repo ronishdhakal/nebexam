@@ -35,6 +35,10 @@ export default function SettingsPage() {
   const [cacheCleared, setCacheCleared]   = useState(false);
   const [cacheError, setCacheError]       = useState(null);
 
+  const [backupRunning, setBackupRunning] = useState(false);
+  const [backupDone, setBackupDone]       = useState(false);
+  const [backupError, setBackupError]     = useState(null);
+
   const [fetching, setFetching] = useState(true);
 
   useEffect(() => {
@@ -63,6 +67,22 @@ export default function SettingsPage() {
       });
     }).finally(() => setFetching(false));
   }, []);
+
+  const handleTriggerBackup = async () => {
+    setBackupRunning(true);
+    setBackupDone(false);
+    setBackupError(null);
+    try {
+      await configService.triggerBackup();
+      setBackupDone(true);
+      setTimeout(() => setBackupDone(false), 4000);
+    } catch (err) {
+      const msg = err.response?.data?.detail || 'Failed to start backup.';
+      setBackupError(msg);
+    } finally {
+      setBackupRunning(false);
+    }
+  };
 
   const handleClearCache = async () => {
     setCacheClearing(true);
@@ -248,6 +268,31 @@ export default function SettingsPage() {
           </button>
           {cacheError && <span className="text-xs text-red-500">{cacheError}</span>}
         </div>
+      </div>
+
+      {/* Database Backup */}
+      <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+        <h2 className="text-sm font-bold text-slate-800 mb-1">Database Backup</h2>
+        <p className="text-xs text-slate-500 mb-5">
+          Backups run automatically every 12 hours and are stored in Cloudflare R2 under{' '}
+          <span className="font-mono bg-slate-100 px-1 rounded">backup/</span>.
+          Up to 14 backups are kept (7 days). Click below to take one immediately.
+        </p>
+        <div className="flex items-center gap-3">
+          <button
+            onClick={handleTriggerBackup}
+            disabled={backupRunning}
+            className="inline-flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white px-5 py-2 rounded-xl text-sm font-semibold transition disabled:opacity-50"
+          >
+            {backupRunning ? 'Starting…' : backupDone ? '✓ Backup Started' : 'Take Backup Now'}
+          </button>
+          {backupError && <span className="text-xs text-red-500">{backupError}</span>}
+        </div>
+        {backupDone && (
+          <p className="text-xs text-emerald-600 mt-2">
+            Backup is running in the background. Check R2 <span className="font-mono">backup/</span> folder in a minute.
+          </p>
+        )}
       </div>
 
       {/* Plan Pricing */}

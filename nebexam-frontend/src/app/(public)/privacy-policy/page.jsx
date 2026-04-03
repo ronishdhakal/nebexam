@@ -1,5 +1,6 @@
 export const metadata = {
   title: 'Privacy Policy — NEB Exam',
+  description: 'Read NEB Exam\'s privacy policy — how we collect, use and protect your personal data when you use our platform.',
 };
 
 const LAST_UPDATED = 'January 2025';

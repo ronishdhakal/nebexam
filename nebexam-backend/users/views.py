@@ -626,6 +626,27 @@ class ClearCacheView(APIView):
         return Response({'detail': 'Cache cleared successfully.'})
 
 
+class TriggerBackupView(APIView):
+    """POST — Admin triggers an immediate database backup."""
+    permission_classes = [IsAdminUser]
+
+    def post(self, request):
+        import urllib.request
+        import urllib.error
+        try:
+            req = urllib.request.Request(
+                'http://nebexam-db-backup:8080/trigger',
+                method='POST',
+                data=b'',
+            )
+            with urllib.request.urlopen(req, timeout=10) as res:
+                if res.status == 409:
+                    return Response({'detail': 'Backup already in progress.'}, status=409)
+                return Response({'detail': 'Backup started successfully.'})
+        except urllib.error.URLError as e:
+            return Response({'detail': f'Backup service unreachable: {e.reason}'}, status=503)
+
+
 class MyReferralView(APIView):
     """GET — returns the current user's referral code, balance, and usage list."""
     permission_classes = [IsAuthenticated]
