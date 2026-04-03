@@ -16,11 +16,14 @@ x-backend: &backend-base
     start_period: 20s
 
 services:
-
   backend-blue:
     <<: *backend-base
     container_name: nebexam-backend-blue
     profiles: ["blue"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8055:8000"
     volumes:
       - cache-blue:/app/.cache
       - uploads:/app/uploads
@@ -29,6 +32,10 @@ services:
     <<: *backend-base
     container_name: nebexam-backend-green
     profiles: ["green"]
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    ports:
+      - "8056:8000"
     volumes:
       - cache-green:/app/.cache
       - uploads:/app/uploads
