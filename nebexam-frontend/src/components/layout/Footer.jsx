@@ -108,7 +108,7 @@ export default function Footer() {
 
         <div className="border-t border-slate-100 dark:border-slate-800 mt-12 pt-6 flex flex-col sm:flex-row items-center justify-between gap-4">
           <p className="text-xs text-slate-400 dark:text-slate-500">
-            © {new Date().getFullYear()} NEB Exam Nepal. All rights reserved.
+            © {new Date().getFullYear()} NEB Exam. All rights reserved.
           </p>
           {esewaEnabled && (
             <div className="flex items-center gap-2">
