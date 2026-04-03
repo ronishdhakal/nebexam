@@ -1,11 +1,4 @@
 #!/usr/bin/env bash
-# ─────────────────────────────────────────────────────────────────────────────
-#  Blue-Green zero-downtime deploy script
-#
-#  Usage:
-#    bash deploy.sh            # deploy latest main branch
-#    bash deploy.sh --no-pull  # skip git pull (deploy already-pulled code)
-# ─────────────────────────────────────────────────────────────────────────────
 set -euo pipefail
 
 ACTIVE_FILE=".active_color"
@@ -19,10 +12,8 @@ for arg in "$@"; do
   [[ "$arg" == "--no-pull" ]] && NO_PULL=true
 done
 
-# ── Ensure shared Docker network exists ───────────────────────────────────────
 docker network create nebexam-net 2>/dev/null || true
 
-# ── Determine colors ──────────────────────────────────────────────────────────
 CURRENT=$(cat "$ACTIVE_FILE" 2>/dev/null || echo "blue")
 if [[ "$CURRENT" == "blue" ]]; then NEW="green"; else NEW="blue"; fi
 
@@ -30,30 +21,26 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 echo "  Active: $CURRENT  →  Deploying to: $NEW"
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
 
-# ── 1. Pull latest code ────────────────────────────────────────────────────────
 if [[ "$NO_PULL" == false ]]; then
   echo "[1/6] Pulling latest code..."
-  git pull origin main
+  git pull origin master
 else
   echo "[1/6] Skipping git pull (--no-pull)"
 fi
 
-# ── 2. Run DB migrations (against current live DB before switching) ───────────
 echo "[2/6] Running migrations..."
 $DC_BACKEND --profile "$CURRENT" exec -T "backend-$CURRENT" \
   python manage.py migrate --noinput
 
-# ── 3. Build & start the NEW color ────────────────────────────────────────────
 echo "[3/6] Building and starting $NEW stack..."
 $DC_BACKEND  --profile "$NEW" up -d --build
 $DC_FRONTEND --profile "$NEW" up -d --build
 
-# ── 4. Health-check the new stack ─────────────────────────────────────────────
 echo "[4/6] Waiting for $NEW stack to be healthy..."
 
 check_healthy() {
   local service="$1"
-  local max=40  # 40 × 5s = 200s max
+  local max=40
   local i=0
   while [[ $i -lt $max ]]; do
     local status
@@ -72,30 +59,36 @@ check_healthy() {
 
 if ! check_healthy "backend"; then
   echo "Rolling back: stopping $NEW stack"
-  $DC_BACKEND  --profile "$NEW" down
-  $DC_FRONTEND --profile "$NEW" down
+  docker stop nebexam-backend-$NEW nebexam-frontend-$NEW 2>/dev/null || true
   exit 1
 fi
 
 if ! check_healthy "frontend"; then
   echo "Rolling back: stopping $NEW stack"
-  $DC_BACKEND  --profile "$NEW" down
-  $DC_FRONTEND --profile "$NEW" down
+  docker stop nebexam-backend-$NEW nebexam-frontend-$NEW 2>/dev/null || true
   exit 1
 fi
 
-# ── 5. Switch nginx to new color ──────────────────────────────────────────────
 echo "[5/6] Switching nginx to $NEW..."
 cp "$SCRIPT_DIR/nginx/conf.d/upstream-${NEW}.conf" "$SCRIPT_DIR/nginx/conf.d/upstream.conf"
 $DC_FRONTEND exec nginx nginx -s reload
 echo "  ✓ nginx now routes to $NEW"
 
-# ── 6. Record new active color & stop old stack ────────────────────────────────
+# Update host nginx backend port
+if [[ "$NEW" == "green" ]]; then
+  BACKEND_PORT=8056
+else
+  BACKEND_PORT=8055
+fi
+sudo sed -i "s|proxy_pass http://127.0.0.1:805[56];|proxy_pass http://127.0.0.1:${BACKEND_PORT};|g" /etc/nginx/sites-available/nebexam
+sudo nginx -t && sudo systemctl reload nginx
+echo "  ✓ host nginx backend port updated to $BACKEND_PORT"
+
 echo "$NEW" > "$ACTIVE_FILE"
-echo "[6/6] Stopping old $CURRENT stack..."
-sleep 5   # brief grace period for in-flight requests to finish
-$DC_BACKEND  --profile "$CURRENT" down
-$DC_FRONTEND --profile "$CURRENT" down
+echo "[6/6] Stopping old $CURRENT containers only..."
+sleep 5
+docker stop nebexam-backend-$CURRENT nebexam-frontend-$CURRENT 2>/dev/null || true
+docker rm nebexam-backend-$CURRENT nebexam-frontend-$CURRENT 2>/dev/null || true
 
 echo ""
 echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
