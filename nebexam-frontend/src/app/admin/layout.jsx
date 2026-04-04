@@ -26,7 +26,7 @@ export default function AdminLayout({ children }) {
   if (!user.is_staff) return null;
 
   return (
-    <div className="min-h-screen flex">
+    <div className="min-h-screen flex" data-theme="light">
       <Sidebar />
       <div className="flex-1 flex flex-col">
         <AdminHeader />

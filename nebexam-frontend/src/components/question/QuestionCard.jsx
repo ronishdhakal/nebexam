@@ -322,7 +322,7 @@ function PaperQuestionCard({ node, index, depth, isNepali = false }) {
           </div>
         )}
         {node.children?.length > 0 && (
-          <div className="mt-3 space-y-4 pl-4">
+          <div className="mt-3 space-y-4 pl-2 sm:pl-4">
             {indexChildren(node.children).map(({ child, labelIndex }) => (
               <PaperQuestionCard key={child.id} node={child} index={labelIndex} depth={depth + 1} isNepali={isNepali} />
             ))}
@@ -355,12 +355,12 @@ function PaperQuestionCard({ node, index, depth, isNepali = false }) {
           </div>
         </div>
         {/* Passage body */}
-        <div className={`text-sm leading-relaxed text-slate-800 dark:text-slate-200 border-l-2 border-gray-300 dark:border-slate-600 pl-4 py-1 ${numLabel ? 'ml-9' : ''}`}>
+        <div className={`text-sm leading-relaxed text-slate-800 dark:text-slate-200 border-l-2 border-gray-300 dark:border-slate-600 pl-2 sm:pl-4 py-1 ${numLabel ? 'ml-5 sm:ml-9' : ''}`}>
           <ContentBlock content={node.content} />
         </div>
         {/* Sub-questions — depth+1 so they get i, ii, iii */}
         {node.children?.length > 0 && (
-          <div className={`mt-4 space-y-4 ${numLabel ? 'ml-9' : ''}`}>
+          <div className={`mt-4 space-y-4 ${numLabel ? 'ml-5 sm:ml-9' : ''}`}>
             {indexChildren(node.children).map(({ child, labelIndex }) => (
               <PaperQuestionCard key={child.id} node={child} index={labelIndex} depth={depth + 1} isNepali={isNepali} />
             ))}
@@ -388,7 +388,7 @@ function PaperQuestionCard({ node, index, depth, isNepali = false }) {
 
         {/* MCQ options */}
         {node.question_type === 'mcq' && node.options?.length > 0 && (
-          <div className="mt-2 grid grid-cols-2 gap-x-6 gap-y-1.5 clear-right">
+          <div className="mt-2 grid grid-cols-2 gap-x-4 gap-y-1.5 clear-right">
             {node.options.map((opt, i) => (
               <div key={i} className="text-sm text-slate-700 dark:text-slate-300 flex items-start gap-1.5">
                 <span className="shrink-0 font-medium w-5">{MCQ_PAPER_LABELS[i]}</span>
@@ -400,7 +400,7 @@ function PaperQuestionCard({ node, index, depth, isNepali = false }) {
 
         {/* Sub-questions */}
         {node.children?.length > 0 && (
-          <div className={`${node.content ? 'mt-3' : ''} space-y-3 pl-4 clear-right`}>
+          <div className={`${node.content ? 'mt-3' : ''} space-y-3 pl-2 sm:pl-4 clear-right`}>
             {indexChildren(node.children).map(({ child, labelIndex }) => (
               <PaperQuestionCard key={child.id} node={child} index={labelIndex} depth={depth + 1} isNepali={isNepali} />
             ))}
@@ -495,8 +495,8 @@ function CardQuestionCard({ node, index, depth, hideMeta = false }) {
 
   return (
     <div className={isRoot
-      ? 'bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-5'
-      : 'border-l-2 border-[#1CA3FD]/20 pl-4 py-1'
+      ? 'bg-white dark:bg-slate-800 p-4 sm:p-5 border-b sm:border sm:rounded-2xl border-gray-100 dark:border-slate-700 sm:shadow-sm'
+      : 'border-l-2 border-[#1CA3FD]/20 pl-2 sm:pl-4 py-1'
     }>
       <div className="flex items-start gap-3 mb-3">
         {isRoot && index !== undefined && (

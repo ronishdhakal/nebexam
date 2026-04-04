@@ -269,21 +269,40 @@ body {
 }
 
 /* KaTeX math rendering */
-.ProseMirror .Tiptap-mathematics-editor,
-.ProseMirror .Tiptap-mathematics-render {
+.ProseMirror .Tiptap-mathematics-editor {
   display: inline;
   cursor: default;
-}
-.ProseMirror .Tiptap-mathematics-editor {
   font-family: 'Fira Mono', 'Cascadia Code', monospace;
   font-size: 0.875em;
   background: #f1f5f9;
   border-radius: 3px;
   padding: 0 3px;
 }
+.ProseMirror .Tiptap-mathematics-render {
+  display: inline-block;
+  vertical-align: middle;
+  cursor: default;
+}
 .ProseMirror .Tiptap-mathematics-node--selected {
   outline: 2px solid #1CA3FD;
   border-radius: 3px;
+}
+
+/* ── Math overflow fix ───────────────────────────────────────────────────
+   KaTeX uses white-space:nowrap internally so wide formulas overflow their
+   parent paragraph.  Making the block-level <p> and <li> scroll instead
+   of letting content escape the card is the only reliable cross-browser
+   approach (overflow-x:auto on inline-block doesn't constrain the parent).
+────────────────────────────────────────────────────────────────────────── */
+.prose-render .ProseMirror > p,
+.prose-render .ProseMirror > ol,
+.prose-render .ProseMirror > ul,
+.prose-render .ProseMirror li {
+  overflow-x: auto;
+  overflow-y: visible;
+  -webkit-overflow-scrolling: touch;
+  /* Ensure the block never grows wider than its container */
+  max-width: 100%;
 }
 
 /* Placeholder */
@@ -329,3 +348,30 @@ body {
   color: #cbd5e1;
 }
 .dark .ProseMirror s { color: #94a3b8; }
+
+/* ── Admin panel — always light-themed, force dark text in editors ────── */
+/* Covers both the rich text editor and read-only renderers in CRM.       */
+[data-theme="light"] .ProseMirror,
+.dark [data-theme="light"] .ProseMirror {
+  color: #111111 !important;
+}
+
+/* ── KaTeX responsive ────────────────────────────────────────────────── */
+/* Block-level display math ($$...$$) */
+.katex-display {
+  overflow-x: auto;
+  overflow-y: hidden;
+  -webkit-overflow-scrolling: touch;
+  padding-bottom: 0.25em;
+}
+/* Inherit surrounding text colour in both themes */
+.Tiptap-mathematics-render .katex,
+.Tiptap-mathematics-render .katex-html {
+  color: inherit;
+}
+/* Prevent the katex span from growing the containing paragraph wider
+   than the viewport — the paragraph's overflow-x:auto will scroll it */
+.prose-render .ProseMirror .katex {
+  max-width: none;
+  display: inline;
+}

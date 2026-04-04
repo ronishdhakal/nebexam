@@ -81,7 +81,7 @@ export default async function EntryPage({ params }) {
 
   return (
     <div className="bg-[#f4f6f9] dark:bg-slate-950 min-h-screen py-8">
-      <div className="max-w-7xl mx-auto px-4 lg:flex lg:gap-6 lg:items-start">
+      <div className="max-w-7xl mx-auto px-0 sm:px-4 lg:flex lg:gap-6 lg:items-start">
 
         {/* ── LEFT SIDEBAR ── */}
         <aside className="hidden lg:block w-60 xl:w-64 shrink-0 sticky top-20 self-start">
@@ -184,8 +184,8 @@ export default async function EntryPage({ params }) {
           </div>
 
           {/* ── PAPER ── */}
-          <div className="bg-white dark:bg-slate-800 shadow-lg border border-gray-200 dark:border-slate-700 rounded-sm print:shadow-none">
-            <div className="px-4 sm:px-10 md:px-14 pt-6 sm:pt-8 pb-6 border-b-2 border-black dark:border-slate-400">
+          <div className="bg-white dark:bg-slate-800 shadow-lg border border-gray-200 dark:border-slate-700 sm:rounded-sm print:shadow-none">
+            <div className="px-3 sm:px-10 md:px-14 pt-6 sm:pt-8 pb-6 border-b-2 border-black dark:border-slate-400">
               {entry.sub_code && (
                 <p className="text-right text-sm font-bold mb-3">
                   {isNp ? 'विषय कोड : ' : 'Sub. code '}{entry.sub_code}
@@ -225,7 +225,7 @@ export default async function EntryPage({ params }) {
               </p>
             </div>
 
-            <div className="px-4 sm:px-10 md:px-14 py-6 sm:py-8 space-y-10">
+            <div className="px-3 sm:px-10 md:px-14 py-6 sm:py-8 space-y-10">
               {entry.has_group ? (() => {
                 let offset = 0;
                 return entry.groups?.map((group) => {
@@ -238,7 +238,7 @@ export default async function EntryPage({ params }) {
               )}
             </div>
 
-            <div className="px-4 sm:px-10 md:px-14 py-4 border-t border-gray-200 dark:border-slate-700 flex justify-between items-center text-xs text-slate-400">
+            <div className="px-3 sm:px-10 md:px-14 py-4 border-t border-gray-200 dark:border-slate-700 flex justify-between items-center text-xs text-slate-400">
               <span>{subject?.name} — {typeLabel} {entry.year}</span>
               <span>NEB Exam</span>
             </div>

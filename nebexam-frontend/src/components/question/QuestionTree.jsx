@@ -28,7 +28,7 @@ export default function QuestionTree({ questions, paperMode = false, isNepali = 
   });
 
   return (
-    <div className={paperMode ? 'space-y-5' : 'space-y-4'}>
+    <div className={paperMode ? 'space-y-5' : 'space-y-0 sm:space-y-4'}>
       {items.map(({ node, index }) => (
         <QuestionCard key={node.id} node={node} index={index} paperMode={paperMode} isNepali={isNepali} hideMeta={hideMeta} />
       ))}

@@ -35,6 +35,13 @@ class RegisterSerializer(serializers.ModelSerializer):
         model = User
         fields = ['email', 'name', 'phone', 'password', 'level', 'stream']
 
+    def validate_phone(self, value):
+        if value and User.objects.filter(phone=value).exists():
+            raise serializers.ValidationError(
+                'An account with this phone number already exists.'
+            )
+        return value
+
     def create(self, validated_data):
         return User.objects.create_user(**validated_data)
 

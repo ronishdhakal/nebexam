@@ -40,10 +40,7 @@ export default function RichTextRenderer({ content }) {
 
   return (
     <div className="prose-render">
-      <EditorContent
-        editor={editor}
-        className="prose dark:prose-invert max-w-none text-sm text-gray-800 dark:text-slate-200"
-      />
+      <EditorContent editor={editor} />
     </div>
   );
 }

@@ -14,6 +14,8 @@ const TIERS = [
   { value: '3month', label: '3 Months' },
   { value: '1year',  label: '1 Year' },
 ];
+
+const TIER_DAYS = { '1month': 30, '3month': 90, '1year': 365 };
 const LEVELS = ['10', '11', '12'];
 
 export default function EditUserPage({ params: rawParams }) {
@@ -186,7 +188,21 @@ export default function EditUserPage({ params: rawParams }) {
               <label className={lbl}>Plan</label>
               <select
                 value={form.subscription_tier}
-                onChange={(e) => setForm({ ...form, subscription_tier: e.target.value })}
+                onChange={(e) => {
+                  const newTier = e.target.value;
+                  const days = TIER_DAYS[newTier];
+                  if (newTier === 'free') {
+                    // Clearing subscription also clears expiry
+                    setForm({ ...form, subscription_tier: newTier, subscription_expires_at: '' });
+                  } else if (!form.subscription_expires_at && days) {
+                    // Paid tier selected with no expiry — auto-fill based on plan duration
+                    const d = new Date();
+                    d.setDate(d.getDate() + days);
+                    setForm({ ...form, subscription_tier: newTier, subscription_expires_at: d.toISOString().slice(0, 16) });
+                  } else {
+                    setForm({ ...form, subscription_tier: newTier });
+                  }
+                }}
                 className={inp}
               >
                 {TIERS.map((t) => (

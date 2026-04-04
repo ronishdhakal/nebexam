@@ -400,6 +400,36 @@ class UserDetailView(generics.RetrieveUpdateAPIView):
     serializer_class = AdminUserSerializer
     permission_classes = [IsAdminUser]
 
+    def perform_update(self, serializer):
+        from datetime import timedelta
+        from payments.views import _get_plan
+
+        new_tier = serializer.validated_data.get(
+            'subscription_tier', serializer.instance.subscription_tier
+        )
+        new_expiry = serializer.validated_data.get(
+            'subscription_expires_at', serializer.instance.subscription_expires_at
+        )
+
+        # When a paid tier is set but no expiry is provided (or is explicitly null),
+        # auto-calculate from today using the plan's duration.
+        if new_tier and new_tier != 'free' and new_expiry is None:
+            plan = _get_plan(new_tier)
+            if plan:
+                months = plan['months']
+                now = timezone.now()
+                base = (
+                    serializer.instance.subscription_expires_at
+                    if (serializer.instance.subscription_expires_at and
+                        serializer.instance.subscription_expires_at > now)
+                    else now
+                )
+                serializer.validated_data['subscription_expires_at'] = (
+                    base + timedelta(days=30 * months)
+                )
+
+        serializer.save()
+
 
 class BulkPromoteView(APIView):
     permission_classes = [IsAdminUser]

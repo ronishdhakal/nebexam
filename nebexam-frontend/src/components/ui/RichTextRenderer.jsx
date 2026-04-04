@@ -24,7 +24,7 @@ export default function RichTextRenderer({ value }) {
   if (!editor) return null;
 
   return (
-    <div className="prose prose-sm max-w-none text-gray-800">
+    <div className="prose-render">
       <EditorContent editor={editor} />
     </div>
   );
