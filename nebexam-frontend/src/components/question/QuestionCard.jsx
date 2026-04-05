@@ -42,7 +42,8 @@ function indexChildren(children) {
   let counter = 0;
   return children.map(child => {
     if (child.question_type === 'or_separator') {
-      counter = 0; // reset so post-OR children restart at "a.", "i.", etc.
+      // Step back so the next question gets the same label as the one before OR
+      counter = Math.max(0, counter - 1);
       return { child, labelIndex: undefined };
     }
     const labelIndex = showLabels ? counter : undefined;
