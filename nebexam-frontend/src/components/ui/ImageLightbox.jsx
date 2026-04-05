@@ -1,6 +1,7 @@
 'use client';
 
-import { useEffect, useState, createPortal } from 'react';
+import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 export default function ImageLightbox({ src, alt, onClose }) {
   const [mounted, setMounted] = useState(false);

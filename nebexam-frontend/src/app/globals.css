@@ -171,6 +171,13 @@ body {
 .prose-render .ProseMirror img {
   max-width: 50%;
 }
+
+/* Answer popup — images take full width and scale height proportionally */
+.answer-modal-content .prose-render .ProseMirror img {
+  max-width: 100%;
+  width: 100%;
+  height: auto;
+}
 .ProseMirror img.ProseMirror-selectednode {
   outline: 3px solid #3b82f6;
   outline-offset: 2px;

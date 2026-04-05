@@ -110,7 +110,7 @@ function AnswerModal({ node, onClose }) {
         </div>
 
         {/* Scrollable body */}
-        <div className="overflow-y-auto overscroll-contain px-5 sm:px-7 py-5 space-y-5 flex-1 min-h-0">
+        <div className="answer-modal-content overflow-y-auto overscroll-contain px-5 sm:px-7 py-5 space-y-5 flex-1 min-h-0">
 
           {/* Question */}
           {content && (
