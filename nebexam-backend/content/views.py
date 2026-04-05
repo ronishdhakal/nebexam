@@ -81,6 +81,17 @@ class ChapterViewSet(CachedViewSetMixin, viewsets.ModelViewSet):
             qs = qs.filter(Q(area__subject__slug=subject) | Q(subject__slug=subject))
         return qs
 
+    @action(detail=True, methods=['delete'], url_path='remove_pdf')
+    def remove_pdf(self, request, slug=None):
+        """DELETE — removes the pdf_notes file from a chapter."""
+        chapter = self.get_object()
+        if chapter.pdf_notes:
+            chapter.pdf_notes.delete(save=False)
+            chapter.pdf_notes = None
+            chapter.save(update_fields=['pdf_notes'])
+        cache.clear()
+        return Response(ChapterDetailSerializer(chapter).data)
+
     @action(detail=True, methods=['get'], url_path='important_questions')
     def important_questions(self, request, slug=None):
         key = make_cache_key(request)

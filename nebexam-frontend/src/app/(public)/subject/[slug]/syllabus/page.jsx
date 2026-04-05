@@ -11,6 +11,59 @@ export async function generateMetadata({ params }) {
   }
 }
 
+function SyllabusHeader({ subject }) {
+  const gradeMap = { '10': 'X', '11': 'XI', '12': 'XII' };
+  const grade = gradeMap[subject.class_level] || subject.class_level;
+
+  return (
+    <div className="border-b-2 border-black dark:border-slate-400 pb-5 mb-8">
+      {/* Sub code — top right */}
+      {subject.subject_code && (
+        <p className="text-right text-sm font-bold mb-3">
+          Sub. code {subject.subject_code}
+        </p>
+      )}
+
+      {/* Centered header */}
+      <div className="text-center space-y-0.5">
+        {subject.syllabus_university && (
+          <p className="text-sm font-medium text-slate-600 dark:text-slate-400">
+            {subject.syllabus_university}
+          </p>
+        )}
+        <p className="font-bold text-base tracking-wide">
+          NEB — GRADE {grade}
+        </p>
+        <p className="text-2xl font-extrabold tracking-tight mt-2">{subject.name}</p>
+        <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mt-1">Syllabus</p>
+      </div>
+
+      {/* Time / Marks row */}
+      {(subject.syllabus_time || subject.syllabus_full_mark != null) && (
+        <div className="mt-5 pt-4 border-t border-gray-300 dark:border-slate-600">
+          <div className="flex items-start justify-between flex-wrap gap-2">
+            <span className="font-bold text-sm">
+              {subject.syllabus_time ? `समय (Time) : ${subject.syllabus_time}` : ''}
+            </span>
+            <div className="text-right">
+              {subject.syllabus_full_mark != null && (
+                <p className="font-bold text-sm">
+                  पूर्णाङ्क (Full Marks) : {subject.syllabus_full_mark}
+                </p>
+              )}
+              {subject.syllabus_pass_mark != null && (
+                <p className="text-xs text-slate-500 mt-0.5">
+                  Pass Marks : {subject.syllabus_pass_mark}
+                </p>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default async function SyllabusPage({ params }) {
   const { slug } = await params;
   let subject = null;
@@ -19,13 +72,22 @@ export default async function SyllabusPage({ params }) {
     subject = res.data;
   } catch {}
 
+  const hasMeta = subject && (
+    subject.syllabus_university ||
+    subject.syllabus_full_mark != null ||
+    subject.syllabus_pass_mark != null ||
+    subject.syllabus_time ||
+    subject.subject_code
+  );
+
   return (
     <div className="max-w-4xl mx-auto px-6 py-10">
       {subject?.syllabus ? (
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-6 md:p-10">
+        <div>
           <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-6">
             Class {subject.class_level} {subject.name} Syllabus
           </h1>
+          {hasMeta && <SyllabusHeader subject={subject} />}
           <RichTextRenderer content={subject.syllabus} />
         </div>
       ) : (

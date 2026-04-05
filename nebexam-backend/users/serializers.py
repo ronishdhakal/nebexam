@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from django.contrib.auth import authenticate
-from .models import User
+from .models import User, EmailVerificationOTP
 
 
 class UserSerializer(serializers.ModelSerializer):
@@ -51,10 +51,23 @@ class LoginSerializer(serializers.Serializer):
     password = serializers.CharField(write_only=True)
 
     def validate(self, data):
+        # Check for unverified account before calling authenticate (which rejects inactive users)
+        try:
+            user_obj = User.objects.get(email=data['email'])
+            if not user_obj.is_active:
+                has_pending_verification = EmailVerificationOTP.objects.filter(
+                    user=user_obj, used=False
+                ).exists()
+                if has_pending_verification:
+                    raise serializers.ValidationError(
+                        'Please verify your email before logging in. Check your inbox for the verification code.'
+                    )
+                raise serializers.ValidationError('Account is disabled.')
+        except User.DoesNotExist:
+            pass
+
         user = authenticate(username=data['email'], password=data['password'])
         if not user:
             raise serializers.ValidationError('Invalid credentials.')
-        if not user.is_active:
-            raise serializers.ValidationError('Account is disabled.')
         data['user'] = user
         return data

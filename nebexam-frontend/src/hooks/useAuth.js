@@ -26,6 +26,12 @@ const useAuth = () => {
 
   const handleRegister = async (data) => {
     const res = await authService.register(data);
+    // Registration now returns {email, detail} — verification required before login
+    return res.data;
+  };
+
+  const handleVerifyEmail = async (email, code) => {
+    const res = await authService.verifyEmail(email, code);
     const { access, refresh, user: userData } = res.data;
     login(access, refresh, userData);
     return res.data;
@@ -39,6 +45,7 @@ const useAuth = () => {
     handleLogin,
     handleLogout,
     handleRegister,
+    handleVerifyEmail,
   };
 };
 

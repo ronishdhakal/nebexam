@@ -10,7 +10,7 @@ import SearchableSelect from '@/components/ui/SearchableSelect';
 const inp = 'w-full border border-slate-300 bg-white rounded-lg px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1CA3FD] focus:border-transparent transition';
 const lbl = 'block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide';
 
-export default function ChapterForm({ initial = {}, onSubmit, loading }) {
+export default function ChapterForm({ initial = {}, onSubmit, onRemovePdf, loading }) {
   // Determine initial subject slug from initial data
   const initSubjectSlug = initial.subject_slug || '';
 
@@ -160,9 +160,24 @@ export default function ChapterForm({ initial = {}, onSubmit, loading }) {
       <div>
         <label className={lbl}>PDF Notes</label>
         {initial.pdf_notes && (
-          <p className="text-xs text-slate-500 mb-2">
-            Current: <a href={initial.pdf_notes} target="_blank" rel="noreferrer" className="text-[#1CA3FD] hover:underline">View PDF</a>
-          </p>
+          <div className="flex items-center gap-3 mb-2 p-2.5 bg-slate-50 rounded-lg border border-slate-100">
+            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" className="text-red-500 shrink-0">
+              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+            </svg>
+            <a href={initial.pdf_notes} target="_blank" rel="noreferrer" className="text-xs text-[#1CA3FD] hover:underline flex-1 truncate">
+              {initial.pdf_notes.split('/').pop() || 'View PDF'}
+            </a>
+            {onRemovePdf && (
+              <button
+                type="button"
+                onClick={onRemovePdf}
+                disabled={loading}
+                className="text-xs text-red-500 hover:text-red-700 font-semibold transition-colors disabled:opacity-50 shrink-0"
+              >
+                Remove
+              </button>
+            )}
+          </div>
         )}
         <input
           type="file"

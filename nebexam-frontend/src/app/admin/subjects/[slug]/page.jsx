@@ -14,6 +14,12 @@ export default function EditSubjectPage({ params: rawParams }) {
   const [subject, setSubject] = useState(null);
   const [activeTab, setActiveTab] = useState('Details');
   const [syllabus, setSyllabus] = useState(null);
+  const [syllabusMeta, setSyllabusMeta] = useState({
+    syllabus_university: '',
+    syllabus_full_mark: '',
+    syllabus_pass_mark: '',
+    syllabus_time: '',
+  });
   const [bookText, setBookText] = useState(null);
   const [loading, setLoading] = useState(false);
   const [saved, setSaved] = useState(false);
@@ -27,6 +33,12 @@ export default function EditSubjectPage({ params: rawParams }) {
       .then((res) => {
         setSubject(res.data);
         setSyllabus(res.data.syllabus || '');
+        setSyllabusMeta({
+          syllabus_university: res.data.syllabus_university || '',
+          syllabus_full_mark:  res.data.syllabus_full_mark  ?? '',
+          syllabus_pass_mark:  res.data.syllabus_pass_mark  ?? '',
+          syllabus_time:       res.data.syllabus_time       || '',
+        });
         setBookText(res.data.book_text || '');
       })
       .catch((err) => alert(getErrorMessage(err)));
@@ -47,7 +59,14 @@ export default function EditSubjectPage({ params: rawParams }) {
   const handleSaveSyllabus = async () => {
     setLoading(true);
     try {
-      await subjectsService.update(params.slug, { syllabus });
+      const metaPayload = {
+        syllabus,
+        syllabus_university: syllabusMeta.syllabus_university || '',
+        syllabus_full_mark:  syllabusMeta.syllabus_full_mark !== '' ? Number(syllabusMeta.syllabus_full_mark) : null,
+        syllabus_pass_mark:  syllabusMeta.syllabus_pass_mark !== '' ? Number(syllabusMeta.syllabus_pass_mark) : null,
+        syllabus_time:       syllabusMeta.syllabus_time || '',
+      };
+      await subjectsService.update(params.slug, metaPayload);
       setSaved(true);
       setTimeout(() => setSaved(false), 2000);
     } catch (err) {
@@ -136,11 +155,95 @@ export default function EditSubjectPage({ params: rawParams }) {
 
       {activeTab === 'Syllabus' && (
         <div className="space-y-4 bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
-          <RichTextEditor
-            value={syllabus}
-            onChange={setSyllabus}
-            placeholder="Write the syllabus here..."
-          />
+          {/* Syllabus metadata fields */}
+          <div>
+            <p className="text-sm font-semibold text-slate-700 mb-3">Syllabus Info</p>
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wide">University</label>
+                <input
+                  type="text"
+                  value={syllabusMeta.syllabus_university}
+                  onChange={(e) => setSyllabusMeta({ ...syllabusMeta, syllabus_university: e.target.value })}
+                  placeholder="e.g. NEB / Tribhuvan University"
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1CA3FD] focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wide">Grade</label>
+                <input
+                  type="text"
+                  value={subject.class_level ? `Class ${subject.class_level}` : ''}
+                  disabled
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-400 bg-slate-50 cursor-not-allowed"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-3 mb-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wide">Subject</label>
+                <input
+                  type="text"
+                  value={subject.name}
+                  disabled
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-400 bg-slate-50 cursor-not-allowed"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wide">Subject Code</label>
+                <input
+                  type="text"
+                  value={subject.subject_code}
+                  disabled
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-400 bg-slate-50 cursor-not-allowed"
+                />
+              </div>
+            </div>
+            <div className="grid grid-cols-3 gap-3">
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wide">Full Mark</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={syllabusMeta.syllabus_full_mark}
+                  onChange={(e) => setSyllabusMeta({ ...syllabusMeta, syllabus_full_mark: e.target.value })}
+                  placeholder="e.g. 100"
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1CA3FD] focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wide">Pass Mark</label>
+                <input
+                  type="number"
+                  min="0"
+                  value={syllabusMeta.syllabus_pass_mark}
+                  onChange={(e) => setSyllabusMeta({ ...syllabusMeta, syllabus_pass_mark: e.target.value })}
+                  placeholder="e.g. 40"
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1CA3FD] focus:border-transparent"
+                />
+              </div>
+              <div>
+                <label className="block text-xs font-semibold text-slate-500 mb-1 uppercase tracking-wide">Time</label>
+                <input
+                  type="text"
+                  value={syllabusMeta.syllabus_time}
+                  onChange={(e) => setSyllabusMeta({ ...syllabusMeta, syllabus_time: e.target.value })}
+                  placeholder="e.g. 3 hours"
+                  className="w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-800 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1CA3FD] focus:border-transparent"
+                />
+              </div>
+            </div>
+          </div>
+
+          <div className="border-t border-slate-100 pt-4">
+            <p className="text-sm font-semibold text-slate-700 mb-3">Syllabus Content</p>
+            <RichTextEditor
+              value={syllabus}
+              onChange={setSyllabus}
+              placeholder="Write the syllabus here..."
+            />
+          </div>
+
           <button
             onClick={handleSaveSyllabus}
             disabled={loading}

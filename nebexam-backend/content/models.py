@@ -18,6 +18,10 @@ class Subject(models.Model):
     class_level = models.CharField(max_length=2, choices=ClassLevel.choices)
     streams = models.JSONField(default=list)  # e.g. ['science'] or ['science', 'management']
     syllabus = models.JSONField(null=True, blank=True)  # Tiptap JSON
+    syllabus_university = models.CharField(max_length=255, blank=True)
+    syllabus_full_mark  = models.PositiveIntegerField(null=True, blank=True)
+    syllabus_pass_mark  = models.PositiveIntegerField(null=True, blank=True)
+    syllabus_time       = models.CharField(max_length=100, blank=True)  # e.g. "3 hours"
     book_text = models.JSONField(null=True, blank=True)  # Tiptap JSON — textbook rich text
     book_pdf = models.FileField(upload_to='subject_books/', null=True, blank=True)
     order = models.PositiveIntegerField(default=999)

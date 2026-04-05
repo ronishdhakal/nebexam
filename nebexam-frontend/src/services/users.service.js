@@ -7,9 +7,10 @@ export const authService = {
   logout:         ()     => api.post('/users/logout/', { refresh: getRefreshToken() }),
   getProfile:     ()     => api.get('/users/profile/'),
   updateProfile:  (data) => api.patch('/users/profile/', data),
-  forgotPassword: (email)            => api.post('/users/forgot-password/', { email }),
-  resetPassword:  (email, code, password) =>
-    api.post('/users/reset-password/', { email, code, password }),
+  verifyEmail:          (email, code)           => api.post('/users/verify-email/', { email, code, device_id: getDeviceId() }),
+  resendVerification:   (email)                 => api.post('/users/resend-verification/', { email }),
+  forgotPassword:       (email)                 => api.post('/users/forgot-password/', { email }),
+  resetPassword:        (email, code, password) => api.post('/users/reset-password/', { email, code, password }),
   revealAnswer:   () => api.post('/users/reveal/'),
 };
 

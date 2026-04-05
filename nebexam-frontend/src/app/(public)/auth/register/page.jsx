@@ -44,8 +44,9 @@ export default function RegisterPage() {
     setError(null);
     setLoading(true);
     try {
-      await handleRegister(form);
-      router.push('/dashboard');
+      const data = await handleRegister(form);
+      const email = data.email || form.email;
+      router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {

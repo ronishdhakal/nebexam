@@ -7,4 +7,5 @@ export const chaptersService = {
   update: (slug, data) => api.patch(`/content/chapters/${slug}/`, data),
   delete: (slug) => api.delete(`/content/chapters/${slug}/`),
   getImportantQuestions: (slug) => api.get(`/content/chapters/${slug}/important_questions/`),
+  removePdf: (slug) => api.delete(`/content/chapters/${slug}/remove_pdf/`),
 };

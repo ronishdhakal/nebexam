@@ -72,7 +72,8 @@ class AreaSerializer(serializers.ModelSerializer):
 class SubjectSerializer(serializers.ModelSerializer):
     class Meta:
         model = Subject
-        fields = ['id', 'slug', 'subject_code', 'name', 'class_level', 'streams', 'order', 'is_published', 'book_text', 'book_pdf']
+        fields = ['id', 'slug', 'subject_code', 'name', 'class_level', 'streams', 'order', 'is_published', 'book_text', 'book_pdf',
+                  'syllabus_university', 'syllabus_full_mark', 'syllabus_pass_mark', 'syllabus_time']
         extra_kwargs = {'slug': {'required': False}}
 
 

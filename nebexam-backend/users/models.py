@@ -111,6 +111,34 @@ class PasswordResetOTP(models.Model):
         return f'OTP for {self.user.email}'
 
 
+class EmailVerificationOTP(models.Model):
+    """6-digit OTP sent to verify email on registration, expires in 15 minutes."""
+    user       = models.ForeignKey('User', on_delete=models.CASCADE, related_name='verification_otps')
+    code       = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    expires_at = models.DateTimeField()
+    used       = models.BooleanField(default=False)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'Verification OTP for {self.user.email}'
+
+
+class PasswordHistory(models.Model):
+    """Stores hashed passwords to prevent reuse of the last 3 passwords."""
+    user         = models.ForeignKey('User', on_delete=models.CASCADE, related_name='password_history')
+    password_hash = models.CharField(max_length=255)
+    created_at   = models.DateTimeField(auto_now_add=True)
+
+    class Meta:
+        ordering = ['-created_at']
+
+    def __str__(self):
+        return f'Password history for {self.user.email}'
+
+
 class SiteSettings(models.Model):
     """Singleton model for site-wide settings. Only one row (pk=1) ever exists."""
     subscription_required = models.BooleanField(

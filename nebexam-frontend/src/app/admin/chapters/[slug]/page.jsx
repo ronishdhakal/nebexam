@@ -35,6 +35,19 @@ export default function EditChapterPage({ params: rawParams }) {
     }
   };
 
+  const handleRemovePdf = async () => {
+    if (!confirm('Remove the PDF notes from this chapter?')) return;
+    setLoading(true);
+    try {
+      const res = await chaptersService.removePdf(params.slug);
+      setChapter(res.data);
+    } catch (err) {
+      alert(getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   if (!chapter) return <p className="text-sm text-gray-500 p-6">Loading...</p>;
 
   return (
@@ -49,7 +62,7 @@ export default function EditChapterPage({ params: rawParams }) {
         <h1 className="text-2xl font-bold text-gray-900">{chapter.name}</h1>
         <p className="text-sm text-gray-500 mt-0.5">{chapter.area_name}</p>
       </div>
-      <ChapterForm initial={chapter} onSubmit={handleSubmit} loading={loading} />
+      <ChapterForm initial={chapter} onSubmit={handleSubmit} onRemovePdf={handleRemovePdf} loading={loading} />
       <ImportantQuestionsEditor chapter={chapter} />
     </div>
   );

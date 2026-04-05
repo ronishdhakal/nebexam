@@ -17,7 +17,7 @@ from rest_framework.permissions import IsAuthenticated, AllowAny, IsAdminUser
 from rest_framework_simplejwt.tokens import RefreshToken
 from rest_framework_simplejwt.exceptions import TokenError
 
-from .models import User, UserSession, PasswordResetOTP, SiteSettings, StudySession, _classify_device
+from .models import User, UserSession, PasswordResetOTP, EmailVerificationOTP, PasswordHistory, SiteSettings, StudySession, _classify_device
 from .serializers import (
     UserSerializer, AdminUserSerializer, RegisterSerializer, LoginSerializer,
 )
@@ -66,6 +66,55 @@ class RegisterView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
 
+        # Account starts inactive until email is verified
+        user.is_active = False
+        user.save(update_fields=['is_active'])
+
+        # Send verification OTP
+        EmailVerificationOTP.objects.filter(user=user, used=False).delete()
+        code = _generate_otp()
+        EmailVerificationOTP.objects.create(
+            user=user,
+            code=code,
+            expires_at=timezone.now() + timezone.timedelta(minutes=OTP_EXPIRY_MINUTES),
+        )
+        _send_verification_email(user, code)
+
+        return Response({
+            'email':  user.email,
+            'detail': f'A 6-digit verification code has been sent to {user.email}. Please verify your email to activate your account.',
+        }, status=status.HTTP_201_CREATED)
+
+
+class VerifyEmailView(APIView):
+    """POST {email, code} — verifies OTP, activates account, returns tokens."""
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email', '').strip().lower()
+        code  = request.data.get('code', '').strip()
+
+        if not email or not code:
+            return Response({'detail': 'email and code are required.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({'detail': 'Invalid request.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        otp = (
+            EmailVerificationOTP.objects
+            .filter(user=user, code=code, used=False, expires_at__gt=timezone.now())
+            .first()
+        )
+        if not otp:
+            return Response({'detail': 'The code is incorrect or has expired.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        otp.used = True
+        otp.save()
+        user.is_active = True
+        user.save(update_fields=['is_active'])
+
         ua        = request.META.get('HTTP_USER_AGENT', '')
         device_id = request.data.get('device_id', '')
         refresh_str, access_str, jti = _tokens_for_user(user)
@@ -75,7 +124,34 @@ class RegisterView(generics.CreateAPIView):
             'access':  access_str,
             'refresh': refresh_str,
             'user':    UserSerializer(user).data,
-        }, status=status.HTTP_201_CREATED)
+        })
+
+
+class ResendVerificationView(APIView):
+    """POST {email} — resends email verification OTP for unverified accounts."""
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        email = request.data.get('email', '').strip().lower()
+
+        try:
+            user = User.objects.get(email=email)
+        except User.DoesNotExist:
+            return Response({'detail': 'No account found with that email address.'}, status=status.HTTP_404_NOT_FOUND)
+
+        if user.is_active:
+            return Response({'detail': 'This account is already verified.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        EmailVerificationOTP.objects.filter(user=user, used=False).delete()
+        code = _generate_otp()
+        EmailVerificationOTP.objects.create(
+            user=user,
+            code=code,
+            expires_at=timezone.now() + timezone.timedelta(minutes=OTP_EXPIRY_MINUTES),
+        )
+        _send_verification_email(user, code)
+
+        return Response({'detail': f'A new verification code has been sent to {user.email}.'})
 
 
 class LoginView(APIView):
@@ -205,6 +281,66 @@ def _send_otp_email(user, code):
     msg.send(fail_silently=False)
 
 
+def _send_verification_email(user, code):
+    subject = 'Verify your NEBExam account'
+    text_body = (
+        f'Hi {user.name},\n\n'
+        f'Your email verification code is: {code}\n\n'
+        f'This code expires in {OTP_EXPIRY_MINUTES} minutes.\n'
+        f'If you did not register, please ignore this email.\n\n'
+        f'— The NEBExam Team'
+    )
+    html_body = f"""
+<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="UTF-8"><meta name="viewport" content="width=device-width, initial-scale=1.0"></head>
+<body style="margin:0;padding:0;background:#f1f5f9;font-family:'Segoe UI',Arial,sans-serif;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f1f5f9;padding:40px 16px;">
+    <tr><td align="center">
+      <table width="100%" cellpadding="0" cellspacing="0" style="max-width:480px;">
+
+        <!-- Header -->
+        <tr><td style="background:#1CA3FD;border-radius:16px 16px 0 0;padding:32px 40px;text-align:center;">
+          <p style="margin:0;color:#ffffff;font-size:22px;font-weight:800;letter-spacing:-0.5px;">NEBExam</p>
+          <p style="margin:6px 0 0;color:rgba(255,255,255,0.8);font-size:13px;">Nepal's NEB Exam Preparation Platform</p>
+        </td></tr>
+
+        <!-- Body -->
+        <tr><td style="background:#ffffff;padding:40px 40px 32px;border-radius:0 0 16px 16px;box-shadow:0 4px 24px rgba(0,0,0,0.08);">
+          <p style="margin:0 0 8px;font-size:20px;font-weight:700;color:#0f172a;">Hi {user.name},</p>
+          <p style="margin:0 0 28px;font-size:15px;color:#64748b;line-height:1.6;">
+            Welcome to NEBExam! Use the code below to verify your email address and activate your account.
+          </p>
+
+          <!-- OTP Box -->
+          <div style="background:#EEF6FF;border:2px dashed #1CA3FD;border-radius:12px;padding:24px;text-align:center;margin-bottom:28px;">
+            <p style="margin:0 0 8px;font-size:12px;font-weight:700;color:#1CA3FD;text-transform:uppercase;letter-spacing:2px;">Verification Code</p>
+            <p style="margin:0;font-size:42px;font-weight:900;color:#0f172a;letter-spacing:10px;">{code}</p>
+            <p style="margin:12px 0 0;font-size:12px;color:#94a3b8;">Expires in {OTP_EXPIRY_MINUTES} minutes</p>
+          </div>
+
+          <p style="margin:0 0 24px;font-size:13px;color:#94a3b8;line-height:1.6;">
+            Enter this code on the NEBExam website to activate your account.
+            If you did not register, you can safely ignore this email.
+          </p>
+
+          <hr style="border:none;border-top:1px solid #f1f5f9;margin:0 0 20px;">
+          <p style="margin:0;font-size:12px;color:#cbd5e1;text-align:center;">
+            &copy; NEBExam &nbsp;|&nbsp; Nepal's NEB Exam Platform
+          </p>
+        </td></tr>
+
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>
+"""
+    msg = EmailMultiAlternatives(subject, text_body, settings.DEFAULT_FROM_EMAIL, [user.email])
+    msg.attach_alternative(html_body, 'text/html')
+    msg.send(fail_silently=False)
+
+
 class ForgotPasswordView(APIView):
     permission_classes = [AllowAny]
 
@@ -258,6 +394,28 @@ class ResetPasswordView(APIView):
 
         if len(password) < 8:
             return Response({'detail': 'Password must be at least 8 characters.'}, status=status.HTTP_400_BAD_REQUEST)
+
+        # Check against last 3 password hashes
+        from django.contrib.auth.hashers import check_password
+        recent_hashes = list(
+            PasswordHistory.objects.filter(user=user).order_by('-created_at').values_list('password_hash', flat=True)[:3]
+        )
+        for old_hash in recent_hashes:
+            if check_password(password, old_hash):
+                return Response(
+                    {'detail': 'You cannot reuse one of your last 3 passwords. Please choose a different password.'},
+                    status=status.HTTP_400_BAD_REQUEST,
+                )
+
+        # Save current password to history before overwriting
+        if user.password:
+            PasswordHistory.objects.create(user=user, password_hash=user.password)
+            # Keep only the 3 most recent history entries
+            old_ids = list(
+                PasswordHistory.objects.filter(user=user).order_by('-created_at').values_list('id', flat=True)[3:]
+            )
+            if old_ids:
+                PasswordHistory.objects.filter(id__in=old_ids).delete()
 
         otp.used = True
         otp.save()
