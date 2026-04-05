@@ -64,6 +64,18 @@ function PassageView({ node, entryId, groupId, onRefresh, index, subjectSlug }) 
     }
   };
 
+  const handleAddOrSeparator = async () => {
+    setLoading(true);
+    try {
+      await nodesService.create({ question_type: 'or_separator', parent: node.id, entry: entryId, group: groupId || null, order: 0 });
+      onRefresh();
+    } catch (err) {
+      alert(getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
   const handleAddChild = async (data) => {
     setLoading(true);
     try {
@@ -143,12 +155,21 @@ function PassageView({ node, entryId, groupId, onRefresh, index, subjectSlug }) 
                 subjectSlug={subjectSlug}
               />
             ) : (
-              <button
-                onClick={() => setShowAddChild(true)}
-                className="w-full border-2 border-dashed border-orange-200 rounded-lg py-2 text-sm text-orange-400 hover:border-orange-400 hover:text-orange-500 transition-colors"
-              >
-                + Add Question / Section
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowAddChild(true)}
+                  className="flex-1 border-2 border-dashed border-orange-200 rounded-lg py-2 text-sm text-orange-400 hover:border-orange-400 hover:text-orange-500 transition-colors"
+                >
+                  + Add Question / Section
+                </button>
+                <button
+                  onClick={handleAddOrSeparator}
+                  disabled={loading}
+                  className="border-2 border-dashed border-orange-200 rounded-lg px-3 py-2 text-sm text-orange-400 hover:border-orange-400 hover:text-orange-600 transition-colors disabled:opacity-50"
+                >
+                  + OR
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -191,6 +212,18 @@ function SectionView({ node, entryId, groupId, onRefresh, subjectSlug }) {
     try {
       await nodesService.create({ ...data, parent: node.id, entry: entryId, group: groupId || null });
       setShowAddChild(false);
+      onRefresh();
+    } catch (err) {
+      alert(getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddOrSeparator = async () => {
+    setLoading(true);
+    try {
+      await nodesService.create({ question_type: 'or_separator', parent: node.id, entry: entryId, group: groupId || null, order: 0 });
       onRefresh();
     } catch (err) {
       alert(getErrorMessage(err));
@@ -245,12 +278,21 @@ function SectionView({ node, entryId, groupId, onRefresh, subjectSlug }) {
                 subjectSlug={subjectSlug}
               />
             ) : (
-              <button
-                onClick={() => setShowAddChild(true)}
-                className="w-full border-2 border-dashed border-gray-200 rounded-lg py-2 text-sm text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-colors"
-              >
-                + Add Question
-              </button>
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowAddChild(true)}
+                  className="flex-1 border-2 border-dashed border-gray-200 rounded-lg py-2 text-sm text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-colors"
+                >
+                  + Add Question
+                </button>
+                <button
+                  onClick={handleAddOrSeparator}
+                  disabled={loading}
+                  className="border-2 border-dashed border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-400 hover:border-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+                >
+                  + OR
+                </button>
+              </div>
             )}
           </div>
         </div>
@@ -317,7 +359,7 @@ function OrSeparatorView({ node, onRefresh }) {
 export default function QuestionNodeItem({ node, entryId, groupId, onRefresh, depth = 0, index = 0, subjectSlug }) {
   const [isOpen, setIsOpen] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
-  const [showAddChild, setShowAddChild] = useState(false);
+  const [showAddChildInline, setShowAddChildInline] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // OR separator — rendered as a visual divider, not a question row
@@ -360,7 +402,19 @@ export default function QuestionNodeItem({ node, entryId, groupId, onRefresh, de
     setLoading(true);
     try {
       await nodesService.create({ ...data, parent: node.id, entry: entryId, group: groupId || null });
-      setShowAddChild(false);
+      setShowAddChildInline(false);
+      onRefresh();
+    } catch (err) {
+      alert(getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleAddOrSeparator = async () => {
+    setLoading(true);
+    try {
+      await nodesService.create({ question_type: 'or_separator', parent: node.id, entry: entryId, group: groupId || null, order: 0 });
       onRefresh();
     } catch (err) {
       alert(getErrorMessage(err));
@@ -446,29 +500,41 @@ export default function QuestionNodeItem({ node, entryId, groupId, onRefresh, de
               </div>
             )}
 
-            {node.question_type !== 'or_separator' && (showAddChild ? (
-              <div>
-                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Add Sub-question</p>
-                <QuestionNodeForm
-                  onSubmit={handleAddChild}
-                  onCancel={() => setShowAddChild(false)}
-                  loading={loading}
-                  subjectSlug={subjectSlug}
-                />
-              </div>
-            ) : (
-              <button onClick={() => setShowAddChild(true)} className="text-xs text-green-600 hover:underline">
-                + Add Sub-question
-              </button>
-            ))}
           </div>
         )}
       </div>
 
-      {/* Children for non-passage/section nodes */}
-      {node.children?.length > 0 && (
+      {/* Children for non-passage/section nodes + inline add controls */}
+      {(node.children?.length > 0 || showAddChildInline || isOpen) && (
         <div className="mt-1.5 space-y-1.5">
-          {renderChildrenWithSeparators(node.children, { entryId, groupId, onRefresh, depth: depth + 1, subjectSlug })}
+          {renderChildrenWithSeparators(node.children || [], { entryId, groupId, onRefresh, depth: depth + 1, subjectSlug })}
+
+          {showAddChildInline ? (
+            <div className={depth > 0 ? 'ml-5' : ''}>
+              <QuestionNodeForm
+                onSubmit={handleAddChild}
+                onCancel={() => setShowAddChildInline(false)}
+                loading={loading}
+                subjectSlug={subjectSlug}
+              />
+            </div>
+          ) : (
+            <div className={`flex gap-2 ${depth > 0 ? 'ml-5' : ''}`}>
+              <button
+                onClick={() => setShowAddChildInline(true)}
+                className="flex-1 border-2 border-dashed border-gray-200 rounded-lg py-1.5 text-xs text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-colors"
+              >
+                + Add Sub-question
+              </button>
+              <button
+                onClick={handleAddOrSeparator}
+                disabled={loading}
+                className="border-2 border-dashed border-gray-200 rounded-lg px-3 py-1.5 text-xs text-gray-400 hover:border-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+              >
+                + OR
+              </button>
+            </div>
+          )}
         </div>
       )}
     </div>
