@@ -6,7 +6,6 @@ import RichTextRenderer from '@/components/ui/RichTextRenderer';
 import { nodesService } from '@/services/questionbank.service';
 import { getErrorMessage } from '@/lib/utils';
 
-// Extract plain text from Tiptap JSON for truncated header previews
 function extractText(content) {
   if (!content) return '';
   if (typeof content === 'string') return content;
@@ -35,7 +34,7 @@ const TYPE_COLORS = {
   grammar:    'bg-red-100 text-red-700',
 };
 
-// Renders a children array with OR-separator-aware index tracking
+// Renders children with OR-separator-aware index tracking
 function renderChildrenWithSeparators(children, { entryId, groupId, onRefresh, depth, subjectSlug }) {
   let counter = 0;
   let prevWasOrSep = false;
@@ -46,7 +45,7 @@ function renderChildrenWithSeparators(children, { entryId, groupId, onRefresh, d
       index = counter - 1;
     } else if (prevWasOrSep) {
       prevWasOrSep = false;
-      index = counter - 1;
+      index = counter - 1; // same number as the question before OR
     } else {
       index = counter++;
     }
@@ -90,10 +89,34 @@ function OrSeparatorView({ node, onRefresh }) {
   );
 }
 
+// Reusable "Add OR Question" form — shows OR divider then the question form.
+// onSubmit receives form data; caller is responsible for creating OR + question.
+function AddOrQuestionForm({ onSubmit, onCancel, loading, subjectSlug }) {
+  return (
+    <div>
+      {/* OR divider preview */}
+      <div className="flex items-center gap-3 py-2 mb-2">
+        <div className="flex-1 h-px bg-gray-200" />
+        <span className="text-xs font-bold text-gray-400 uppercase tracking-widest px-3 py-1 bg-gray-50 border border-gray-200 rounded-full">
+          OR
+        </span>
+        <div className="flex-1 h-px bg-gray-200" />
+      </div>
+      <QuestionNodeForm
+        onSubmit={onSubmit}
+        onCancel={onCancel}
+        loading={loading}
+        subjectSlug={subjectSlug}
+      />
+    </div>
+  );
+}
+
 function PassageView({ node, entryId, groupId, onRefresh, index, subjectSlug }) {
   const [isOpen, setIsOpen] = useState(true);
   const [showEdit, setShowEdit] = useState(false);
   const [showAddChild, setShowAddChild] = useState(false);
+  const [showAddOr, setShowAddOr] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleEdit = async (data) => {
@@ -132,12 +155,14 @@ function PassageView({ node, entryId, groupId, onRefresh, index, subjectSlug }) 
     }
   };
 
-  // OR separator goes at the end of this passage's children (sibling of sub-questions)
-  const handleAddOrSeparator = async () => {
+  // Creates OR separator + question as children of this passage (siblings of existing sub-questions)
+  const handleAddOrQuestion = async (data) => {
     setLoading(true);
     try {
-      const order = node.children?.length ?? 0;
-      await nodesService.create({ question_type: 'or_separator', parent: node.id, entry: entryId, group: groupId || null, order });
+      const orOrder = node.children?.length ?? 0;
+      await nodesService.create({ question_type: 'or_separator', parent: node.id, entry: entryId, group: groupId || null, order: orOrder });
+      await nodesService.create({ ...data, parent: node.id, entry: entryId, group: groupId || null, order: orOrder + 1 });
+      setShowAddOr(false);
       onRefresh();
     } catch (err) {
       alert(getErrorMessage(err));
@@ -154,7 +179,6 @@ function PassageView({ node, entryId, groupId, onRefresh, index, subjectSlug }) 
 
   return (
     <div className="border-2 border-orange-200 rounded-lg overflow-hidden">
-      {/* Passage header */}
       <div
         className="flex items-center justify-between px-4 py-3 bg-orange-50 cursor-pointer hover:bg-orange-100 transition-colors select-none"
         onClick={() => setIsOpen(!isOpen)}
@@ -186,42 +210,28 @@ function PassageView({ node, entryId, groupId, onRefresh, index, subjectSlug }) 
               <p className="text-sm text-gray-500 italic">{node.passage_title}</p>
             </div>
           )}
-
           {node.content && (
             <div className="px-4 py-3 mx-4 my-3 bg-gray-50 border border-gray-200 rounded leading-relaxed">
               <RichTextRenderer value={node.content} />
             </div>
           )}
-
           {node.children?.length > 0 && (
             <div className="px-4 pb-3 space-y-2">
               {renderChildrenWithSeparators(node.children, { entryId, groupId, onRefresh, depth: 1, subjectSlug })}
             </div>
           )}
-
-          <div className="px-4 pb-4">
+          <div className="px-4 pb-4 space-y-2">
             {showAddChild ? (
-              <QuestionNodeForm
-                onSubmit={handleAddChild}
-                onCancel={() => setShowAddChild(false)}
-                loading={loading}
-                subjectSlug={subjectSlug}
-              />
+              <QuestionNodeForm onSubmit={handleAddChild} onCancel={() => setShowAddChild(false)} loading={loading} subjectSlug={subjectSlug} />
+            ) : showAddOr ? (
+              <AddOrQuestionForm onSubmit={handleAddOrQuestion} onCancel={() => setShowAddOr(false)} loading={loading} subjectSlug={subjectSlug} />
             ) : (
               <div className="flex gap-2">
-                <button
-                  onClick={() => setShowAddChild(true)}
-                  className="flex-1 border-2 border-dashed border-orange-200 rounded-lg py-2 text-sm text-orange-400 hover:border-orange-400 hover:text-orange-500 transition-colors"
-                >
+                <button onClick={() => setShowAddChild(true)} className="flex-1 border-2 border-dashed border-orange-200 rounded-lg py-2 text-sm text-orange-400 hover:border-orange-400 hover:text-orange-500 transition-colors">
                   + Add Question / Section
                 </button>
-                <button
-                  onClick={handleAddOrSeparator}
-                  disabled={loading}
-                  className="border-2 border-dashed border-orange-200 rounded-lg px-3 py-2 text-sm text-orange-400 hover:border-orange-400 hover:text-orange-600 transition-colors disabled:opacity-50"
-                  title="Add OR separator after last sub-question"
-                >
-                  + OR
+                <button onClick={() => setShowAddOr(true)} className="flex-1 border-2 border-dashed border-orange-200 rounded-lg py-2 text-sm text-orange-400 hover:border-orange-400 hover:text-orange-500 transition-colors">
+                  + Add OR Question
                 </button>
               </div>
             )}
@@ -236,6 +246,7 @@ function SectionView({ node, entryId, groupId, onRefresh, subjectSlug }) {
   const [isOpen, setIsOpen] = useState(true);
   const [showEdit, setShowEdit] = useState(false);
   const [showAddChild, setShowAddChild] = useState(false);
+  const [showAddOr, setShowAddOr] = useState(false);
   const [loading, setLoading] = useState(false);
 
   const handleEdit = async (data) => {
@@ -274,12 +285,13 @@ function SectionView({ node, entryId, groupId, onRefresh, subjectSlug }) {
     }
   };
 
-  // OR separator goes at the end of this section's children
-  const handleAddOrSeparator = async () => {
+  const handleAddOrQuestion = async (data) => {
     setLoading(true);
     try {
-      const order = node.children?.length ?? 0;
-      await nodesService.create({ question_type: 'or_separator', parent: node.id, entry: entryId, group: groupId || null, order });
+      const orOrder = node.children?.length ?? 0;
+      await nodesService.create({ question_type: 'or_separator', parent: node.id, entry: entryId, group: groupId || null, order: orOrder });
+      await nodesService.create({ ...data, parent: node.id, entry: entryId, group: groupId || null, order: orOrder + 1 });
+      setShowAddOr(false);
       onRefresh();
     } catch (err) {
       alert(getErrorMessage(err));
@@ -302,14 +314,10 @@ function SectionView({ node, entryId, groupId, onRefresh, subjectSlug }) {
       >
         <div className="flex items-center gap-2 min-w-0">
           <span className="text-xs font-medium px-2 py-0.5 rounded bg-gray-200 text-gray-600 shrink-0">Section</span>
-          <span className="text-sm text-gray-700 truncate">
-            {extractText(node.content) || 'Section'}
-          </span>
+          <span className="text-sm text-gray-700 truncate">{extractText(node.content) || 'Section'}</span>
         </div>
         <div className="flex items-center gap-3 shrink-0" onClick={(e) => e.stopPropagation()}>
-          {node.marks_label && (
-            <span className="text-xs text-gray-500 font-medium">{node.marks_label}</span>
-          )}
+          {node.marks_label && <span className="text-xs text-gray-500 font-medium">{node.marks_label}</span>}
           <span className="text-xs text-gray-400">{node.children?.length || 0} Q</span>
           <button onClick={() => setShowEdit(true)} className="text-xs text-blue-600 hover:underline">Edit</button>
           <button onClick={handleDelete} className="text-xs text-red-500 hover:underline">Delete</button>
@@ -324,29 +332,18 @@ function SectionView({ node, entryId, groupId, onRefresh, subjectSlug }) {
               {renderChildrenWithSeparators(node.children, { entryId, groupId, onRefresh, depth: 2, subjectSlug })}
             </div>
           )}
-          <div className="p-3">
+          <div className="p-3 space-y-2">
             {showAddChild ? (
-              <QuestionNodeForm
-                onSubmit={handleAddChild}
-                onCancel={() => setShowAddChild(false)}
-                loading={loading}
-                subjectSlug={subjectSlug}
-              />
+              <QuestionNodeForm onSubmit={handleAddChild} onCancel={() => setShowAddChild(false)} loading={loading} subjectSlug={subjectSlug} />
+            ) : showAddOr ? (
+              <AddOrQuestionForm onSubmit={handleAddOrQuestion} onCancel={() => setShowAddOr(false)} loading={loading} subjectSlug={subjectSlug} />
             ) : (
               <div className="flex gap-2">
-                <button
-                  onClick={() => setShowAddChild(true)}
-                  className="flex-1 border-2 border-dashed border-gray-200 rounded-lg py-2 text-sm text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-colors"
-                >
+                <button onClick={() => setShowAddChild(true)} className="flex-1 border-2 border-dashed border-gray-200 rounded-lg py-2 text-sm text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-colors">
                   + Add Question
                 </button>
-                <button
-                  onClick={handleAddOrSeparator}
-                  disabled={loading}
-                  className="border-2 border-dashed border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-400 hover:border-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
-                  title="Add OR separator after last question"
-                >
-                  + OR
+                <button onClick={() => setShowAddOr(true)} className="flex-1 border-2 border-dashed border-gray-200 rounded-lg py-2 text-sm text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-colors">
+                  + Add OR Question
                 </button>
               </div>
             )}
@@ -361,14 +358,13 @@ export default function QuestionNodeItem({ node, entryId, groupId, onRefresh, de
   const [isOpen, setIsOpen] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
   const [showAddChild, setShowAddChild] = useState(false);
+  const [showAddOr, setShowAddOr] = useState(false);
   const [loading, setLoading] = useState(false);
 
-  // OR separator — rendered as a visual divider, not a question row
   if (node.question_type === 'or_separator') {
     return <OrSeparatorView node={node} onRefresh={onRefresh} />;
   }
 
-  // Delegate to specialised views
   if (node.question_type === 'passage' && depth === 0) {
     return <PassageView node={node} entryId={entryId} groupId={groupId} onRefresh={onRefresh} index={index} subjectSlug={subjectSlug} />;
   }
@@ -399,6 +395,7 @@ export default function QuestionNodeItem({ node, entryId, groupId, onRefresh, de
     }
   };
 
+  // Adds a child sub-question under this question
   const handleAddChild = async (data) => {
     setLoading(true);
     try {
@@ -412,17 +409,26 @@ export default function QuestionNodeItem({ node, entryId, groupId, onRefresh, de
     }
   };
 
-  // OR separator added as a SIBLING immediately after this question (same parent, order + 1)
-  const handleAddOrAfter = async () => {
+  // Adds OR separator + new question as SIBLINGS immediately after this question (same parent)
+  const handleAddOrQuestion = async (data) => {
     setLoading(true);
     try {
+      const baseOrder = (node.order ?? 0) + 1;
       await nodesService.create({
         question_type: 'or_separator',
         parent: node.parent ?? null,
         entry: entryId,
         group: groupId || null,
-        order: (node.order ?? 0) + 1,
+        order: baseOrder,
       });
+      await nodesService.create({
+        ...data,
+        parent: node.parent ?? null,
+        entry: entryId,
+        group: groupId || null,
+        order: baseOrder + 1,
+      });
+      setShowAddOr(false);
       onRefresh();
     } catch (err) {
       alert(getErrorMessage(err));
@@ -466,15 +472,6 @@ export default function QuestionNodeItem({ node, entryId, groupId, onRefresh, de
             )}
             <button onClick={() => setShowEdit(true)} className="text-xs text-blue-600 hover:underline">Edit</button>
             <button onClick={handleDelete} className="text-xs text-red-500 hover:underline">Del</button>
-            {/* OR button: adds OR separator as sibling AFTER this question */}
-            <button
-              onClick={handleAddOrAfter}
-              disabled={loading}
-              className="text-xs text-gray-400 hover:text-gray-700 border border-gray-200 rounded px-1.5 py-0.5 hover:border-gray-400 transition-colors disabled:opacity-40"
-              title="Add OR separator after this question"
-            >
-              OR
-            </button>
           </div>
           <span className="text-gray-300 text-xs shrink-0">{isOpen ? '▲' : '▼'}</span>
         </div>
@@ -517,21 +514,24 @@ export default function QuestionNodeItem({ node, entryId, groupId, onRefresh, de
               </div>
             )}
 
-            {/* Add sub-question (when this question has or needs children) */}
+            {/* Action buttons / inline forms */}
             {showAddChild ? (
               <div>
                 <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Add Sub-question</p>
-                <QuestionNodeForm
-                  onSubmit={handleAddChild}
-                  onCancel={() => setShowAddChild(false)}
-                  loading={loading}
-                  subjectSlug={subjectSlug}
-                />
+                <QuestionNodeForm onSubmit={handleAddChild} onCancel={() => setShowAddChild(false)} loading={loading} subjectSlug={subjectSlug} />
               </div>
+            ) : showAddOr ? (
+              <AddOrQuestionForm onSubmit={handleAddOrQuestion} onCancel={() => setShowAddOr(false)} loading={loading} subjectSlug={subjectSlug} />
             ) : (
-              <button onClick={() => setShowAddChild(true)} className="text-xs text-green-600 hover:underline">
-                + Add Sub-question
-              </button>
+              <div className="flex gap-2 pt-1">
+                <button onClick={() => setShowAddChild(true)} className="text-xs text-green-600 hover:underline">
+                  + Add Sub-question
+                </button>
+                <span className="text-gray-200">|</span>
+                <button onClick={() => setShowAddOr(true)} className="text-xs text-blue-500 hover:underline">
+                  + Add OR Question
+                </button>
+              </div>
             )}
           </div>
         )}

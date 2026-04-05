@@ -398,7 +398,9 @@ function PaperQuestionCard({ node, index, depth, isNepali = false }) {
           </div>
         )}
 
-        {/* Sub-questions */}
+        <AnswerReveal node={node} />
+
+        {/* Sub-questions (rendered after answer button so OR separators in children don't displace it) */}
         {node.children?.length > 0 && (
           <div className={`${node.content ? 'mt-3' : ''} space-y-3 pl-2 sm:pl-4 clear-right`}>
             {indexChildren(node.children).map(({ child, labelIndex }) => (
@@ -406,8 +408,6 @@ function PaperQuestionCard({ node, index, depth, isNepali = false }) {
             ))}
           </div>
         )}
-
-        <AnswerReveal node={node} />
       </div>
     </div>
   );
