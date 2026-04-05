@@ -1,4 +1,5 @@
 import Link from 'next/link';
+import { redirect } from 'next/navigation';
 import { subjectsService } from '@/services/subjects.service';
 
 function ChapterCard({ chapter, idx, classSlug, subjectSlug }) {
@@ -82,6 +83,11 @@ export default async function SubjectPage({ params }) {
 
   const hasAreas          = subject.areas?.length > 0;
   const hasDirectChapters = subject.direct_chapters?.length > 0;
+  const hasSyllabus       = !!subject.syllabus;
+
+  if (!hasAreas && !hasDirectChapters && !hasSyllabus) {
+    redirect(`/${classSlug}/${subjectSlug}/question-bank`);
+  }
 
   return (
     <div className="max-w-7xl mx-auto px-6 py-10 space-y-10">

@@ -12,7 +12,7 @@ import { TableRow } from '@tiptap/extension-table-row';
 import { TableHeader } from '@tiptap/extension-table-header';
 import { TableCell } from '@tiptap/extension-table-cell';
 import Mathematics, { migrateMathStrings } from '@tiptap/extension-mathematics';
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import api from '@/lib/api';
 
 export default function RichTextEditor({ value, onChange, placeholder = 'Write here...' }) {
@@ -43,6 +43,10 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write h
       onChangeRef.current(editor.getJSON());
     },
   });
+
+  useEffect(() => {
+    if (editor) migrateMathStrings(editor);
+  }, [editor]);
 
   const fileRef = useRef();
 

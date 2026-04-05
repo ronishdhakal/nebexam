@@ -4,7 +4,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
 
-export default function SubjectHeader({ subject, slug }) {
+export default function SubjectHeader({ subject, slug, hasChapters = true, hasSyllabus = true }) {
   const pathname = usePathname();
 
   // Compute clean URL from subject data; fall back to old /subject/[slug] if unavailable
@@ -27,7 +27,7 @@ export default function SubjectHeader({ subject, slug }) {
         </svg>
       ),
       active: pathname === base || pathname === base + '/',
-      show: true,
+      show: hasChapters,
     },
     {
       href: `${base}/syllabus`,
@@ -39,7 +39,7 @@ export default function SubjectHeader({ subject, slug }) {
         </svg>
       ),
       active: pathname.startsWith(`${base}/syllabus`),
-      show: true,
+      show: hasSyllabus,
     },
     {
       href: `${base}/question-bank`,

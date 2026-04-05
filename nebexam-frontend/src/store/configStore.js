@@ -15,7 +15,7 @@ const useConfigStore = create((set) => ({
 
   setConfig: (data) =>
     set({
-      subscriptionRequired: data.subscription_required,
+      subscriptionRequired: data.subscription_required ?? true,
       esewaEnabled:         data.esewa_enabled ?? false,
       contactEmail:         data.contact_email    ?? 'nebexamofficial@gmail.com',
       contactPhone:         data.contact_phone    ?? '9745450062',

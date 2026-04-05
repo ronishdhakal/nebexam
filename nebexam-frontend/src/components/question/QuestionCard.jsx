@@ -178,7 +178,8 @@ function AnswerReveal({ node }) {
 
   if (!answer && !explanation) return null;
 
-  const isPaid = user?.subscription_tier && user.subscription_tier !== 'free';
+  const isPaid = user?.subscription_tier && user.subscription_tier !== 'free' &&
+    (!user.subscription_expires_at || new Date(user.subscription_expires_at) > new Date());
   const used   = user?.free_answers_used ?? 0;
 
   const handleReveal = async () => {
@@ -244,23 +245,12 @@ function AnswerReveal({ node }) {
           <span className="text-[11px] text-slate-400 italic">
             Free limit reached ({FREE_ANSWER_LIMIT} answers).
           </span>
-          {esewaEnabled ? (
-            <button
+          <button
               onClick={() => setShowUpgrade(true)}
               className="inline-flex items-center gap-1 text-[11px] font-semibold text-[#1CA3FD] hover:underline"
             >
-              Upgrade Plan →
+              {esewaEnabled ? 'Upgrade Plan →' : (<><WaIcon />&nbsp;Upgrade via WhatsApp</>)}
             </button>
-          ) : (
-            <a
-              href={`https://wa.me/${contactWa}?text=${encodeURIComponent('Hi, I would like to purchase a NEB Exam subscription.')}`}
-              target="_blank" rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-[11px] font-semibold text-green-600 hover:underline"
-            >
-              <WaIcon />
-              Upgrade via WhatsApp
-            </a>
-          )}
         </div>
       )}
 

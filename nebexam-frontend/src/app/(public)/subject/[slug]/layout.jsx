@@ -9,9 +9,12 @@ export default async function SubjectLayout({ children, params }) {
     subject = res.data;
   } catch {}
 
+  const hasChapters = !!(subject?.areas?.length > 0 || subject?.direct_chapters?.length > 0);
+  const hasSyllabus = !!subject?.syllabus;
+
   return (
     <div className="bg-slate-50 dark:bg-slate-900 min-h-screen">
-      <SubjectHeader subject={subject} slug={slug} />
+      <SubjectHeader subject={subject} slug={slug} hasChapters={hasChapters} hasSyllabus={hasSyllabus} />
       {children}
     </div>
   );

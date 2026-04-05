@@ -6,7 +6,7 @@ import Underline from '@tiptap/extension-underline';
 import Placeholder from '@tiptap/extension-placeholder';
 import Image from '@tiptap/extension-image';
 import Mathematics, { migrateMathStrings } from '@tiptap/extension-mathematics';
-import { useMemo, useRef } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import api from '@/lib/api';
 
 /** Lightweight inline editor — bold, italic, underline, code only. */
@@ -38,6 +38,10 @@ export default function CompactRichTextEditor({ value, onChange, placeholder = '
       onChangeRef.current(editor.getJSON());
     },
   });
+
+  useEffect(() => {
+    if (editor) migrateMathStrings(editor);
+  }, [editor]);
 
   const fileRef = useRef();
 
