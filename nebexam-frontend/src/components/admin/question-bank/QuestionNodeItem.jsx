@@ -35,273 +35,7 @@ const TYPE_COLORS = {
   grammar:    'bg-red-100 text-red-700',
 };
 
-function PassageView({ node, entryId, groupId, onRefresh, index, subjectSlug }) {
-  const [isOpen, setIsOpen] = useState(true);
-  const [showEdit, setShowEdit] = useState(false);
-  const [showAddChild, setShowAddChild] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  const handleEdit = async (data) => {
-    setLoading(true);
-    try {
-      await nodesService.update(node.id, data);
-      setShowEdit(false);
-      onRefresh();
-    } catch (err) {
-      alert(getErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!confirm('Delete this passage and all its questions?')) return;
-    try {
-      await nodesService.delete(node.id);
-      onRefresh();
-    } catch (err) {
-      alert(getErrorMessage(err));
-    }
-  };
-
-  const handleAddOrSeparator = async () => {
-    setLoading(true);
-    try {
-      await nodesService.create({ question_type: 'or_separator', parent: node.id, entry: entryId, group: groupId || null, order: 0 });
-      onRefresh();
-    } catch (err) {
-      alert(getErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAddChild = async (data) => {
-    setLoading(true);
-    try {
-      await nodesService.create({ ...data, parent: node.id, entry: entryId, group: groupId || null });
-      setShowAddChild(false);
-      onRefresh();
-    } catch (err) {
-      alert(getErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (showEdit) {
-    return (
-      <QuestionNodeForm initial={node} onSubmit={handleEdit} onCancel={() => setShowEdit(false)} loading={loading} subjectSlug={subjectSlug} />
-    );
-  }
-
-  return (
-    <div className="border-2 border-orange-200 rounded-lg overflow-hidden">
-      {/* Passage header */}
-      <div
-        className="flex items-center justify-between px-4 py-3 bg-orange-50 cursor-pointer hover:bg-orange-100 transition-colors select-none"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-xs font-mono text-gray-400 shrink-0">Q{index + 1}</span>
-          <span className="text-xs font-medium px-2 py-0.5 rounded bg-orange-100 text-orange-700 shrink-0">Passage</span>
-          <span className="text-sm text-gray-700 truncate">
-            {node.passage_title || extractText(node.content) || <span className="italic text-gray-400">No title</span>}
-          </span>
-        </div>
-        <div className="flex items-center gap-3 shrink-0" onClick={(e) => e.stopPropagation()}>
-          {node.marks && (
-            <span className="text-xs text-gray-500 font-medium bg-white border border-orange-200 px-1.5 py-0.5 rounded">
-              {node.marks_label || `${node.marks}m`}
-            </span>
-          )}
-          <span className="text-xs text-gray-400">{node.children?.length || 0} Q</span>
-          <button onClick={() => setShowEdit(true)} className="text-xs text-blue-600 hover:underline">Edit</button>
-          <button onClick={handleDelete} className="text-xs text-red-500 hover:underline">Delete</button>
-          <span className="text-orange-300 text-xs">{isOpen ? '▲' : '▼'}</span>
-        </div>
-      </div>
-
-      {isOpen && (
-        <div className="bg-white">
-          {/* Instruction */}
-          {node.passage_title && (
-            <div className="px-4 pt-3">
-              <p className="text-sm text-gray-500 italic">{node.passage_title}</p>
-            </div>
-          )}
-
-          {/* Passage content */}
-          {node.content && (
-            <div className="px-4 py-3 mx-4 my-3 bg-gray-50 border border-gray-200 rounded leading-relaxed">
-              <RichTextRenderer value={node.content} />
-            </div>
-          )}
-
-          {/* Sub-questions */}
-          {node.children?.length > 0 && (
-            <div className="px-4 pb-3 space-y-2">
-              {renderChildrenWithSeparators(node.children, { entryId, groupId, onRefresh, depth: 1, subjectSlug })}
-            </div>
-          )}
-
-          {/* Add sub-question */}
-          <div className="px-4 pb-4">
-            {showAddChild ? (
-              <QuestionNodeForm
-                onSubmit={handleAddChild}
-                onCancel={() => setShowAddChild(false)}
-                loading={loading}
-                subjectSlug={subjectSlug}
-              />
-            ) : (
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowAddChild(true)}
-                  className="flex-1 border-2 border-dashed border-orange-200 rounded-lg py-2 text-sm text-orange-400 hover:border-orange-400 hover:text-orange-500 transition-colors"
-                >
-                  + Add Question / Section
-                </button>
-                <button
-                  onClick={handleAddOrSeparator}
-                  disabled={loading}
-                  className="border-2 border-dashed border-orange-200 rounded-lg px-3 py-2 text-sm text-orange-400 hover:border-orange-400 hover:text-orange-600 transition-colors disabled:opacity-50"
-                >
-                  + OR
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-function SectionView({ node, entryId, groupId, onRefresh, subjectSlug }) {
-  const [isOpen, setIsOpen] = useState(true);
-  const [showEdit, setShowEdit] = useState(false);
-  const [showAddChild, setShowAddChild] = useState(false);
-  const [loading, setLoading] = useState(false);
-
-  const handleEdit = async (data) => {
-    setLoading(true);
-    try {
-      await nodesService.update(node.id, data);
-      setShowEdit(false);
-      onRefresh();
-    } catch (err) {
-      alert(getErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleDelete = async () => {
-    if (!confirm('Delete this section and all its questions?')) return;
-    try {
-      await nodesService.delete(node.id);
-      onRefresh();
-    } catch (err) {
-      alert(getErrorMessage(err));
-    }
-  };
-
-  const handleAddChild = async (data) => {
-    setLoading(true);
-    try {
-      await nodesService.create({ ...data, parent: node.id, entry: entryId, group: groupId || null });
-      setShowAddChild(false);
-      onRefresh();
-    } catch (err) {
-      alert(getErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  const handleAddOrSeparator = async () => {
-    setLoading(true);
-    try {
-      await nodesService.create({ question_type: 'or_separator', parent: node.id, entry: entryId, group: groupId || null, order: 0 });
-      onRefresh();
-    } catch (err) {
-      alert(getErrorMessage(err));
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  if (showEdit) {
-    return (
-      <QuestionNodeForm initial={node} onSubmit={handleEdit} onCancel={() => setShowEdit(false)} loading={loading} subjectSlug={subjectSlug} />
-    );
-  }
-
-  return (
-    <div className="border border-gray-300 rounded-lg overflow-hidden">
-      {/* Section header */}
-      <div
-        className="flex items-center justify-between px-3 py-2.5 bg-gray-100 cursor-pointer hover:bg-gray-200 transition-colors select-none"
-        onClick={() => setIsOpen(!isOpen)}
-      >
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="text-xs font-medium px-2 py-0.5 rounded bg-gray-200 text-gray-600 shrink-0">Section</span>
-          <span className="text-sm text-gray-700 truncate">
-            {extractText(node.content) || 'Section'}
-          </span>
-        </div>
-        <div className="flex items-center gap-3 shrink-0" onClick={(e) => e.stopPropagation()}>
-          {node.marks_label && (
-            <span className="text-xs text-gray-500 font-medium">{node.marks_label}</span>
-          )}
-          <span className="text-xs text-gray-400">{node.children?.length || 0} Q</span>
-          <button onClick={() => setShowEdit(true)} className="text-xs text-blue-600 hover:underline">Edit</button>
-          <button onClick={handleDelete} className="text-xs text-red-500 hover:underline">Delete</button>
-          <span className="text-gray-300 text-xs">{isOpen ? '▲' : '▼'}</span>
-        </div>
-      </div>
-
-      {isOpen && (
-        <div className="bg-white divide-y divide-gray-100">
-          {node.children?.length > 0 && (
-            <div className="p-3 space-y-2">
-              {renderChildrenWithSeparators(node.children, { entryId, groupId, onRefresh, depth: 2, subjectSlug })}
-            </div>
-          )}
-          <div className="p-3">
-            {showAddChild ? (
-              <QuestionNodeForm
-                onSubmit={handleAddChild}
-                onCancel={() => setShowAddChild(false)}
-                loading={loading}
-                subjectSlug={subjectSlug}
-              />
-            ) : (
-              <div className="flex gap-2">
-                <button
-                  onClick={() => setShowAddChild(true)}
-                  className="flex-1 border-2 border-dashed border-gray-200 rounded-lg py-2 text-sm text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-colors"
-                >
-                  + Add Question
-                </button>
-                <button
-                  onClick={handleAddOrSeparator}
-                  disabled={loading}
-                  className="border-2 border-dashed border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-400 hover:border-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
-                >
-                  + OR
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
-
-// Renders a children array with OR-separator-aware index tracking (same logic as QuestionNodeTree)
+// Renders a children array with OR-separator-aware index tracking
 function renderChildrenWithSeparators(children, { entryId, groupId, onRefresh, depth, subjectSlug }) {
   let counter = 0;
   let prevWasOrSep = false;
@@ -356,10 +90,277 @@ function OrSeparatorView({ node, onRefresh }) {
   );
 }
 
+function PassageView({ node, entryId, groupId, onRefresh, index, subjectSlug }) {
+  const [isOpen, setIsOpen] = useState(true);
+  const [showEdit, setShowEdit] = useState(false);
+  const [showAddChild, setShowAddChild] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleEdit = async (data) => {
+    setLoading(true);
+    try {
+      await nodesService.update(node.id, data);
+      setShowEdit(false);
+      onRefresh();
+    } catch (err) {
+      alert(getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm('Delete this passage and all its questions?')) return;
+    try {
+      await nodesService.delete(node.id);
+      onRefresh();
+    } catch (err) {
+      alert(getErrorMessage(err));
+    }
+  };
+
+  const handleAddChild = async (data) => {
+    setLoading(true);
+    try {
+      await nodesService.create({ ...data, parent: node.id, entry: entryId, group: groupId || null });
+      setShowAddChild(false);
+      onRefresh();
+    } catch (err) {
+      alert(getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // OR separator goes at the end of this passage's children (sibling of sub-questions)
+  const handleAddOrSeparator = async () => {
+    setLoading(true);
+    try {
+      const order = node.children?.length ?? 0;
+      await nodesService.create({ question_type: 'or_separator', parent: node.id, entry: entryId, group: groupId || null, order });
+      onRefresh();
+    } catch (err) {
+      alert(getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (showEdit) {
+    return (
+      <QuestionNodeForm initial={node} onSubmit={handleEdit} onCancel={() => setShowEdit(false)} loading={loading} subjectSlug={subjectSlug} />
+    );
+  }
+
+  return (
+    <div className="border-2 border-orange-200 rounded-lg overflow-hidden">
+      {/* Passage header */}
+      <div
+        className="flex items-center justify-between px-4 py-3 bg-orange-50 cursor-pointer hover:bg-orange-100 transition-colors select-none"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-xs font-mono text-gray-400 shrink-0">Q{index + 1}</span>
+          <span className="text-xs font-medium px-2 py-0.5 rounded bg-orange-100 text-orange-700 shrink-0">Passage</span>
+          <span className="text-sm text-gray-700 truncate">
+            {node.passage_title || extractText(node.content) || <span className="italic text-gray-400">No title</span>}
+          </span>
+        </div>
+        <div className="flex items-center gap-3 shrink-0" onClick={(e) => e.stopPropagation()}>
+          {node.marks && (
+            <span className="text-xs text-gray-500 font-medium bg-white border border-orange-200 px-1.5 py-0.5 rounded">
+              {node.marks_label || `${node.marks}m`}
+            </span>
+          )}
+          <span className="text-xs text-gray-400">{node.children?.length || 0} Q</span>
+          <button onClick={() => setShowEdit(true)} className="text-xs text-blue-600 hover:underline">Edit</button>
+          <button onClick={handleDelete} className="text-xs text-red-500 hover:underline">Delete</button>
+          <span className="text-orange-300 text-xs">{isOpen ? '▲' : '▼'}</span>
+        </div>
+      </div>
+
+      {isOpen && (
+        <div className="bg-white">
+          {node.passage_title && (
+            <div className="px-4 pt-3">
+              <p className="text-sm text-gray-500 italic">{node.passage_title}</p>
+            </div>
+          )}
+
+          {node.content && (
+            <div className="px-4 py-3 mx-4 my-3 bg-gray-50 border border-gray-200 rounded leading-relaxed">
+              <RichTextRenderer value={node.content} />
+            </div>
+          )}
+
+          {node.children?.length > 0 && (
+            <div className="px-4 pb-3 space-y-2">
+              {renderChildrenWithSeparators(node.children, { entryId, groupId, onRefresh, depth: 1, subjectSlug })}
+            </div>
+          )}
+
+          <div className="px-4 pb-4">
+            {showAddChild ? (
+              <QuestionNodeForm
+                onSubmit={handleAddChild}
+                onCancel={() => setShowAddChild(false)}
+                loading={loading}
+                subjectSlug={subjectSlug}
+              />
+            ) : (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowAddChild(true)}
+                  className="flex-1 border-2 border-dashed border-orange-200 rounded-lg py-2 text-sm text-orange-400 hover:border-orange-400 hover:text-orange-500 transition-colors"
+                >
+                  + Add Question / Section
+                </button>
+                <button
+                  onClick={handleAddOrSeparator}
+                  disabled={loading}
+                  className="border-2 border-dashed border-orange-200 rounded-lg px-3 py-2 text-sm text-orange-400 hover:border-orange-400 hover:text-orange-600 transition-colors disabled:opacity-50"
+                  title="Add OR separator after last sub-question"
+                >
+                  + OR
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function SectionView({ node, entryId, groupId, onRefresh, subjectSlug }) {
+  const [isOpen, setIsOpen] = useState(true);
+  const [showEdit, setShowEdit] = useState(false);
+  const [showAddChild, setShowAddChild] = useState(false);
+  const [loading, setLoading] = useState(false);
+
+  const handleEdit = async (data) => {
+    setLoading(true);
+    try {
+      await nodesService.update(node.id, data);
+      setShowEdit(false);
+      onRefresh();
+    } catch (err) {
+      alert(getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleDelete = async () => {
+    if (!confirm('Delete this section and all its questions?')) return;
+    try {
+      await nodesService.delete(node.id);
+      onRefresh();
+    } catch (err) {
+      alert(getErrorMessage(err));
+    }
+  };
+
+  const handleAddChild = async (data) => {
+    setLoading(true);
+    try {
+      await nodesService.create({ ...data, parent: node.id, entry: entryId, group: groupId || null });
+      setShowAddChild(false);
+      onRefresh();
+    } catch (err) {
+      alert(getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // OR separator goes at the end of this section's children
+  const handleAddOrSeparator = async () => {
+    setLoading(true);
+    try {
+      const order = node.children?.length ?? 0;
+      await nodesService.create({ question_type: 'or_separator', parent: node.id, entry: entryId, group: groupId || null, order });
+      onRefresh();
+    } catch (err) {
+      alert(getErrorMessage(err));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (showEdit) {
+    return (
+      <QuestionNodeForm initial={node} onSubmit={handleEdit} onCancel={() => setShowEdit(false)} loading={loading} subjectSlug={subjectSlug} />
+    );
+  }
+
+  return (
+    <div className="border border-gray-300 rounded-lg overflow-hidden">
+      <div
+        className="flex items-center justify-between px-3 py-2.5 bg-gray-100 cursor-pointer hover:bg-gray-200 transition-colors select-none"
+        onClick={() => setIsOpen(!isOpen)}
+      >
+        <div className="flex items-center gap-2 min-w-0">
+          <span className="text-xs font-medium px-2 py-0.5 rounded bg-gray-200 text-gray-600 shrink-0">Section</span>
+          <span className="text-sm text-gray-700 truncate">
+            {extractText(node.content) || 'Section'}
+          </span>
+        </div>
+        <div className="flex items-center gap-3 shrink-0" onClick={(e) => e.stopPropagation()}>
+          {node.marks_label && (
+            <span className="text-xs text-gray-500 font-medium">{node.marks_label}</span>
+          )}
+          <span className="text-xs text-gray-400">{node.children?.length || 0} Q</span>
+          <button onClick={() => setShowEdit(true)} className="text-xs text-blue-600 hover:underline">Edit</button>
+          <button onClick={handleDelete} className="text-xs text-red-500 hover:underline">Delete</button>
+          <span className="text-gray-300 text-xs">{isOpen ? '▲' : '▼'}</span>
+        </div>
+      </div>
+
+      {isOpen && (
+        <div className="bg-white divide-y divide-gray-100">
+          {node.children?.length > 0 && (
+            <div className="p-3 space-y-2">
+              {renderChildrenWithSeparators(node.children, { entryId, groupId, onRefresh, depth: 2, subjectSlug })}
+            </div>
+          )}
+          <div className="p-3">
+            {showAddChild ? (
+              <QuestionNodeForm
+                onSubmit={handleAddChild}
+                onCancel={() => setShowAddChild(false)}
+                loading={loading}
+                subjectSlug={subjectSlug}
+              />
+            ) : (
+              <div className="flex gap-2">
+                <button
+                  onClick={() => setShowAddChild(true)}
+                  className="flex-1 border-2 border-dashed border-gray-200 rounded-lg py-2 text-sm text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-colors"
+                >
+                  + Add Question
+                </button>
+                <button
+                  onClick={handleAddOrSeparator}
+                  disabled={loading}
+                  className="border-2 border-dashed border-gray-200 rounded-lg px-3 py-2 text-sm text-gray-400 hover:border-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
+                  title="Add OR separator after last question"
+                >
+                  + OR
+                </button>
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function QuestionNodeItem({ node, entryId, groupId, onRefresh, depth = 0, index = 0, subjectSlug }) {
   const [isOpen, setIsOpen] = useState(false);
   const [showEdit, setShowEdit] = useState(false);
-  const [showAddChildInline, setShowAddChildInline] = useState(false);
+  const [showAddChild, setShowAddChild] = useState(false);
   const [loading, setLoading] = useState(false);
 
   // OR separator — rendered as a visual divider, not a question row
@@ -402,7 +403,7 @@ export default function QuestionNodeItem({ node, entryId, groupId, onRefresh, de
     setLoading(true);
     try {
       await nodesService.create({ ...data, parent: node.id, entry: entryId, group: groupId || null });
-      setShowAddChildInline(false);
+      setShowAddChild(false);
       onRefresh();
     } catch (err) {
       alert(getErrorMessage(err));
@@ -411,10 +412,17 @@ export default function QuestionNodeItem({ node, entryId, groupId, onRefresh, de
     }
   };
 
-  const handleAddOrSeparator = async () => {
+  // OR separator added as a SIBLING immediately after this question (same parent, order + 1)
+  const handleAddOrAfter = async () => {
     setLoading(true);
     try {
-      await nodesService.create({ question_type: 'or_separator', parent: node.id, entry: entryId, group: groupId || null, order: 0 });
+      await nodesService.create({
+        question_type: 'or_separator',
+        parent: node.parent ?? null,
+        entry: entryId,
+        group: groupId || null,
+        order: (node.order ?? 0) + 1,
+      });
       onRefresh();
     } catch (err) {
       alert(getErrorMessage(err));
@@ -438,7 +446,7 @@ export default function QuestionNodeItem({ node, entryId, groupId, onRefresh, de
   return (
     <div className={depth > 0 ? 'ml-5' : ''}>
       <div className={`border rounded-lg overflow-hidden ${depth === 0 ? 'border-gray-200' : 'border-gray-100'}`}>
-        {/* Collapsed header */}
+        {/* Header row */}
         <div
           className="flex items-center gap-2 px-3 py-2.5 cursor-pointer hover:bg-gray-50 transition-colors"
           onClick={() => setIsOpen(!isOpen)}
@@ -458,6 +466,15 @@ export default function QuestionNodeItem({ node, entryId, groupId, onRefresh, de
             )}
             <button onClick={() => setShowEdit(true)} className="text-xs text-blue-600 hover:underline">Edit</button>
             <button onClick={handleDelete} className="text-xs text-red-500 hover:underline">Del</button>
+            {/* OR button: adds OR separator as sibling AFTER this question */}
+            <button
+              onClick={handleAddOrAfter}
+              disabled={loading}
+              className="text-xs text-gray-400 hover:text-gray-700 border border-gray-200 rounded px-1.5 py-0.5 hover:border-gray-400 transition-colors disabled:opacity-40"
+              title="Add OR separator after this question"
+            >
+              OR
+            </button>
           </div>
           <span className="text-gray-300 text-xs shrink-0">{isOpen ? '▲' : '▼'}</span>
         </div>
@@ -500,41 +517,30 @@ export default function QuestionNodeItem({ node, entryId, groupId, onRefresh, de
               </div>
             )}
 
+            {/* Add sub-question (when this question has or needs children) */}
+            {showAddChild ? (
+              <div>
+                <p className="text-xs font-medium text-gray-400 uppercase tracking-wide mb-2">Add Sub-question</p>
+                <QuestionNodeForm
+                  onSubmit={handleAddChild}
+                  onCancel={() => setShowAddChild(false)}
+                  loading={loading}
+                  subjectSlug={subjectSlug}
+                />
+              </div>
+            ) : (
+              <button onClick={() => setShowAddChild(true)} className="text-xs text-green-600 hover:underline">
+                + Add Sub-question
+              </button>
+            )}
           </div>
         )}
       </div>
 
-      {/* Children for non-passage/section nodes + inline add controls */}
-      {(node.children?.length > 0 || showAddChildInline || isOpen) && (
+      {/* Children */}
+      {node.children?.length > 0 && (
         <div className="mt-1.5 space-y-1.5">
-          {renderChildrenWithSeparators(node.children || [], { entryId, groupId, onRefresh, depth: depth + 1, subjectSlug })}
-
-          {showAddChildInline ? (
-            <div className={depth > 0 ? 'ml-5' : ''}>
-              <QuestionNodeForm
-                onSubmit={handleAddChild}
-                onCancel={() => setShowAddChildInline(false)}
-                loading={loading}
-                subjectSlug={subjectSlug}
-              />
-            </div>
-          ) : (
-            <div className={`flex gap-2 ${depth > 0 ? 'ml-5' : ''}`}>
-              <button
-                onClick={() => setShowAddChildInline(true)}
-                className="flex-1 border-2 border-dashed border-gray-200 rounded-lg py-1.5 text-xs text-gray-400 hover:border-blue-300 hover:text-blue-500 transition-colors"
-              >
-                + Add Sub-question
-              </button>
-              <button
-                onClick={handleAddOrSeparator}
-                disabled={loading}
-                className="border-2 border-dashed border-gray-200 rounded-lg px-3 py-1.5 text-xs text-gray-400 hover:border-gray-400 hover:text-gray-600 transition-colors disabled:opacity-50"
-              >
-                + OR
-              </button>
-            </div>
-          )}
+          {renderChildrenWithSeparators(node.children, { entryId, groupId, onRefresh, depth: depth + 1, subjectSlug })}
         </div>
       )}
     </div>
