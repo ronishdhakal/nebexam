@@ -355,7 +355,7 @@ function PaperQuestionCard({ node, index, depth, isNepali = false }) {
           </div>
         </div>
         {/* Passage body */}
-        <div className={`text-sm leading-relaxed text-slate-800 dark:text-slate-200 border-l-2 border-gray-300 dark:border-slate-600 pl-2 sm:pl-4 py-1 ${numLabel ? 'ml-5 sm:ml-9' : ''}`}>
+        <div className={`text-sm leading-relaxed text-slate-800 dark:text-slate-200 ${numLabel ? 'ml-5 sm:ml-9' : ''}`}>
           <ContentBlock content={node.content} />
         </div>
         {/* Sub-questions — depth+1 so they get i, ii, iii */}
