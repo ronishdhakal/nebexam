@@ -129,18 +129,7 @@ function PassageView({ node, entryId, groupId, onRefresh, index, subjectSlug }) 
           {/* Sub-questions */}
           {node.children?.length > 0 && (
             <div className="px-4 pb-3 space-y-2">
-              {node.children.map((child, i) => (
-                <QuestionNodeItem
-                  key={child.id}
-                  node={child}
-                  index={i}
-                  entryId={entryId}
-                  groupId={groupId}
-                  onRefresh={onRefresh}
-                  depth={1}
-                  subjectSlug={subjectSlug}
-                />
-              ))}
+              {renderChildrenWithSeparators(node.children, { entryId, groupId, onRefresh, depth: 1, subjectSlug })}
             </div>
           )}
 
@@ -168,7 +157,7 @@ function PassageView({ node, entryId, groupId, onRefresh, index, subjectSlug }) 
   );
 }
 
-function SectionView({ node, entryId, groupId, onRefresh, index, subjectSlug }) {
+function SectionView({ node, entryId, groupId, onRefresh, subjectSlug }) {
   const [isOpen, setIsOpen] = useState(true);
   const [showEdit, setShowEdit] = useState(false);
   const [showAddChild, setShowAddChild] = useState(false);
@@ -244,18 +233,7 @@ function SectionView({ node, entryId, groupId, onRefresh, index, subjectSlug }) 
         <div className="bg-white divide-y divide-gray-100">
           {node.children?.length > 0 && (
             <div className="p-3 space-y-2">
-              {node.children.map((child, i) => (
-                <QuestionNodeItem
-                  key={child.id}
-                  node={child}
-                  index={i}
-                  entryId={entryId}
-                  groupId={groupId}
-                  onRefresh={onRefresh}
-                  depth={2}
-                  subjectSlug={subjectSlug}
-                />
-              ))}
+              {renderChildrenWithSeparators(node.children, { entryId, groupId, onRefresh, depth: 2, subjectSlug })}
             </div>
           )}
           <div className="p-3">
@@ -279,6 +257,36 @@ function SectionView({ node, entryId, groupId, onRefresh, index, subjectSlug }) 
       )}
     </div>
   );
+}
+
+// Renders a children array with OR-separator-aware index tracking (same logic as QuestionNodeTree)
+function renderChildrenWithSeparators(children, { entryId, groupId, onRefresh, depth, subjectSlug }) {
+  let counter = 0;
+  let prevWasOrSep = false;
+  return children.map((child) => {
+    let index;
+    if (child.question_type === 'or_separator') {
+      prevWasOrSep = true;
+      index = counter - 1;
+    } else if (prevWasOrSep) {
+      prevWasOrSep = false;
+      index = counter - 1;
+    } else {
+      index = counter++;
+    }
+    return (
+      <QuestionNodeItem
+        key={child.id}
+        node={child}
+        index={index}
+        entryId={entryId}
+        groupId={groupId}
+        onRefresh={onRefresh}
+        depth={depth}
+        subjectSlug={subjectSlug}
+      />
+    );
+  });
 }
 
 function OrSeparatorView({ node, onRefresh }) {
@@ -460,18 +468,7 @@ export default function QuestionNodeItem({ node, entryId, groupId, onRefresh, de
       {/* Children for non-passage/section nodes */}
       {node.children?.length > 0 && (
         <div className="mt-1.5 space-y-1.5">
-          {node.children.map((child, i) => (
-            <QuestionNodeItem
-              key={child.id}
-              node={child}
-              index={i}
-              entryId={entryId}
-              groupId={groupId}
-              onRefresh={onRefresh}
-              depth={depth + 1}
-              subjectSlug={subjectSlug}
-            />
-          ))}
+          {renderChildrenWithSeparators(node.children, { entryId, groupId, onRefresh, depth: depth + 1, subjectSlug })}
         </div>
       )}
     </div>
