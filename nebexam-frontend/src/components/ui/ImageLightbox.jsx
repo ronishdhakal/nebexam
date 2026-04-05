@@ -1,8 +1,14 @@
 'use client';
 
-import { useEffect, createPortal } from 'react';
+import { useEffect, useState, createPortal } from 'react';
 
 export default function ImageLightbox({ src, alt, onClose }) {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   // Lock body scroll while open
   useEffect(() => {
     const prev = document.body.style.overflow;
@@ -16,6 +22,8 @@ export default function ImageLightbox({ src, alt, onClose }) {
     document.addEventListener('keydown', onKey);
     return () => document.removeEventListener('keydown', onKey);
   }, [onClose]);
+
+  if (!mounted) return null;
 
   return createPortal(
     <div
