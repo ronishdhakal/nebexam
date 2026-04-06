@@ -37,8 +37,14 @@ export default function RegisterPage() {
   const needsStream = form.level === '11' || form.level === '12';
   const pwMatch = !confirmPw || form.password === confirmPw;
 
+  const phoneValid = /^\d{10}$/.test(form.phone);
+
   const handleSubmit = async (e) => {
     e.preventDefault();
+    if (!phoneValid) {
+      setError('Please enter a correct phone number.');
+      return;
+    }
     if (form.password !== confirmPw) {
       setError('Passwords do not match.');
       return;
@@ -108,11 +114,17 @@ export default function RegisterPage() {
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Phone</label>
                 <input
                   type="text"
+                  required
+                  inputMode="numeric"
+                  maxLength={10}
                   value={form.phone}
-                  onChange={(e) => setForm({ ...form, phone: e.target.value })}
+                  onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, '') })}
                   placeholder="98XXXXXXXX"
-                  className={inp}
+                  className={inp + (form.phone && !phoneValid ? ' border-red-300 focus:ring-red-300' : '')}
                 />
+                {form.phone && !phoneValid && (
+                  <p className="text-xs text-red-500 mt-1">Please enter a correct phone number.</p>
+                )}
               </div>
               <div>
                 <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Class</label>
