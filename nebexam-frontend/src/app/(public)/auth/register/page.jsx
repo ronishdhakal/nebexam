@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 import useAuth from '@/hooks/useAuth';
+import useConfigStore from '@/store/configStore';
 import { getErrorMessage } from '@/lib/utils';
 
 const inp = 'w-full border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1CA3FD] focus:border-transparent transition';
@@ -29,7 +30,8 @@ export default function RegisterPage() {
   const [showConfirm, setShowConfirm] = useState(false);
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
-  const { handleRegister } = useAuth();
+  const { handleRegister, handleVerifyEmail } = useAuth();
+  const emailVerificationEnabled = useConfigStore((s) => s.emailVerificationEnabled);
   const router = useRouter();
 
   const needsStream = form.level === '11' || form.level === '12';
@@ -45,8 +47,13 @@ export default function RegisterPage() {
     setLoading(true);
     try {
       const data = await handleRegister(form);
-      const email = data.email || form.email;
-      router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
+      if (data.access) {
+        // Email verification disabled — backend returned tokens directly, already logged in
+        router.push('/dashboard');
+      } else {
+        const email = data.email || form.email;
+        router.push(`/auth/verify-email?email=${encodeURIComponent(email)}`);
+      }
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {

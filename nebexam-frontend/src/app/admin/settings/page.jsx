@@ -13,7 +13,7 @@ const PLAN_META = {
 };
 
 export default function SettingsPage() {
-  const { subscriptionRequired, esewaEnabled, setConfig,
+  const { subscriptionRequired, esewaEnabled, emailVerificationEnabled, setConfig,
           contactEmail, contactPhone, contactAddress, contactWa,
           socialFacebook, socialInstagram } = useConfigStore();
   const [toggleLoading, setToggleLoading] = useState(null);
@@ -200,6 +200,12 @@ export default function SettingsPage() {
           description="When enabled, users pay via eSewa directly. When disabled, upgrade buttons link to WhatsApp."
           fieldKey="esewa_enabled"
           value={esewaEnabled}
+        />
+        <ToggleRow
+          label="Email Verification"
+          description="When enabled, new users must verify their email via OTP and get 4 free answer reveals. When disabled, registration is instant and free users get 0 answer reveals (must purchase to see any)."
+          fieldKey="email_verification_enabled"
+          value={emailVerificationEnabled}
         />
       </div>
 

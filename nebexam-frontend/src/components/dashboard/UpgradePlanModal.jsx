@@ -6,18 +6,24 @@ import Image from 'next/image';
 import { paymentService } from '@/services/users.service';
 import useConfigStore from '@/store/configStore';
 
+const PAID_FEATURES = [
+  'Unlimited answer reveals',
+  'Solution of all Subject Model Questions',
+];
+
 const PLAN_META = [
   {
     id: 'free',
     name: 'Free',
     period: 'forever',
     features: ['4 free answer reveals', 'Class notes access', 'Browse all subjects'],
-    locked:   ['Unlimited answer reveals', 'All PDF notes', 'Full past papers', 'Model question sets'],
+    locked:   ['Unlimited answer reveals', 'Solution of all Subject Model Questions'],
   },
   {
     id: '1month',
     name: '1 Month',
     period: '/ month',
+    features: PAID_FEATURES,
   },
   {
     id: '3month',
@@ -25,6 +31,7 @@ const PLAN_META = [
     period: '/ 3 months',
     badge: 'MOST POPULAR',
     highlight: true,
+    features: PAID_FEATURES,
     savingsNote: (prices) => prices['3month'] && prices['1month']
       ? `Save Rs. ${prices['1month'] * 3 - prices['3month']}`
       : null,
@@ -35,6 +42,7 @@ const PLAN_META = [
     period: '/ year',
     badge: 'BEST VALUE',
     bestValue: true,
+    features: PAID_FEATURES,
     savingsNote: (prices) => prices['1year'] && prices['1month']
       ? `Save Rs. ${prices['1month'] * 12 - prices['1year']}`
       : null,
@@ -86,23 +94,23 @@ export default function UpgradePlanModal({ currentTier, onClose }) {
       >
 
         {/* Header */}
-        <div className="relative bg-gradient-to-br from-[#1CA3FD] to-[#0e6abf] px-8 pt-8 pb-10 text-white">
+        <div className="relative bg-gradient-to-br from-[#1CA3FD] to-[#0e6abf] px-5 pt-6 pb-8 sm:px-8 sm:pt-8 sm:pb-10 text-white">
           <button
             onClick={onClose}
-            className="absolute top-3 right-3 w-10 h-10 flex items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 transition"
+            className="absolute top-3 right-3 w-9 h-9 flex items-center justify-center rounded-xl bg-white/20 hover:bg-white/30 transition"
           >
             <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
             </svg>
           </button>
-          <p className="text-xs font-bold uppercase tracking-widest text-white/60 mb-1">Upgrade</p>
-          <h2 className="text-2xl font-extrabold mb-1">Choose Your Plan</h2>
-          <p className="text-sm text-white/70">Unlock full access to notes, PDFs, and past papers</p>
+          <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-white/60 mb-1">Unlock Full Access</p>
+          <h2 className="text-xl sm:text-2xl font-extrabold mb-1">Stop Guessing. Start Scoring.</h2>
+          <p className="text-xs sm:text-sm text-white/80 max-w-md">Get solutions to every Subject Model Question + full notes, PDFs & past papers — everything you need to ace NEB.</p>
         </div>
 
         {/* Plans */}
-        <div className="px-6 pb-6 -mt-4">
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="px-3 pb-4 sm:px-6 sm:pb-6 -mt-4">
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2 sm:gap-4">
             {PLAN_META.map((plan) => {
               const isCurrent   = (currentTier || 'free') === plan.id;
               const isHighlight = plan.highlight;
@@ -117,59 +125,59 @@ export default function UpgradePlanModal({ currentTier, onClose }) {
                   key={plan.id}
                   className={`relative rounded-2xl flex flex-col transition-all ${
                     isHighlight
-                      ? 'bg-[#1CA3FD] text-white shadow-xl shadow-[#1CA3FD]/30 scale-[1.02]'
+                      ? 'bg-[#1CA3FD] text-white shadow-xl shadow-[#1CA3FD]/30 sm:scale-[1.02]'
                       : isBestValue
                       ? 'bg-violet-600 text-white shadow-lg shadow-violet-500/20 border-2 border-violet-500'
                       : 'bg-white dark:bg-slate-800 border border-gray-200 dark:border-slate-700 shadow-sm'
                   }`}
                 >
                   {plan.badge && (
-                    <div className={`absolute -top-3 left-1/2 -translate-x-1/2 text-[10px] font-extrabold px-3 py-0.5 rounded-full whitespace-nowrap tracking-widest ${
+                    <div className={`absolute -top-2.5 left-1/2 -translate-x-1/2 text-[9px] sm:text-[10px] font-extrabold px-2 sm:px-3 py-0.5 rounded-full whitespace-nowrap tracking-widest ${
                       isHighlight ? 'bg-white text-[#1CA3FD]' : 'bg-violet-200 text-violet-800'
                     }`}>
                       {plan.badge}
                     </div>
                   )}
 
-                  <div className="p-5 flex flex-col flex-1">
-                    <p className={`text-xs font-bold uppercase tracking-widest mb-1 ${
+                  <div className="p-3 sm:p-5 flex flex-col flex-1">
+                    <p className={`text-[10px] sm:text-xs font-bold uppercase tracking-widest mb-1 ${
                       isHighlight || isBestValue ? 'text-white/70' : 'text-slate-400'
                     }`}>{plan.name}</p>
 
                     <div className="flex items-baseline gap-1 mb-0.5">
                       {plan.id === 'free' ? (
-                        <span className={`text-3xl font-extrabold ${isHighlight || isBestValue ? 'text-white' : 'text-slate-900 dark:text-white'}`}>
+                        <span className={`text-2xl sm:text-3xl font-extrabold ${isHighlight || isBestValue ? 'text-white' : 'text-slate-900 dark:text-white'}`}>
                           Rs. 0
                         </span>
                       ) : loadingPrices ? (
-                        <span className="h-8 w-20 bg-white/20 dark:bg-slate-700 rounded animate-pulse inline-block" />
+                        <span className="h-7 sm:h-8 w-16 sm:w-20 bg-white/20 dark:bg-slate-700 rounded animate-pulse inline-block" />
                       ) : (
-                        <span className={`text-3xl font-extrabold ${isHighlight || isBestValue ? 'text-white' : 'text-slate-900 dark:text-white'}`}>
+                        <span className={`text-2xl sm:text-3xl font-extrabold ${isHighlight || isBestValue ? 'text-white' : 'text-slate-900 dark:text-white'}`}>
                           Rs. {amount ?? '—'}
                         </span>
                       )}
                     </div>
 
-                    <p className={`text-xs mb-2 ${isHighlight || isBestValue ? 'text-white/60' : 'text-slate-400'}`}>
+                    <p className={`text-[10px] sm:text-xs mb-2 ${isHighlight || isBestValue ? 'text-white/60' : 'text-slate-400'}`}>
                       {plan.period}
                     </p>
 
                     {savings && (
-                      <span className={`inline-block mb-3 text-[10px] font-bold px-2 py-0.5 rounded-full w-fit ${
+                      <span className={`inline-block mb-2 sm:mb-3 text-[9px] sm:text-[10px] font-bold px-2 py-0.5 rounded-full w-fit ${
                         isHighlight ? 'bg-white/20 text-white' : 'bg-violet-100 text-violet-700'
                       }`}>{savings}</span>
                     )}
 
-                    <ul className="space-y-2 mb-5 flex-1">
+                    <ul className="space-y-1.5 sm:space-y-2 mb-3 sm:mb-5 flex-1">
                       {plan.features?.map((f) => (
-                        <li key={f} className={`flex items-start gap-2 text-xs ${isHighlight || isBestValue ? 'text-white/90' : 'text-slate-600 dark:text-slate-300'}`}>
-                          <svg className="shrink-0 mt-0.5" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
+                        <li key={f} className={`flex items-start gap-1.5 text-[10px] sm:text-xs ${isHighlight || isBestValue ? 'text-white/90' : 'text-slate-600 dark:text-slate-300'}`}>
+                          <svg className="shrink-0 mt-0.5" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><polyline points="20 6 9 17 4 12"/></svg>
                           {f}
                         </li>
                       ))}
                       {plan.locked?.map((f) => (
-                        <li key={f} className="flex items-start gap-2 text-xs text-slate-300 dark:text-slate-600">
-                          <svg className="shrink-0 mt-0.5" width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+                        <li key={f} className="flex items-start gap-1.5 text-[10px] sm:text-xs text-slate-300 dark:text-slate-600">
+                          <svg className="shrink-0 mt-0.5" width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
                           {f}
                         </li>
                       ))}
@@ -177,18 +185,18 @@ export default function UpgradePlanModal({ currentTier, onClose }) {
 
                     {/* CTA */}
                     {isCurrent ? (
-                      <div className={`w-full py-2.5 rounded-xl text-xs font-bold text-center ${
+                      <div className={`w-full py-2 rounded-xl text-[10px] sm:text-xs font-bold text-center ${
                         isHighlight || isBestValue ? 'bg-white/20 text-white' : 'bg-gray-100 dark:bg-slate-700 text-slate-400'
                       }`}>Current Plan</div>
                     ) : plan.id === 'free' ? (
-                      <div className="w-full py-2.5 rounded-xl border border-gray-200 dark:border-slate-600 text-slate-400 text-xs font-semibold text-center">
+                      <div className="w-full py-2 rounded-xl border border-gray-200 dark:border-slate-600 text-slate-400 text-[10px] sm:text-xs font-semibold text-center">
                         Default Plan
                       </div>
                     ) : esewaEnabled ? (
                       <button
                         onClick={() => handleCheckout(plan.id)}
                         disabled={loadingPrices}
-                        className={`w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-2 transition disabled:opacity-60 ${
+                        className={`w-full py-2 sm:py-2.5 rounded-xl text-[10px] sm:text-xs font-bold flex items-center justify-center gap-1.5 sm:gap-2 transition disabled:opacity-60 ${
                           isHighlight ? 'bg-white text-[#1CA3FD] hover:bg-white/90'
                             : isBestValue ? 'bg-white text-violet-700 hover:bg-white/90'
                             : 'bg-[#1CA3FD] text-white hover:bg-[#0e8fe0]'
@@ -200,22 +208,28 @@ export default function UpgradePlanModal({ currentTier, onClose }) {
                           alt="eSewa"
                           width={42}
                           height={15}
-                          className="h-[15px] w-auto object-contain"
+                          className="h-[13px] sm:h-[15px] w-auto object-contain"
                         /></span>
                       </button>
                     ) : (
-                      <a
-                        href={waLink(contactWa, plan.name)}
-                        target="_blank" rel="noopener noreferrer"
-                        className={`w-full py-2.5 rounded-xl text-xs font-bold flex items-center justify-center gap-1.5 transition ${
-                          isHighlight ? 'bg-white text-[#1CA3FD] hover:bg-white/90'
-                            : isBestValue ? 'bg-white text-violet-700 hover:bg-white/90'
-                            : 'bg-[#1CA3FD] text-white hover:bg-[#0e8fe0]'
-                        }`}
-                      >
-                        <WaIcon />
-                        Buy {plan.name} Plan
-                      </a>
+                      <div className="flex flex-col gap-1">
+                        <a
+                          href={waLink(contactWa, plan.name)}
+                          target="_blank" rel="noopener noreferrer"
+                          className={`w-full py-2.5 rounded-xl text-[10px] sm:text-xs font-bold flex items-center justify-center gap-1.5 transition ${
+                            isHighlight ? 'bg-white text-[#1CA3FD] hover:bg-white/90'
+                              : isBestValue ? 'bg-white text-violet-700 hover:bg-white/90'
+                              : 'bg-[#25D366] text-white hover:bg-[#1fb85a]'
+                          }`}
+                        >
+                          <WaIcon />
+                          <span className="hidden sm:inline">Tap to Pay via WhatsApp</span>
+                          <span className="sm:hidden">Pay via WhatsApp</span>
+                        </a>
+                        <p className={`text-[9px] sm:text-[10px] text-center ${isHighlight || isBestValue ? 'text-white/60' : 'text-slate-400'}`}>
+                          Click above → send message → done!
+                        </p>
+                      </div>
                     )}
                   </div>
                 </div>
@@ -223,8 +237,8 @@ export default function UpgradePlanModal({ currentTier, onClose }) {
             })}
           </div>
 
-          <div className="mt-5 flex flex-col sm:flex-row items-center justify-between gap-3 pt-4 border-t border-gray-100 dark:border-slate-800">
-            <div className="flex items-center gap-2 flex-wrap">
+          <div className="mt-4 flex flex-col sm:flex-row items-center justify-between gap-2 sm:gap-3 pt-3 sm:pt-4 border-t border-gray-100 dark:border-slate-800">
+            <div className="flex items-center gap-2 flex-wrap justify-center sm:justify-start">
               {esewaEnabled ? (
                 <>
                   <span className="text-xs text-slate-400">Secure payment via</span>
@@ -232,7 +246,7 @@ export default function UpgradePlanModal({ currentTier, onClose }) {
                   <span className="text-xs text-slate-400">· Activated instantly.</span>
                 </>
               ) : (
-                <span className="text-xs text-slate-400">Pay via WhatsApp. Our team will activate your plan within minutes.</span>
+                <span className="text-xs text-slate-400 text-center sm:text-left">Tap the WhatsApp button on your plan → send the message → we activate within minutes.</span>
               )}
             </div>
             <a

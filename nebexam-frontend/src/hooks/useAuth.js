@@ -26,7 +26,11 @@ const useAuth = () => {
 
   const handleRegister = async (data) => {
     const res = await authService.register(data);
-    // Registration now returns {email, detail} — verification required before login
+    // If email verification is disabled, backend returns tokens directly
+    if (res.data.access) {
+      const { access, refresh, user: userData } = res.data;
+      login(access, refresh, userData);
+    }
     return res.data;
   };
 

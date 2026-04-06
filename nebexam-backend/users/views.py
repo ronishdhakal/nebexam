@@ -66,24 +66,37 @@ class RegisterView(generics.CreateAPIView):
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
 
-        # Account starts inactive until email is verified
-        user.is_active = False
-        user.save(update_fields=['is_active'])
+        cfg = SiteSettings.get()
+        if cfg.email_verification_enabled:
+            # Account starts inactive until email is verified
+            user.is_active = False
+            user.save(update_fields=['is_active'])
 
-        # Send verification OTP
-        EmailVerificationOTP.objects.filter(user=user, used=False).delete()
-        code = _generate_otp()
-        EmailVerificationOTP.objects.create(
-            user=user,
-            code=code,
-            expires_at=timezone.now() + timezone.timedelta(minutes=OTP_EXPIRY_MINUTES),
-        )
-        _send_verification_email(user, code)
+            # Send verification OTP
+            EmailVerificationOTP.objects.filter(user=user, used=False).delete()
+            code = _generate_otp()
+            EmailVerificationOTP.objects.create(
+                user=user,
+                code=code,
+                expires_at=timezone.now() + timezone.timedelta(minutes=OTP_EXPIRY_MINUTES),
+            )
+            _send_verification_email(user, code)
 
-        return Response({
-            'email':  user.email,
-            'detail': f'A 6-digit verification code has been sent to {user.email}. Please verify your email to activate your account.',
-        }, status=status.HTTP_201_CREATED)
+            return Response({
+                'email':  user.email,
+                'detail': f'A 6-digit verification code has been sent to {user.email}. Please verify your email to activate your account.',
+            }, status=status.HTTP_201_CREATED)
+        else:
+            # No email verification — activate immediately and return tokens
+            ua        = request.META.get('HTTP_USER_AGENT', '')
+            device_id = request.data.get('device_id', '')
+            refresh_str, access_str, jti = _tokens_for_user(user)
+            _register_session(user, jti, ua, device_id=device_id)
+            return Response({
+                'access':  access_str,
+                'refresh': refresh_str,
+                'user':    UserSerializer(user).data,
+            }, status=status.HTTP_201_CREATED)
 
 
 class VerifyEmailView(APIView):
@@ -427,7 +440,7 @@ class ResetPasswordView(APIView):
 
 # ── Answer reveal tracking ─────────────────────────────────────────────────
 
-FREE_ANSWER_LIMIT = 4
+FREE_ANSWER_LIMIT_DEFAULT = 4
 
 class RevealAnswerView(APIView):
     """Increment free_answers_used for free-tier users and return current count."""
@@ -435,17 +448,20 @@ class RevealAnswerView(APIView):
 
     def post(self, request):
         user = request.user
+        cfg = SiteSettings.get()
+        limit = FREE_ANSWER_LIMIT_DEFAULT if cfg.email_verification_enabled else 0
+
         is_paid = (
             user.subscription_tier and
             user.subscription_tier != 'free' and
             (user.subscription_expires_at is None or user.subscription_expires_at > timezone.now())
         )
         if is_paid:
-            return Response({'free_answers_used': 0, 'limit': FREE_ANSWER_LIMIT, 'allowed': True})
+            return Response({'free_answers_used': 0, 'limit': limit, 'allowed': True})
 
-        if user.free_answers_used >= FREE_ANSWER_LIMIT:
+        if user.free_answers_used >= limit:
             return Response(
-                {'free_answers_used': user.free_answers_used, 'limit': FREE_ANSWER_LIMIT, 'allowed': False},
+                {'free_answers_used': user.free_answers_used, 'limit': limit, 'allowed': False},
                 status=status.HTTP_403_FORBIDDEN,
             )
 
@@ -453,7 +469,7 @@ class RevealAnswerView(APIView):
         user.save(update_fields=['free_answers_used'])
         return Response({
             'free_answers_used': user.free_answers_used,
-            'limit': FREE_ANSWER_LIMIT,
+            'limit': limit,
             'allowed': True,
         })
 
@@ -643,14 +659,15 @@ class SiteSettingsView(APIView):
 
     def _serialize(self, cfg):
         return {
-            'subscription_required': cfg.subscription_required,
-            'esewa_enabled':         cfg.esewa_enabled,
-            'contact_email':         cfg.contact_email,
-            'contact_phone':         cfg.contact_phone,
-            'contact_address':       cfg.contact_address,
-            'contact_wa':            cfg.contact_wa,
-            'social_facebook':       cfg.social_facebook,
-            'social_instagram':      cfg.social_instagram,
+            'subscription_required':      cfg.subscription_required,
+            'esewa_enabled':              cfg.esewa_enabled,
+            'email_verification_enabled': cfg.email_verification_enabled,
+            'contact_email':              cfg.contact_email,
+            'contact_phone':              cfg.contact_phone,
+            'contact_address':            cfg.contact_address,
+            'contact_wa':                 cfg.contact_wa,
+            'social_facebook':            cfg.social_facebook,
+            'social_instagram':           cfg.social_instagram,
         }
 
     def get(self, request):
@@ -674,6 +691,9 @@ class SiteSettingsView(APIView):
         if (val := request.data.get('esewa_enabled')) is not None:
             cfg.esewa_enabled = bool(val)
             changed.append('esewa_enabled')
+        if (val := request.data.get('email_verification_enabled')) is not None:
+            cfg.email_verification_enabled = bool(val)
+            changed.append('email_verification_enabled')
         for field in self._CONTACT_FIELDS:
             if (val := request.data.get(field)) is not None:
                 setattr(cfg, field, val)

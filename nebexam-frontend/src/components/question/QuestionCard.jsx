@@ -8,7 +8,7 @@ import useConfigStore from '@/store/configStore';
 import { authService } from '@/services/users.service';
 import UpgradePlanModal from '@/components/dashboard/UpgradePlanModal';
 
-const FREE_ANSWER_LIMIT = 4;
+const FREE_ANSWER_LIMIT_DEFAULT = 4;
 
 const TYPE_BADGE = {
   mcq:        { label: 'MCQ',        cls: 'bg-[#1CA3FD]/10 text-[#1CA3FD]' },
@@ -171,9 +171,11 @@ function AnswerReveal({ node }) {
   const [loading, setLoading]         = useState(false);
   const [showUpgrade, setShowUpgrade] = useState(false);
   const { isAuthenticated, user, setUser } = useAuthStore();
-  const subscriptionRequired = useConfigStore((s) => s.subscriptionRequired);
-  const esewaEnabled         = useConfigStore((s) => s.esewaEnabled);
-  const contactWa            = useConfigStore((s) => s.contactWa);
+  const subscriptionRequired     = useConfigStore((s) => s.subscriptionRequired);
+  const esewaEnabled             = useConfigStore((s) => s.esewaEnabled);
+  const contactWa                = useConfigStore((s) => s.contactWa);
+  const emailVerificationEnabled = useConfigStore((s) => s.emailVerificationEnabled);
+  const FREE_ANSWER_LIMIT        = emailVerificationEnabled ? FREE_ANSWER_LIMIT_DEFAULT : 0;
   const currentTier          = user?.subscription_tier || 'free';
 
   if (!answer && !explanation) return null;
