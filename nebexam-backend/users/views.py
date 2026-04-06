@@ -88,6 +88,8 @@ class RegisterView(generics.CreateAPIView):
             }, status=status.HTTP_201_CREATED)
         else:
             # No email verification — activate immediately and return tokens
+            user.is_email_verified = True
+            user.save(update_fields=['is_email_verified'])
             ua        = request.META.get('HTTP_USER_AGENT', '')
             device_id = request.data.get('device_id', '')
             refresh_str, access_str, jti = _tokens_for_user(user)
@@ -126,7 +128,8 @@ class VerifyEmailView(APIView):
         otp.used = True
         otp.save()
         user.is_active = True
-        user.save(update_fields=['is_active'])
+        user.is_email_verified = True
+        user.save(update_fields=['is_active', 'is_email_verified'])
 
         ua        = request.META.get('HTTP_USER_AGENT', '')
         device_id = request.data.get('device_id', '')
@@ -542,6 +545,7 @@ class UserListView(generics.ListAPIView):
         acc_status      = self.request.query_params.get('status')
         purchase_status = self.request.query_params.get('purchase_status')
         crm_status      = self.request.query_params.get('crm_status')
+        email_verified  = self.request.query_params.get('email_verified')
 
         if level is not None:
             qs = qs.filter(level=level)
@@ -555,6 +559,10 @@ class UserListView(generics.ListAPIView):
             qs = qs.filter(is_active=False)
         if crm_status:
             qs = qs.filter(crm_status=crm_status)
+        if email_verified == 'true':
+            qs = qs.filter(is_email_verified=True)
+        elif email_verified == 'false':
+            qs = qs.filter(is_email_verified=False)
 
         if purchase_status == 'active':
             # Has a successful payment

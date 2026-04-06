@@ -69,6 +69,15 @@ function VerifyEmailContent() {
         </div>
 
         <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-8">
+          <div className="mb-5 p-3.5 bg-blue-50 border border-blue-100 text-blue-700 text-sm rounded-xl flex items-start gap-2.5">
+            <svg className="shrink-0 mt-0.5" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
+            </svg>
+            <span>
+              Please check your inbox (and spam folder). The OTP may take a few seconds to arrive.
+            </span>
+          </div>
+
           {error && (
             <div className="mb-5 p-3.5 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl">
               {error}

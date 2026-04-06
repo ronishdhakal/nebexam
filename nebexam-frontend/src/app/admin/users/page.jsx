@@ -40,7 +40,7 @@ function getPurchaseStatus(user) {
 }
 
 function exportCSV(users) {
-  const cols = ['ID', 'Name', 'Email', 'Phone', 'Class', 'Stream', 'Plan', 'Expires', 'Status', 'Last Checkout', 'CRM', 'Joined'];
+  const cols = ['ID', 'Name', 'Email', 'Phone', 'Class', 'Stream', 'Plan', 'Expires', 'Status', 'Email Verified', 'Last Checkout', 'CRM', 'Joined'];
   const rows = users.map((u) => [
     u.id,
     `"${u.name || ''}"`,
@@ -51,6 +51,7 @@ function exportCSV(users) {
     TIER_DISPLAY[u.subscription_tier] || u.subscription_tier,
     u.subscription_expires_at ? new Date(u.subscription_expires_at).toLocaleDateString() : '',
     u.is_active ? 'Active' : 'Disabled',
+    u.is_email_verified ? 'Verified' : 'Not Verified',
     u.last_checkout_at ? new Date(u.last_checkout_at).toLocaleDateString() : '',
     u.crm_status || '',
     u.date_joined ? new Date(u.date_joined).toLocaleDateString() : '',
@@ -224,7 +225,7 @@ export default function UsersPage() {
   const [error, setError]     = useState(null);
   const [query, setQuery]     = useState('');
   const [filters, setFilters] = useState({
-    level: '', stream: '', tier: '', status: '', purchase_status: '', crm_status: '',
+    level: '', stream: '', tier: '', status: '', purchase_status: '', crm_status: '', email_verified: '',
   });
 
   const fetchUsers = useCallback(async (q, f) => {
@@ -238,6 +239,7 @@ export default function UsersPage() {
       if (f.status)             params.status          = f.status;
       if (f.purchase_status)    params.purchase_status = f.purchase_status;
       if (f.crm_status)         params.crm_status      = f.crm_status;
+      if (f.email_verified)     params.email_verified  = f.email_verified;
       const res = await api.get('/users/all/', { params });
       setUsers(res.data.results || res.data);
     } catch (err) { setError(getErrorMessage(err)); }
@@ -313,10 +315,14 @@ export default function UsersPage() {
           { value: 'done',      label: 'Done' },
           { value: 'none',      label: 'No Status' },
         ]} />
+        <SelectFilter label="Email Verified" value={filters.email_verified} onChange={(v) => setFilter('email_verified', v)} options={[
+          { value: 'true',  label: 'Verified' },
+          { value: 'false', label: 'Not Verified' },
+        ]} />
 
         {activeFilterCount > 0 && (
           <button
-            onClick={() => setFilters({ level: '', stream: '', tier: '', status: '', purchase_status: '', crm_status: '' })}
+            onClick={() => setFilters({ level: '', stream: '', tier: '', status: '', purchase_status: '', crm_status: '', email_verified: '' })}
             className="text-xs text-slate-500 hover:text-red-500 border border-gray-200 px-3 py-1.5 rounded-lg transition-colors"
           >
             Clear {activeFilterCount} filter{activeFilterCount > 1 ? 's' : ''}
@@ -352,6 +358,7 @@ export default function UsersPage() {
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Phone</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Class</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Plan</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Email</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Purchase</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Last Attempt</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">CRM</th>
@@ -380,6 +387,19 @@ export default function UsersPage() {
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ring-1 ${TIER_STYLES[user.subscription_tier] || TIER_STYLES.free}`}>
                           {TIER_DISPLAY[user.subscription_tier] || user.subscription_tier}
                         </span>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        {user.is_email_verified ? (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ring-1 bg-emerald-50 text-emerald-700 ring-emerald-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 shrink-0" />
+                            Verified
+                          </span>
+                        ) : (
+                          <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium ring-1 bg-amber-50 text-amber-700 ring-amber-200">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-400 shrink-0" />
+                            Not Verified
+                          </span>
+                        )}
                       </td>
                       <td className="px-5 py-3.5">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ring-1 ${psCfg.bg}`}>

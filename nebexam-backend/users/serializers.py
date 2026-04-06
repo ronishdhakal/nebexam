@@ -20,12 +20,12 @@ class AdminUserSerializer(serializers.ModelSerializer):
         fields = [
             'id', 'email', 'name', 'phone', 'level', 'stream',
             'subscription_tier', 'subscription_expires_at',
-            'is_active', 'is_staff', 'date_joined',
+            'is_active', 'is_staff', 'is_email_verified', 'date_joined',
             'crm_status',
             'referral_code', 'referral_balance',
             'last_checkout_at', 'last_checkout_tier', 'last_paid_at',
         ]
-        read_only_fields = ['id', 'date_joined', 'last_checkout_at', 'last_checkout_tier', 'last_paid_at', 'referral_code', 'referral_balance']
+        read_only_fields = ['id', 'date_joined', 'last_checkout_at', 'last_checkout_tier', 'last_paid_at', 'referral_code', 'referral_balance', 'is_email_verified']
 
 
 class RegisterSerializer(serializers.ModelSerializer):

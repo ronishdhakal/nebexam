@@ -263,6 +263,20 @@ export default function EditUserPage({ params: rawParams }) {
         {/* Divider */}
         <div className="border-t border-gray-100 pt-4">
           <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-4">Account Flags</p>
+          <div className="mb-3 flex items-center gap-2">
+            <span className="text-xs font-semibold text-slate-600">Email Verification:</span>
+            {user?.is_email_verified ? (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-emerald-50 text-emerald-700 ring-1 ring-emerald-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-500" />
+                Verified
+              </span>
+            ) : (
+              <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-semibold bg-amber-50 text-amber-700 ring-1 ring-amber-200">
+                <span className="w-1.5 h-1.5 rounded-full bg-amber-400" />
+                Not Verified
+              </span>
+            )}
+          </div>
           <div className="flex flex-col gap-3">
             <label className="flex items-center gap-3 cursor-pointer">
               <input
