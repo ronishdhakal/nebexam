@@ -73,6 +73,7 @@ class User(AbstractBaseUser, PermissionsMixin):
     ]
     crm_status = models.CharField(max_length=20, choices=CRM_CHOICES, default=CRM_NONE)
     is_email_verified = models.BooleanField(default=False)
+    district = models.CharField(max_length=100, blank=True)
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['name']

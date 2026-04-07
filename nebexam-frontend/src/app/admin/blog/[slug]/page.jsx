@@ -22,9 +22,10 @@ export default function EditBlogPage({ params: rawParams }) {
     setLoading(true);
     try {
       const { _file, ...rest } = data;
-      await blogService.update(params.slug, rest);
+      const res = await blogService.update(params.slug, rest);
+      const newSlug = res.data.slug || params.slug;
       if (_file) {
-        await blogService.uploadFeaturedImage(params.slug, _file);
+        await blogService.uploadFeaturedImage(newSlug, _file);
       }
       router.push('/admin/blog');
     } finally {

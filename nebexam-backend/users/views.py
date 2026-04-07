@@ -535,6 +535,11 @@ class UserListView(generics.ListAPIView):
     filter_backends = [filters.SearchFilter]
     search_fields = ['name', 'email', 'phone']
 
+    @property
+    def pagination_class(self):
+        from nebexam.pagination import StandardPagination
+        return StandardPagination
+
     def get_queryset(self):
         from django.db.models import OuterRef, Subquery
         from payments.models import Payment, CheckoutAttempt

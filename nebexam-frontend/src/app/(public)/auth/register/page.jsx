@@ -1,9 +1,8 @@
 'use client';
 
-import { useState, useRef } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 import useAuth from '@/hooks/useAuth';
 import useConfigStore from '@/store/configStore';
 import { authService } from '@/services/users.service';
@@ -13,6 +12,28 @@ const inp = 'w-full border border-slate-200 dark:border-slate-600 bg-white dark:
 
 const LEVEL_LABELS = { '10': 'Class 10', '11': 'Class 11', '12': 'Class 12' };
 const STREAM_LABELS = { science: 'Science', management: 'Management' };
+
+const NEPAL_DISTRICTS = [
+  // Koshi Province
+  'Bhojpur', 'Dhankuta', 'Ilam', 'Jhapa', 'Khotang', 'Morang', 'Okhaldhunga',
+  'Panchthar', 'Sankhuwasabha', 'Solukhumbu', 'Sunsari', 'Taplejung', 'Terhathum', 'Udayapur',
+  // Madhesh Province
+  'Bara', 'Dhanusha', 'Mahottari', 'Parsa', 'Rautahat', 'Saptari', 'Sarlahi', 'Siraha',
+  // Bagmati Province
+  'Bhaktapur', 'Chitwan', 'Dhading', 'Dolakha', 'Kathmandu', 'Kavrepalanchok', 'Lalitpur',
+  'Makwanpur', 'Nuwakot', 'Ramechhap', 'Rasuwa', 'Sindhuli', 'Sindhupalchok',
+  // Gandaki Province
+  'Baglung', 'Gorkha', 'Kaski', 'Lamjung', 'Manang', 'Mustang', 'Myagdi',
+  'Nawalpur', 'Parbat', 'Syangja', 'Tanahu',
+  // Lumbini Province
+  'Arghakhanchi', 'Banke', 'Bardiya', 'Dang', 'Gulmi', 'Kapilvastu', 'Nawalparasi West',
+  'Palpa', 'Pyuthan', 'Rolpa', 'Rukum East', 'Rupandehi',
+  // Karnali Province
+  'Dailekh', 'Dolpa', 'Humla', 'Jajarkot', 'Jumla', 'Kalikot', 'Mugu',
+  'Rukum West', 'Salyan', 'Surkhet',
+  // Sudurpashchim Province
+  'Achham', 'Baitadi', 'Bajhang', 'Bajura', 'Dadeldhura', 'Darchula', 'Doti', 'Kailali', 'Kanchanpur',
+].sort();
 
 function EyeIcon({ open }) {
   return open ? (
@@ -36,8 +57,80 @@ function DetailRow({ label, value }) {
   );
 }
 
+function DistrictSelect({ value, onChange }) {
+  const [open, setOpen] = useState(false);
+  const [search, setSearch] = useState('');
+  const ref = useRef(null);
+
+  const filtered = NEPAL_DISTRICTS.filter((d) =>
+    d.toLowerCase().includes(search.toLowerCase())
+  );
+
+  useEffect(() => {
+    const handler = (e) => {
+      if (ref.current && !ref.current.contains(e.target)) setOpen(false);
+    };
+    document.addEventListener('mousedown', handler);
+    return () => document.removeEventListener('mousedown', handler);
+  }, []);
+
+  return (
+    <div ref={ref} className="relative">
+      <button
+        type="button"
+        onClick={() => setOpen((o) => !o)}
+        className={inp + ' text-left flex items-center justify-between'}
+      >
+        <span className={value ? 'text-slate-900 dark:text-slate-100' : 'text-slate-400'}>
+          {value || 'Select district'}
+        </span>
+        <svg
+          width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2"
+          strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"
+          className={`shrink-0 text-slate-400 transition-transform ${open ? 'rotate-180' : ''}`}
+        >
+          <polyline points="6 9 12 15 18 9"/>
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute z-30 w-full mt-1 bg-white dark:bg-slate-700 rounded-xl border border-slate-200 dark:border-slate-600 shadow-lg overflow-hidden">
+          <div className="p-2 border-b border-slate-100 dark:border-slate-600">
+            <input
+              type="text"
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Search district…"
+              className="w-full px-3 py-2 text-sm bg-slate-50 dark:bg-slate-600 rounded-lg outline-none text-slate-900 dark:text-white placeholder:text-slate-400"
+              autoFocus
+            />
+          </div>
+          <div className="max-h-48 overflow-y-auto">
+            {filtered.map((d) => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => { onChange(d); setOpen(false); setSearch(''); }}
+                className={`w-full text-left px-4 py-2.5 text-sm transition-colors ${
+                  value === d
+                    ? 'text-[#1CA3FD] font-semibold bg-[#1CA3FD]/5'
+                    : 'text-slate-700 dark:text-slate-200 hover:bg-slate-50 dark:hover:bg-slate-600'
+                }`}
+              >
+                {d}
+              </button>
+            ))}
+            {filtered.length === 0 && (
+              <p className="px-4 py-3 text-sm text-slate-400 text-center">No district found</p>
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function RegisterPage() {
-  const [form, setForm] = useState({ email: '', name: '', phone: '', password: '', level: '', stream: '' });
+  const [form, setForm] = useState({ email: '', name: '', phone: '', district: '', password: '', level: '', stream: '' });
   const [confirmPw, setConfirmPw] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -57,14 +150,8 @@ export default function RegisterPage() {
 
   const handleSubmit = (e) => {
     e.preventDefault();
-    if (!phoneValid) {
-      setError('Please enter a correct phone number.');
-      return;
-    }
-    if (form.password !== confirmPw) {
-      setError('Passwords do not match.');
-      return;
-    }
+    if (!phoneValid) { setError('Please enter a correct phone number.'); return; }
+    if (form.password !== confirmPw) { setError('Passwords do not match.'); return; }
     setError(null);
     setShowConfirmModal(true);
   };
@@ -127,17 +214,14 @@ export default function RegisterPage() {
                 <p className="text-xs text-slate-500">Make sure everything looks correct.</p>
               </div>
             </div>
-
             <div className="mb-5">
               <DetailRow label="Full Name" value={form.name} />
               <DetailRow label="Email" value={form.email} />
               <DetailRow label="Phone" value={form.phone} />
+              {form.district && <DetailRow label="District" value={form.district} />}
               <DetailRow label="Class" value={LEVEL_LABELS[form.level] || '—'} />
-              {needsStream && (
-                <DetailRow label="Stream" value={STREAM_LABELS[form.stream] || '—'} />
-              )}
+              {needsStream && <DetailRow label="Stream" value={STREAM_LABELS[form.stream] || '—'} />}
             </div>
-
             <div className="flex gap-3">
               <button
                 type="button"
@@ -160,18 +244,14 @@ export default function RegisterPage() {
         </div>
       )}
 
-      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center px-4 py-12">
-        <div className="w-full max-w-md">
-          {/* Logo */}
-          <div className="text-center mb-8">
-            <Link href="/" className="inline-flex items-center gap-2.5 justify-center">
-              <Image src="/assets/logo.svg" alt="NEB Exam" width={130} height={38} className="h-9 w-auto" />
-            </Link>
-            <h1 className="text-2xl font-bold text-slate-900 dark:text-white mt-4">Create your account</h1>
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-start justify-center px-4 py-8">
+        <div className="w-full max-w-2xl">
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Create your account</h1>
             <p className="text-slate-500 text-sm mt-1">Join thousands of NEB students preparing smarter</p>
           </div>
 
-          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-8">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-6 md:p-8">
             {unverifiedEmail && (
               <div className="mb-5 p-4 bg-amber-50 border border-amber-200 rounded-xl">
                 <p className="text-sm text-amber-800 font-medium mb-1">Email not yet verified</p>
@@ -195,43 +275,39 @@ export default function RegisterPage() {
             )}
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Full Name</label>
-                <input
-                  type="text"
-                  required
-                  value={form.name}
-                  onChange={(e) => setForm({ ...form, name: e.target.value })}
-                  placeholder="Your full name"
-                  className={inp}
-                />
+              {/* Row 1: Full Name + Email */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Full Name</label>
+                  <input
+                    type="text" required value={form.name}
+                    onChange={(e) => setForm({ ...form, name: e.target.value })}
+                    placeholder="Your full name" className={inp}
+                  />
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Email</label>
+                  <input
+                    type="email" required value={form.email}
+                    onChange={(e) => setForm({ ...form, email: e.target.value })}
+                    placeholder="you@example.com" className={inp}
+                  />
+                </div>
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Email</label>
-                <input
-                  type="email"
-                  required
-                  value={form.email}
-                  onChange={(e) => setForm({ ...form, email: e.target.value })}
-                  placeholder="you@example.com"
-                  className={inp}
-                />
-              </div>
-              <div className="grid grid-cols-2 gap-3">
+
+              {/* Row 2: Phone + Class */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Phone</label>
                   <input
-                    type="text"
-                    required
-                    inputMode="numeric"
-                    maxLength={10}
+                    type="text" required inputMode="numeric" maxLength={10}
                     value={form.phone}
                     onChange={(e) => setForm({ ...form, phone: e.target.value.replace(/\D/g, '') })}
                     placeholder="98XXXXXXXX"
                     className={inp + (form.phone && !phoneValid ? ' border-red-300 focus:ring-red-300' : '')}
                   />
                   {form.phone && !phoneValid && (
-                    <p className="text-xs text-red-500 mt-1">Please enter a correct phone number.</p>
+                    <p className="text-xs text-red-500 mt-1">Invalid phone number.</p>
                   )}
                 </div>
                 <div>
@@ -241,7 +317,7 @@ export default function RegisterPage() {
                     onChange={(e) => setForm({ ...form, level: e.target.value, stream: '' })}
                     className={inp}
                   >
-                    <option value="">Select</option>
+                    <option value="">Select class</option>
                     <option value="10">Class 10</option>
                     <option value="11">Class 11</option>
                     <option value="12">Class 12</option>
@@ -249,69 +325,80 @@ export default function RegisterPage() {
                 </div>
               </div>
 
-              {needsStream && (
-                <div>
-                  <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Stream</label>
-                  <div className="grid grid-cols-2 gap-3">
-                    {[
-                      { value: 'science', label: 'Science', color: 'blue' },
-                      { value: 'management', label: 'Management', color: 'emerald' },
-                    ].map(({ value, label, color }) => (
-                      <button
-                        key={value}
-                        type="button"
-                        onClick={() => setForm({ ...form, stream: value })}
-                        className={`py-2.5 rounded-xl border-2 text-sm font-semibold transition-all ${
-                          form.stream === value
-                            ? color === 'blue'
-                              ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-500'
-                              : 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-500'
-                            : 'border-slate-200 dark:border-slate-600 text-slate-500 hover:border-slate-300'
-                        }`}
-                      >
-                        {label}
-                      </button>
-                    ))}
+              {/* Row 3: District + Stream (if needed, else District full width) */}
+              {needsStream ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">District</label>
+                    <DistrictSelect value={form.district} onChange={(d) => setForm({ ...form, district: d })} />
                   </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Stream</label>
+                    <div className="grid grid-cols-2 gap-3">
+                      {[
+                        { value: 'science', label: 'Science', color: 'blue' },
+                        { value: 'management', label: 'Management', color: 'emerald' },
+                      ].map(({ value, label, color }) => (
+                        <button
+                          key={value} type="button"
+                          onClick={() => setForm({ ...form, stream: value })}
+                          className={`py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
+                            form.stream === value
+                              ? color === 'blue'
+                                ? 'border-blue-500 bg-blue-50 text-blue-700 dark:bg-blue-950/40 dark:text-blue-400 dark:border-blue-500'
+                                : 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-500'
+                              : 'border-slate-200 dark:border-slate-600 text-slate-500 hover:border-slate-300'
+                          }`}
+                        >
+                          {label}
+                        </button>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">District</label>
+                  <DistrictSelect value={form.district} onChange={(d) => setForm({ ...form, district: d })} />
                 </div>
               )}
 
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Password</label>
-                <div className="relative">
-                  <input
-                    type={showPw ? 'text' : 'password'}
-                    required
-                    value={form.password}
-                    onChange={(e) => setForm({ ...form, password: e.target.value })}
-                    placeholder="Min. 8 characters"
-                    className={inp + ' pr-11'}
-                  />
-                  <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
-                    <EyeIcon open={showPw} />
-                  </button>
+              {/* Row 4: Password + Confirm Password */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Password</label>
+                  <div className="relative">
+                    <input
+                      type={showPw ? 'text' : 'password'} required
+                      value={form.password}
+                      onChange={(e) => setForm({ ...form, password: e.target.value })}
+                      placeholder="Min. 8 characters" className={inp + ' pr-11'}
+                    />
+                    <button type="button" onClick={() => setShowPw(!showPw)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+                      <EyeIcon open={showPw} />
+                    </button>
+                  </div>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Confirm Password</label>
+                  <div className="relative">
+                    <input
+                      type={showConfirm ? 'text' : 'password'} required
+                      value={confirmPw}
+                      onChange={(e) => setConfirmPw(e.target.value)}
+                      placeholder="Re-enter password"
+                      className={inp + ' pr-11' + (!pwMatch ? ' border-red-300 focus:ring-red-300' : '')}
+                    />
+                    <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
+                      <EyeIcon open={showConfirm} />
+                    </button>
+                  </div>
+                  {!pwMatch && <p className="text-xs text-red-500 mt-1">Passwords do not match</p>}
                 </div>
               </div>
-              <div>
-                <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Confirm Password</label>
-                <div className="relative">
-                  <input
-                    type={showConfirm ? 'text' : 'password'}
-                    required
-                    value={confirmPw}
-                    onChange={(e) => setConfirmPw(e.target.value)}
-                    placeholder="Re-enter password"
-                    className={inp + ' pr-11' + (!pwMatch ? ' border-red-300 focus:ring-red-300' : '')}
-                  />
-                  <button type="button" onClick={() => setShowConfirm(!showConfirm)} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 transition-colors">
-                    <EyeIcon open={showConfirm} />
-                  </button>
-                </div>
-                {!pwMatch && <p className="text-xs text-red-500 mt-1">Passwords do not match</p>}
-              </div>
+
               <button
-                type="submit"
-                disabled={loading}
+                type="submit" disabled={loading}
                 className="w-full bg-[#1CA3FD] hover:bg-[#0e8fe0] text-white font-semibold py-3 rounded-xl transition-colors shadow-sm shadow-[#1CA3FD]/20 disabled:opacity-50 mt-2"
               >
                 {loading ? 'Creating account…' : 'Create Account'}
@@ -324,7 +411,7 @@ export default function RegisterPage() {
             </p>
           </div>
 
-          <p className="text-center mt-6">
+          <p className="text-center mt-4">
             <Link href="/" className="text-xs text-slate-400 hover:text-slate-600 transition-colors">← Back to home</Link>
           </p>
         </div>

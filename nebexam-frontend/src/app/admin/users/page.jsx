@@ -6,6 +6,9 @@ import api from '@/lib/api';
 import { paymentService } from '@/services/users.service';
 import { getErrorMessage, formatDate } from '@/lib/utils';
 import PageHeader from '@/components/admin/shared/PageHeader';
+import Pagination from '@/components/admin/shared/Pagination';
+
+const PAGE_SIZE = 20;
 
 const TIER_STYLES = {
   free:     'bg-slate-100 text-slate-600 ring-slate-200',
@@ -40,12 +43,13 @@ function getPurchaseStatus(user) {
 }
 
 function exportCSV(users) {
-  const cols = ['ID', 'Name', 'Email', 'Phone', 'Class', 'Stream', 'Plan', 'Expires', 'Status', 'Email Verified', 'Last Checkout', 'CRM', 'Joined'];
+  const cols = ['ID', 'Name', 'Email', 'Phone', 'District', 'Class', 'Stream', 'Plan', 'Expires', 'Status', 'Email Verified', 'Last Checkout', 'CRM', 'Joined'];
   const rows = users.map((u) => [
     u.id,
     `"${u.name || ''}"`,
     u.email,
     u.phone || '',
+    u.district || '',
     u.level ? `Class ${u.level}` : '',
     u.stream || '',
     TIER_DISPLAY[u.subscription_tier] || u.subscription_tier,
@@ -223,35 +227,61 @@ export default function UsersPage() {
   const [users, setUsers]     = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError]     = useState(null);
+  const [count, setCount]     = useState(0);
+  const [page, setPage]       = useState(1);
   const [query, setQuery]     = useState('');
   const [filters, setFilters] = useState({
     level: '', stream: '', tier: '', status: '', purchase_status: '', crm_status: '', email_verified: '',
   });
 
-  const fetchUsers = useCallback(async (q, f) => {
+  const buildParams = (q, f) => {
+    const params = {};
+    if (q)                 params.search          = q;
+    if (f.level)           params.level           = f.level;
+    if (f.stream)          params.stream          = f.stream;
+    if (f.tier)            params.tier            = f.tier;
+    if (f.status)          params.status          = f.status;
+    if (f.purchase_status) params.purchase_status = f.purchase_status;
+    if (f.crm_status)      params.crm_status      = f.crm_status;
+    if (f.email_verified)  params.email_verified  = f.email_verified;
+    return params;
+  };
+
+  const fetchUsers = useCallback(async (p, q, f) => {
     try {
       setLoading(true);
-      const params = {};
-      if (q)                    params.search          = q;
-      if (f.level)              params.level           = f.level;
-      if (f.stream)             params.stream          = f.stream;
-      if (f.tier)               params.tier            = f.tier;
-      if (f.status)             params.status          = f.status;
-      if (f.purchase_status)    params.purchase_status = f.purchase_status;
-      if (f.crm_status)         params.crm_status      = f.crm_status;
-      if (f.email_verified)     params.email_verified  = f.email_verified;
+      const params = { ...buildParams(q, f), page: p, page_size: PAGE_SIZE };
       const res = await api.get('/users/all/', { params });
       setUsers(res.data.results || res.data);
+      setCount(res.data.count ?? res.data.length);
     } catch (err) { setError(getErrorMessage(err)); }
     finally { setLoading(false); }
   }, []);
 
-  useEffect(() => { fetchUsers('', filters); }, [fetchUsers]);
+  const [exporting, setExporting] = useState(false);
+
+  const handleExport = async () => {
+    setExporting(true);
+    try {
+      // Fetch all matching users without pagination for the export
+      const params = { ...buildParams(query, filters), page_size: 10000 };
+      const res = await api.get('/users/all/', { params });
+      const all = res.data.results || res.data;
+      exportCSV(all);
+    } catch (err) {
+      alert(getErrorMessage(err));
+    } finally {
+      setExporting(false);
+    }
+  };
+
+  // Reset to page 1 when query or filters change
+  useEffect(() => { setPage(1); }, [query, filters]);
 
   useEffect(() => {
-    const t = setTimeout(() => fetchUsers(query, filters), 300);
+    const t = setTimeout(() => fetchUsers(page, query, filters), query ? 300 : 0);
     return () => clearTimeout(t);
-  }, [query, filters, fetchUsers]);
+  }, [page, query, filters, fetchUsers]);
 
   const setFilter = (key, val) => setFilters((prev) => ({ ...prev, [key]: val }));
   const activeFilterCount = Object.values(filters).filter(Boolean).length;
@@ -330,16 +360,16 @@ export default function UsersPage() {
         )}
 
         <div className="ml-auto flex items-center gap-2">
-          <span className="text-xs text-slate-400 font-medium">{users.length} user{users.length !== 1 ? 's' : ''}</span>
+          <span className="text-xs text-slate-400 font-medium">{count} user{count !== 1 ? 's' : ''}</span>
           <button
-            onClick={() => exportCSV(users)}
-            disabled={users.length === 0}
+            onClick={handleExport}
+            disabled={count === 0 || exporting}
             className="inline-flex items-center gap-1.5 text-xs font-semibold bg-white border border-gray-200 text-slate-700 hover:border-[#1CA3FD]/40 hover:text-[#1CA3FD] px-3 py-1.5 rounded-lg transition-all disabled:opacity-40"
           >
             <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
               <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
             </svg>
-            Export CSV
+            {exporting ? 'Exporting…' : 'Export CSV'}
           </button>
         </div>
       </div>
@@ -356,6 +386,7 @@ export default function UsersPage() {
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Name</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Email</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Phone</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">District</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Class</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Plan</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Email</th>
@@ -382,6 +413,7 @@ export default function UsersPage() {
                       </td>
                       <td className="px-5 py-3.5 text-slate-500">{user.email}</td>
                       <td className="px-5 py-3.5 text-slate-400">{user.phone || '—'}</td>
+                      <td className="px-5 py-3.5 text-slate-400">{user.district || '—'}</td>
                       <td className="px-5 py-3.5 text-slate-500 font-medium">{user.level ? `Class ${user.level}` : '—'}</td>
                       <td className="px-5 py-3.5">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ring-1 ${TIER_STYLES[user.subscription_tier] || TIER_STYLES.free}`}>
@@ -439,6 +471,7 @@ export default function UsersPage() {
             <div className="text-center py-12 text-slate-400 text-sm">No users found.</div>
           )}
         </div>
+        <Pagination page={page} count={count} pageSize={PAGE_SIZE} onPage={setPage} />
       )}
     </div>
   );

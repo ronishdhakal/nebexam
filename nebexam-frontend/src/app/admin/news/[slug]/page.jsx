@@ -22,9 +22,10 @@ export default function EditNewsPage({ params: rawParams }) {
     setLoading(true);
     try {
       const { _file, ...rest } = data;
-      await newsService.update(params.slug, rest);
+      const res = await newsService.update(params.slug, rest);
+      const newSlug = res.data.slug || params.slug;
       if (_file) {
-        await newsService.uploadFeaturedImage(params.slug, _file);
+        await newsService.uploadFeaturedImage(newSlug, _file);
       }
       router.push('/admin/news');
     } finally {

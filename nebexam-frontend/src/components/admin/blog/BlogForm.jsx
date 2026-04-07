@@ -8,8 +8,13 @@ import { blogCategoriesService } from '@/services/news.service';
 const inp = 'w-full border border-slate-300 bg-white rounded-lg px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1CA3FD] focus:border-transparent transition';
 const lbl = 'block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide';
 
+function toSlug(str) {
+  return str.toLowerCase().replace(/[^\w\s-]/g, '').replace(/[\s_]+/g, '-').replace(/^-+|-+$/g, '');
+}
+
 const defaultForm = {
   title: '',
+  slug: '',
   excerpt: '',
   content: null,
   category: '',
@@ -19,6 +24,8 @@ const defaultForm = {
 
 export default function BlogForm({ initial = {}, onSubmit, loading }) {
   const [form, setForm] = useState({ ...defaultForm, ...initial });
+  // Track whether admin has manually edited slug (stops auto-sync from title)
+  const [slugTouched, setSlugTouched] = useState(!!initial.slug);
   const [error, setError] = useState(null);
   const [categories, setCategories] = useState([]);
   const [pendingFile, setPendingFile] = useState(null);
@@ -68,10 +75,48 @@ export default function BlogForm({ initial = {}, onSubmit, loading }) {
             type="text"
             required
             value={form.title}
-            onChange={(e) => setForm({ ...form, title: e.target.value })}
+            onChange={(e) => {
+              const title = e.target.value;
+              setForm((f) => ({
+                ...f,
+                title,
+                slug: slugTouched ? f.slug : toSlug(title),
+              }));
+            }}
             placeholder="Enter blog post title"
             className={inp}
           />
+        </div>
+
+        {/* Slug */}
+        <div>
+          <label className={lbl}>
+            Slug
+            <span className="ml-1.5 text-slate-400 font-normal normal-case tracking-normal">
+              — URL identifier (changing this breaks existing links)
+            </span>
+          </label>
+          <div className="flex items-center gap-2">
+            <input
+              type="text"
+              value={form.slug}
+              onChange={(e) => {
+                setSlugTouched(true);
+                setForm((f) => ({ ...f, slug: e.target.value }));
+              }}
+              placeholder="auto-generated-from-title"
+              className={inp}
+            />
+            {slugTouched && (
+              <button
+                type="button"
+                onClick={() => { setSlugTouched(false); setForm((f) => ({ ...f, slug: toSlug(f.title) })); }}
+                className="shrink-0 text-xs text-slate-400 hover:text-[#1CA3FD] border border-gray-200 px-2.5 py-2 rounded-lg transition-colors whitespace-nowrap"
+              >
+                Reset
+              </button>
+            )}
+          </div>
         </div>
 
         {/* Excerpt */}

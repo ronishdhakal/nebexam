@@ -3,7 +3,6 @@
 import { useState, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
-import Image from 'next/image';
 import useAuth from '@/hooks/useAuth';
 
 const inp = 'w-full border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1CA3FD] focus:border-transparent transition';
@@ -22,10 +21,10 @@ function EyeIcon({ open }) {
 }
 
 function LoginForm() {
-  const [form, setForm]         = useState({ email: '', password: '' });
-  const [showPw, setShowPw]     = useState(false);
-  const [error, setError]       = useState(null);
-  const [loading, setLoading]   = useState(false);
+  const [form, setForm]           = useState({ email: '', password: '' });
+  const [showPw, setShowPw]       = useState(false);
+  const [error, setError]         = useState(null);
+  const [loading, setLoading]     = useState(false);
   const [newDevice, setNewDevice] = useState(null);
   const { handleLogin } = useAuth();
   const router  = useRouter();
@@ -53,17 +52,14 @@ function LoginForm() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center px-4 py-12">
-      <div className="w-full max-w-md">
-        <div className="text-center mb-8">
-          <Link href="/" className="inline-flex items-center gap-2.5 justify-center">
-            <Image src="/assets/logo.svg" alt="NEB Exam" width={130} height={38} className="h-9 w-auto" />
-          </Link>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white mt-4">Welcome back</h1>
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-900 flex items-center justify-center px-4 py-8">
+      <div className="w-full max-w-2xl">
+        <div className="mb-6">
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white">Welcome back</h1>
           <p className="text-slate-500 text-sm mt-1">Sign in to your account to continue</p>
         </div>
 
-        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-8">
+        <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-6 md:p-8">
           {resetOk && (
             <div className="mb-5 p-3.5 bg-green-50 border border-green-100 text-green-700 text-sm rounded-xl font-medium">
               Password reset successful! Please sign in with your new password.
@@ -74,7 +70,6 @@ function LoginForm() {
               {error}
             </div>
           )}
-
           {newDevice && (
             <div className="mb-5 p-4 bg-amber-50 border border-amber-200 rounded-xl text-sm">
               <p className="font-semibold text-amber-800 mb-1">New device detected</p>
@@ -92,45 +87,42 @@ function LoginForm() {
           )}
 
           <form onSubmit={(e) => { e.preventDefault(); submit(); }} className="space-y-4">
-            <div>
-              <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">Email</label>
-              <input
-                type="email"
-                required
-                value={form.email}
-                onChange={(e) => setForm({ ...form, email: e.target.value })}
-                placeholder="you@example.com"
-                className={inp}
-              />
-            </div>
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Password</label>
-                <Link href="/auth/forgot-password" className="text-xs text-[#1CA3FD] hover:underline font-medium">
-                  Forgot password?
-                </Link>
-              </div>
-              <div className="relative">
+            {/* Email + Password side by side on desktop */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div>
+                <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400 mb-1.5 uppercase tracking-wide">Email</label>
                 <input
-                  type={showPw ? 'text' : 'password'}
-                  required
-                  value={form.password}
-                  onChange={(e) => setForm({ ...form, password: e.target.value })}
-                  placeholder="••••••••"
-                  className={inp + ' pr-11'}
+                  type="email" required value={form.email}
+                  onChange={(e) => setForm({ ...form, email: e.target.value })}
+                  placeholder="you@example.com" className={inp}
                 />
-                <button
-                  type="button"
-                  onClick={() => setShowPw(!showPw)}
-                  className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
-                >
-                  <EyeIcon open={showPw} />
-                </button>
+              </div>
+              <div>
+                <div className="flex items-center justify-between mb-1.5">
+                  <label className="text-xs font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wide">Password</label>
+                  <Link href="/auth/forgot-password" className="text-xs text-[#1CA3FD] hover:underline font-medium">
+                    Forgot password?
+                  </Link>
+                </div>
+                <div className="relative">
+                  <input
+                    type={showPw ? 'text' : 'password'} required
+                    value={form.password}
+                    onChange={(e) => setForm({ ...form, password: e.target.value })}
+                    placeholder="••••••••" className={inp + ' pr-11'}
+                  />
+                  <button
+                    type="button" onClick={() => setShowPw(!showPw)}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300 transition-colors"
+                  >
+                    <EyeIcon open={showPw} />
+                  </button>
+                </div>
               </div>
             </div>
+
             <button
-              type="submit"
-              disabled={loading}
+              type="submit" disabled={loading}
               className="w-full bg-[#1CA3FD] hover:bg-[#0e8fe0] text-white font-semibold py-3 rounded-xl transition-colors shadow-sm shadow-[#1CA3FD]/20 disabled:opacity-50 mt-2"
             >
               {loading ? 'Signing in…' : 'Sign In'}
@@ -143,7 +135,7 @@ function LoginForm() {
           </p>
         </div>
 
-        <p className="text-center mt-6">
+        <p className="text-center mt-4">
           <Link href="/" className="text-xs text-slate-400 hover:text-slate-600 transition-colors">← Back to home</Link>
         </p>
       </div>

@@ -24,10 +24,18 @@ class NewsListSerializer(serializers.ModelSerializer):
 class NewsDetailSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
     category_slug = serializers.CharField(source='category.slug', read_only=True)
+    slug = serializers.SlugField(required=False, allow_blank=True)
 
     class Meta:
         model = News
         fields = '__all__'
+
+    def validate(self, attrs):
+        # If slug is blank/empty, remove it so the model auto-generates on create
+        # or keeps the existing value on update
+        if not attrs.get('slug'):
+            attrs.pop('slug', None)
+        return attrs
 
 
 class BlogCategorySerializer(serializers.ModelSerializer):
@@ -52,7 +60,15 @@ class BlogListSerializer(serializers.ModelSerializer):
 class BlogDetailSerializer(serializers.ModelSerializer):
     category_name = serializers.CharField(source='category.name', read_only=True)
     category_slug = serializers.CharField(source='category.slug', read_only=True)
+    slug = serializers.SlugField(required=False, allow_blank=True)
 
     class Meta:
         model = Blog
         fields = '__all__'
+
+    def validate(self, attrs):
+        # If slug is blank/empty, remove it so the model auto-generates on create
+        # or keeps the existing value on update
+        if not attrs.get('slug'):
+            attrs.pop('slug', None)
+        return attrs

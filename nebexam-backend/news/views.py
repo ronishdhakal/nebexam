@@ -1,11 +1,11 @@
 import uuid
 from nebexam.cache import CachedViewSetMixin
+from nebexam.pagination import StandardPagination
 from rest_framework import viewsets, filters
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.permissions import IsAdminUser, AllowAny, IsAuthenticatedOrReadOnly
 from rest_framework.parsers import MultiPartParser
-from rest_framework.pagination import PageNumberPagination
 from django.core.files.storage import default_storage
 
 from .models import NewsCategory, News, BlogCategory, Blog
@@ -13,12 +13,6 @@ from .serializers import (
     NewsCategorySerializer, NewsListSerializer, NewsDetailSerializer,
     BlogCategorySerializer, BlogListSerializer, BlogDetailSerializer,
 )
-
-
-class StandardPagination(PageNumberPagination):
-    page_size = 10
-    page_size_query_param = 'page_size'
-    max_page_size = 100
 
 
 class NewsCategoryViewSet(CachedViewSetMixin, viewsets.ModelViewSet):
@@ -55,6 +49,12 @@ class NewsViewSet(CachedViewSetMixin, viewsets.ModelViewSet):
         category = self.request.query_params.get('category')
         if category:
             qs = qs.filter(category__slug=category)
+        if is_admin:
+            published = self.request.query_params.get('is_published')
+            if published == 'true':
+                qs = qs.filter(is_published=True)
+            elif published == 'false':
+                qs = qs.filter(is_published=False)
         return qs.order_by('-created_at')
 
 
@@ -92,6 +92,12 @@ class BlogViewSet(CachedViewSetMixin, viewsets.ModelViewSet):
         category = self.request.query_params.get('category')
         if category:
             qs = qs.filter(category__slug=category)
+        if is_admin:
+            published = self.request.query_params.get('is_published')
+            if published == 'true':
+                qs = qs.filter(is_published=True)
+            elif published == 'false':
+                qs = qs.filter(is_published=False)
         return qs.order_by('-created_at')
 
 
