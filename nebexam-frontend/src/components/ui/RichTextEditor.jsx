@@ -14,6 +14,7 @@ import { TableCell } from '@tiptap/extension-table-cell';
 import Mathematics, { migrateMathStrings } from '@tiptap/extension-mathematics';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import api from '@/lib/api';
+import MathDropdown from '@/components/ui/MathDropdown';
 
 export default function RichTextEditor({ value, onChange, placeholder = 'Write here...' }) {
   const initialContent = useRef(value);
@@ -21,6 +22,8 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write h
   onChangeRef.current = onChange;
   const [tableMenu, setTableMenu] = useState(false);
   const [imageMenu, setImageMenu] = useState(false);
+  const [mathMenu, setMathMenu] = useState(false);
+  const mathBtnRef = useRef(null);
 
   const extensions = useMemo(() => [
     StarterKit,
@@ -85,11 +88,11 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write h
 
   return (
     <div
-      className="border border-gray-200 rounded-xl overflow-hidden shadow-sm bg-white"
+      className="border border-gray-200 rounded-xl shadow-sm bg-white"
       onPaste={() => setTimeout(() => { if (editor) migrateMathStrings(editor); }, 0)}
     >
       {/* Toolbar */}
-      <div className="flex flex-wrap items-center gap-0.5 px-2 py-1.5 bg-gray-50 border-b border-gray-200">
+      <div className="flex flex-wrap items-center gap-0.5 px-2 py-1.5 bg-gray-50 border-b border-gray-200 rounded-t-xl">
 
         {/* Text style group */}
         <ToolGroup>
@@ -215,15 +218,18 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write h
         <Divider />
 
         {/* Math group */}
-        <ToolGroup>
+        <div ref={mathBtnRef}>
           <ToolBtn
-            onClick={() => editor.chain().focus().insertContent('$  $').run()}
-            active={editor.isActive('math')}
-            title="Insert inline math ($...$)"
+            onClick={() => setMathMenu((v) => !v)}
+            active={mathMenu || editor.isActive('math')}
+            title="Insert math (formulas, matrix, symbols)"
           >
             <MathIcon />
           </ToolBtn>
-        </ToolGroup>
+          {mathMenu && (
+            <MathDropdown editor={editor} onClose={() => setMathMenu(false)} triggerRef={mathBtnRef} />
+          )}
+        </div>
 
         <Divider />
 

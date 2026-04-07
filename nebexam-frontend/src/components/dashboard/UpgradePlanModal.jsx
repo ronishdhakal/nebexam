@@ -6,6 +6,9 @@ import Image from 'next/image';
 import { paymentService } from '@/services/users.service';
 import useConfigStore from '@/store/configStore';
 
+const LAUNCH_SLOTS_TOTAL = 1000;
+const LAUNCH_SLOTS_USED = 900;
+
 const PAID_FEATURES = [
   'Unlimited answer reveals',
   'Solution of all Subject Model Questions',
@@ -106,6 +109,34 @@ export default function UpgradePlanModal({ currentTier, onClose }) {
           <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-white/60 mb-1">Unlock Full Access</p>
           <h2 className="text-xl sm:text-2xl font-extrabold mb-1">Stop Guessing. Start Scoring.</h2>
           <p className="text-xs sm:text-sm text-white/80 max-w-md">Get solutions to every Subject Model Question + full notes, PDFs & past papers — everything you need to ace NEB.</p>
+
+          {/* Launch offer urgency strip */}
+          <div className="mt-4 bg-white/15 rounded-xl px-3 py-2.5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
+            <div className="flex items-center gap-2 shrink-0">
+              <span className="relative flex h-2 w-2">
+                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-300 opacity-75" />
+                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-300" />
+              </span>
+              <span className="text-[11px] sm:text-xs font-bold text-white">
+                Launch price — first {LAUNCH_SLOTS_TOTAL} students only
+              </span>
+              <span className="bg-amber-400/30 text-amber-200 text-[10px] font-bold px-2 py-0.5 rounded-full">
+                {LAUNCH_SLOTS_TOTAL - LAUNCH_SLOTS_USED} spots left
+              </span>
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center justify-between text-[10px] text-white/60 mb-1">
+                <span>{LAUNCH_SLOTS_USED}+ registered</span>
+                <span>{LAUNCH_SLOTS_TOTAL} max</span>
+              </div>
+              <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
+                <div
+                  className="h-full bg-gradient-to-r from-amber-300 to-amber-400 rounded-full"
+                  style={{ width: `${(LAUNCH_SLOTS_USED / LAUNCH_SLOTS_TOTAL) * 100}%` }}
+                />
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Plans */}
@@ -144,7 +175,7 @@ export default function UpgradePlanModal({ currentTier, onClose }) {
                       isHighlight || isBestValue ? 'text-white/70' : 'text-slate-400'
                     }`}>{plan.name}</p>
 
-                    <div className="flex items-baseline gap-1 mb-0.5">
+                    <div className="mb-0.5">
                       {plan.id === 'free' ? (
                         <span className={`text-2xl sm:text-3xl font-extrabold ${isHighlight || isBestValue ? 'text-white' : 'text-slate-900 dark:text-white'}`}>
                           Rs. 0
@@ -152,9 +183,20 @@ export default function UpgradePlanModal({ currentTier, onClose }) {
                       ) : loadingPrices ? (
                         <span className="h-7 sm:h-8 w-16 sm:w-20 bg-white/20 dark:bg-slate-700 rounded animate-pulse inline-block" />
                       ) : (
-                        <span className={`text-2xl sm:text-3xl font-extrabold ${isHighlight || isBestValue ? 'text-white' : 'text-slate-900 dark:text-white'}`}>
-                          Rs. {amount ?? '—'}
-                        </span>
+                        <>
+                          {/* Future price strikethrough */}
+                          <div className="flex items-center gap-1.5 mb-0.5">
+                            <span className={`text-[10px] sm:text-xs line-through ${isHighlight || isBestValue ? 'text-white/50' : 'text-slate-400'}`}>
+                              Rs. {amount != null ? amount * 2 : '—'}
+                            </span>
+                            <span className="text-[9px] sm:text-[10px] font-bold bg-red-500/20 text-red-300 px-1.5 py-0.5 rounded-full">
+                              after 1000
+                            </span>
+                          </div>
+                          <span className={`text-2xl sm:text-3xl font-extrabold ${isHighlight || isBestValue ? 'text-white' : 'text-slate-900 dark:text-white'}`}>
+                            Rs. {amount ?? '—'}
+                          </span>
+                        </>
                       )}
                     </div>
 
