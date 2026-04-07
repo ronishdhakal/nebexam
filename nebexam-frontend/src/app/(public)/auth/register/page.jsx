@@ -57,7 +57,7 @@ function DetailRow({ label, value }) {
   );
 }
 
-function DistrictSelect({ value, onChange }) {
+function DistrictSelect({ value, onChange, hasError }) {
   const [open, setOpen] = useState(false);
   const [search, setSearch] = useState('');
   const ref = useRef(null);
@@ -79,7 +79,7 @@ function DistrictSelect({ value, onChange }) {
       <button
         type="button"
         onClick={() => setOpen((o) => !o)}
-        className={inp + ' text-left flex items-center justify-between'}
+        className={inp + ' text-left flex items-center justify-between' + (hasError ? ' border-red-300 focus:ring-red-300' : '')}
       >
         <span className={value ? 'text-slate-900 dark:text-slate-100' : 'text-slate-400'}>
           {value || 'Select district'}
@@ -151,6 +151,7 @@ export default function RegisterPage() {
   const handleSubmit = (e) => {
     e.preventDefault();
     if (!phoneValid) { setError('Please enter a correct phone number.'); return; }
+    if (!form.district) { setError('Please select your district.'); return; }
     if (form.password !== confirmPw) { setError('Passwords do not match.'); return; }
     setError(null);
     setShowConfirmModal(true);
@@ -330,7 +331,7 @@ export default function RegisterPage() {
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">District</label>
-                    <DistrictSelect value={form.district} onChange={(d) => setForm({ ...form, district: d })} />
+                    <DistrictSelect value={form.district} onChange={(d) => setForm({ ...form, district: d })} hasError={!!error && !form.district} />
                   </div>
                   <div>
                     <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Stream</label>
@@ -359,7 +360,7 @@ export default function RegisterPage() {
               ) : (
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">District</label>
-                  <DistrictSelect value={form.district} onChange={(d) => setForm({ ...form, district: d })} />
+                  <DistrictSelect value={form.district} onChange={(d) => setForm({ ...form, district: d })} hasError={!!error && !form.district} />
                 </div>
               )}
 

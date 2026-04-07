@@ -53,22 +53,30 @@ export default function AdminDashboard() {
       api.get('/content/areas/'),
       api.get('/content/chapters/'),
       api.get('/questionbank/entries/'),
-      api.get('/users/all/'),
-    ]).then(([subjects, areas, chapters, entries, users]) => {
+      api.get('/users/all/', { params: { page_size: 1 } }),
+      api.get('/users/all/', { params: { page_size: 1, tier: '1month' } }),
+      api.get('/users/all/', { params: { page_size: 1, tier: '3month' } }),
+      api.get('/users/all/', { params: { page_size: 1, tier: '1year' } }),
+    ]).then(([subjects, areas, chapters, entries, users, tier1m, tier3m, tier1y]) => {
       const subjectList = subjects.data.results || subjects.data;
       const chapterList = chapters.data.results || chapters.data;
       const entryList   = entries.data.results   || entries.data;
-      const userList    = users.data.results     || users.data;
       const areaList    = areas.data.results     || areas.data;
 
       const publishedChapters = chapterList.filter(c => c.is_published).length;
       const publishedEntries  = entryList.filter(e => e.is_published).length;
       const draftEntries      = entryList.length - publishedEntries;
 
-      const byTier = userList.reduce((acc, u) => {
-        acc[u.subscription_tier] = (acc[u.subscription_tier] || 0) + 1;
-        return acc;
-      }, {});
+      const totalUsers = users.data.count ?? (users.data.results || users.data).length;
+      const paid1m     = tier1m.data.count ?? 0;
+      const paid3m     = tier3m.data.count ?? 0;
+      const paid1y     = tier1y.data.count ?? 0;
+      const byTier = {
+        free:     totalUsers - paid1m - paid3m - paid1y,
+        '1month': paid1m,
+        '3month': paid3m,
+        '1year':  paid1y,
+      };
 
       setStats({
         subjects: subjectList.length,
@@ -78,7 +86,7 @@ export default function AdminDashboard() {
         entries: entryList.length,
         publishedEntries,
         draftEntries,
-        users: userList.length,
+        users: totalUsers,
         byTier,
       });
     }).catch(() => {});
