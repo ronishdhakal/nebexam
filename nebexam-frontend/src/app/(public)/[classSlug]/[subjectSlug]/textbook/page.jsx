@@ -46,7 +46,7 @@ export default async function TextbookPage({ params }) {
     <div className="max-w-4xl mx-auto px-6 py-10 space-y-8">
 
       <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
-        Class {subject.class_level} {subject.name} Notes
+        Class {subject.class_level} {subject.name} Text Book
       </h1>
 
       {hasText && <RichTextRenderer content={subject.book_text} />}

@@ -38,7 +38,7 @@ class NewsViewSet(CachedViewSetMixin, viewsets.ModelViewSet):
     pagination_class = StandardPagination
 
     def get_serializer_class(self):
-        if self.action == 'retrieve':
+        if self.action in ('retrieve', 'create', 'update', 'partial_update'):
             return NewsDetailSerializer
         return NewsListSerializer
 
@@ -75,7 +75,7 @@ class BlogViewSet(CachedViewSetMixin, viewsets.ModelViewSet):
     pagination_class = StandardPagination
 
     def get_serializer_class(self):
-        if self.action == 'retrieve':
+        if self.action in ('retrieve', 'create', 'update', 'partial_update'):
             return BlogDetailSerializer
         return BlogListSerializer
 

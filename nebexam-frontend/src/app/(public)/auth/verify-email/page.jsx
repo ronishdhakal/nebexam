@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect, Suspense } from 'react';
+import { useState, useEffect, useRef, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -20,6 +20,8 @@ function VerifyEmailContent() {
   const [resending, setResending] = useState(false);
   const [error, setError]       = useState(null);
   const [resendMsg, setResendMsg] = useState(null);
+  const verifyingRef = useRef(false);
+  const resendingRef = useRef(false);
   const { handleVerifyEmail } = useAuth();
 
   useEffect(() => {
@@ -28,6 +30,8 @@ function VerifyEmailContent() {
 
   const handleVerify = async (e) => {
     e.preventDefault();
+    if (verifyingRef.current) return;
+    verifyingRef.current = true;
     setError(null);
     setLoading(true);
     try {
@@ -36,11 +40,14 @@ function VerifyEmailContent() {
     } catch (err) {
       setError(err.response?.data?.detail || getErrorMessage(err));
     } finally {
+      verifyingRef.current = false;
       setLoading(false);
     }
   };
 
   const handleResend = async () => {
+    if (resendingRef.current) return;
+    resendingRef.current = true;
     setResendMsg(null);
     setError(null);
     setResending(true);
@@ -51,6 +58,7 @@ function VerifyEmailContent() {
     } catch (err) {
       setError(err.response?.data?.detail || getErrorMessage(err));
     } finally {
+      resendingRef.current = false;
       setResending(false);
     }
   };
@@ -62,21 +70,22 @@ function VerifyEmailContent() {
           <Link href="/" className="inline-flex items-center gap-2.5 justify-center">
             <Image src="/assets/logo.svg" alt="NEB Exam" width={130} height={38} className="h-9 w-auto" />
           </Link>
-          <h1 className="text-2xl font-bold text-slate-900 dark:text-white mt-4">Verify your email</h1>
-          <p className="text-slate-500 text-sm mt-1">
-            We sent a 6-digit code to <span className="font-semibold text-slate-700 dark:text-slate-300">{email}</span>
+          <h1 className="text-2xl font-bold text-slate-900 dark:text-white mt-4">Check your email</h1>
+          <p className="text-slate-500 text-sm mt-1">We sent a 6-digit OTP to</p>
+          <div className="mt-3 inline-flex items-center gap-2 px-4 py-2.5 bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-600 rounded-xl shadow-sm">
+            <svg width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24" className="text-[#1CA3FD] shrink-0">
+              <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/>
+            </svg>
+            <span className="font-semibold text-slate-900 dark:text-white text-sm">{email}</span>
+          </div>
+          <p className="mt-2.5 text-xs text-slate-400">
+            Wrong email?{' '}
+            <Link href="/auth/register" className="text-[#1CA3FD] hover:underline font-medium">Register again</Link>
           </p>
         </div>
 
         <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-8">
-          <div className="mb-5 p-3.5 bg-blue-50 border border-blue-100 text-blue-700 text-sm rounded-xl flex items-start gap-2.5">
-            <svg className="shrink-0 mt-0.5" width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-              <circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/>
-            </svg>
-            <span>
-              Please check your inbox (and spam folder). The OTP may take a few seconds to arrive.
-            </span>
-          </div>
+          <p className="mb-5 text-xs text-slate-400 text-center">Check your inbox and spam folder — the OTP may take a few seconds to arrive.</p>
 
           {error && (
             <div className="mb-5 p-3.5 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl">

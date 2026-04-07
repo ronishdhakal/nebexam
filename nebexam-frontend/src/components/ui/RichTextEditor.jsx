@@ -20,6 +20,7 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write h
   const onChangeRef = useRef(onChange);
   onChangeRef.current = onChange;
   const [tableMenu, setTableMenu] = useState(false);
+  const [imageMenu, setImageMenu] = useState(false);
 
   const extensions = useMemo(() => [
     StarterKit,
@@ -62,6 +63,12 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write h
     } catch {
       alert('Image upload failed.');
     }
+  };
+
+  const addImageFromUrl = () => {
+    setImageMenu(false);
+    const url = prompt('Enter image URL:');
+    if (url && editor) editor.chain().focus().setImage({ src: url }).run();
   };
 
   const addYoutube = () => {
@@ -140,9 +147,29 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write h
 
         {/* Media group */}
         <ToolGroup>
-          <ToolBtn onClick={() => fileRef.current.click()} title="Insert image">
-            <ImageIcon />
-          </ToolBtn>
+          <div className="relative">
+            <ToolBtn onClick={() => setImageMenu((v) => !v)} title="Insert image">
+              <ImageIcon />
+            </ToolBtn>
+            {imageMenu && (
+              <div className="absolute left-0 top-full mt-1 z-50 bg-white border border-gray-200 rounded-xl shadow-lg py-1 min-w-[140px]">
+                <button
+                  type="button"
+                  onClick={() => { setImageMenu(false); fileRef.current.click(); }}
+                  className="w-full text-left px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-gray-50 transition-colors"
+                >
+                  Upload File
+                </button>
+                <button
+                  type="button"
+                  onClick={addImageFromUrl}
+                  className="w-full text-left px-3 py-1.5 text-xs font-medium text-slate-700 hover:bg-gray-50 transition-colors"
+                >
+                  From URL
+                </button>
+              </div>
+            )}
+          </div>
           <ToolBtn onClick={addYoutube} title="Embed YouTube video">
             <YoutubeIcon />
           </ToolBtn>
