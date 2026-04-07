@@ -6,6 +6,7 @@ import Link from 'next/link';
 import Image from 'next/image';
 import useAuth from '@/hooks/useAuth';
 import useConfigStore from '@/store/configStore';
+import { authService } from '@/services/users.service';
 import { getErrorMessage } from '@/lib/utils';
 
 const inp = 'w-full border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1CA3FD] focus:border-transparent transition';
@@ -43,6 +44,8 @@ export default function RegisterPage() {
   const [error, setError] = useState(null);
   const [loading, setLoading] = useState(false);
   const [showConfirmModal, setShowConfirmModal] = useState(false);
+  const [unverifiedEmail, setUnverifiedEmail] = useState(null);
+  const [resendingOtp, setResendingOtp] = useState(false);
   const submittingRef = useRef(false);
   const { handleRegister } = useAuth();
   const emailVerificationEnabled = useConfigStore((s) => s.emailVerificationEnabled);
@@ -80,10 +83,30 @@ export default function RegisterPage() {
       }
     } catch (err) {
       setShowConfirmModal(false);
-      setError(getErrorMessage(err));
+      const data = err.response?.data;
+      if (data?.unverified_email) {
+        setUnverifiedEmail(data.email || form.email);
+        setError(null);
+      } else {
+        setError(getErrorMessage(err));
+      }
     } finally {
       submittingRef.current = false;
       setLoading(false);
+    }
+  };
+
+  const handleGoVerify = async () => {
+    if (!unverifiedEmail || resendingOtp) return;
+    setResendingOtp(true);
+    try {
+      await authService.resendVerification(unverifiedEmail);
+      router.push(`/auth/verify-email?email=${encodeURIComponent(unverifiedEmail)}`);
+    } catch (err) {
+      setError(getErrorMessage(err));
+      setUnverifiedEmail(null);
+    } finally {
+      setResendingOtp(false);
     }
   };
 
@@ -149,6 +172,22 @@ export default function RegisterPage() {
           </div>
 
           <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm p-8">
+            {unverifiedEmail && (
+              <div className="mb-5 p-4 bg-amber-50 border border-amber-200 rounded-xl">
+                <p className="text-sm text-amber-800 font-medium mb-1">Email not yet verified</p>
+                <p className="text-sm text-amber-700 mb-3">
+                  <span className="font-semibold">{unverifiedEmail}</span> is registered but not verified. Resend the OTP to complete your account setup.
+                </p>
+                <button
+                  type="button"
+                  onClick={handleGoVerify}
+                  disabled={resendingOtp}
+                  className="w-full py-2 rounded-xl bg-amber-500 hover:bg-amber-600 text-white text-sm font-semibold transition-colors disabled:opacity-50"
+                >
+                  {resendingOtp ? 'Sending OTP…' : 'Resend OTP & Verify'}
+                </button>
+              </div>
+            )}
             {error && (
               <div className="mb-5 p-3.5 bg-red-50 border border-red-100 text-red-600 text-sm rounded-xl">
                 {error}

@@ -62,11 +62,42 @@ class RegisterView(generics.CreateAPIView):
     permission_classes = [AllowAny]
 
     def create(self, request, *args, **kwargs):
+        cfg = SiteSettings.get()
+
+        # When email verification is on, check for existing unverified accounts
+        # before running the serializer (which would give a generic "already exists" error).
+        if cfg.email_verification_enabled:
+            email = request.data.get('email', '').strip().lower()
+            phone = request.data.get('phone', '').strip()
+
+            if email:
+                try:
+                    existing = User.objects.get(email=email)
+                    if not existing.is_active and not existing.is_email_verified:
+                        return Response({
+                            'detail': 'This email is registered but not yet verified. Please check your inbox or resend the verification code.',
+                            'unverified_email': True,
+                            'email': email,
+                        }, status=status.HTTP_400_BAD_REQUEST)
+                except User.DoesNotExist:
+                    pass
+
+            if phone:
+                try:
+                    existing = User.objects.get(phone=phone)
+                    if not existing.is_active and not existing.is_email_verified:
+                        return Response({
+                            'detail': 'This phone number is linked to an unverified account. Please verify that account first.',
+                            'unverified_email': True,
+                            'email': existing.email,
+                        }, status=status.HTTP_400_BAD_REQUEST)
+                except User.DoesNotExist:
+                    pass
+
         serializer = self.get_serializer(data=request.data)
         serializer.is_valid(raise_exception=True)
         user = serializer.save()
 
-        cfg = SiteSettings.get()
         if cfg.email_verification_enabled:
             # Account starts inactive until email is verified
             user.is_active = False
@@ -451,8 +482,7 @@ class RevealAnswerView(APIView):
 
     def post(self, request):
         user = request.user
-        cfg = SiteSettings.get()
-        limit = FREE_ANSWER_LIMIT_DEFAULT if cfg.email_verification_enabled else 0
+        limit = FREE_ANSWER_LIMIT_DEFAULT
 
         is_paid = (
             user.subscription_tier and
