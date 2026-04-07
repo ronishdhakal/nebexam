@@ -377,7 +377,7 @@ export default function UsersPage() {
       {loading && <p className="text-sm text-slate-400">Loading…</p>}
       {error   && <p className="text-sm text-red-500">{error}</p>}
 
-      {!loading && (
+      {!loading && (<>
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm min-w-[1200px]">
@@ -472,7 +472,7 @@ export default function UsersPage() {
           )}
         </div>
         <Pagination page={page} count={count} pageSize={PAGE_SIZE} onPage={setPage} />
-      )}
+      </>)}
     </div>
   );
 }
