@@ -174,8 +174,7 @@ function AnswerReveal({ node }) {
   const subscriptionRequired     = useConfigStore((s) => s.subscriptionRequired);
   const esewaEnabled             = useConfigStore((s) => s.esewaEnabled);
   const contactWa                = useConfigStore((s) => s.contactWa);
-  const emailVerificationEnabled = useConfigStore((s) => s.emailVerificationEnabled);
-  const FREE_ANSWER_LIMIT        = emailVerificationEnabled ? FREE_ANSWER_LIMIT_DEFAULT : 0;
+  const FREE_ANSWER_LIMIT        = FREE_ANSWER_LIMIT_DEFAULT;
   const currentTier          = user?.subscription_tier || 'free';
 
   if (!answer && !explanation) return null;
