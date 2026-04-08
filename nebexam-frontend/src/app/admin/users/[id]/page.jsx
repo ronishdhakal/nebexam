@@ -16,7 +16,7 @@ const TIERS = [
 ];
 
 const TIER_DAYS = { '1month': 30, '3month': 90, '1year': 365 };
-const LEVELS = ['10', '11', '12'];
+const LEVELS = ['8', '9', '10', '11', '12'];
 
 export default function EditUserPage({ params: rawParams }) {
   const params = use(rawParams);

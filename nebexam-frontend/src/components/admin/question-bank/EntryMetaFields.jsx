@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import SearchableSelect from '@/components/ui/SearchableSelect';
 
 const inp = "w-full border border-slate-300 bg-white rounded-lg px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent";
 const lbl = "block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide";
@@ -50,17 +51,12 @@ export default function EntryMetaFields({ form, setForm, subjects }) {
       <div className="grid grid-cols-2 gap-4">
         <div>
           <label className={lbl}>Subject</label>
-          <select
-            required
-            value={form.subject}
-            onChange={(e) => handleFieldChange({ subject: e.target.value })}
-            className={inp}
-          >
-            <option value="">Select subject</option>
-            {subjects.map((s) => (
-              <option key={s.id} value={s.id}>{s.name} (Class {s.class_level})</option>
-            ))}
-          </select>
+          <SearchableSelect
+            value={form.subject ? String(form.subject) : ''}
+            onChange={(val) => handleFieldChange({ subject: val || '' })}
+            placeholder="Select subject"
+            options={subjects.map((s) => ({ value: String(s.id), label: `${s.name} (Class ${s.class_level})` }))}
+          />
         </div>
         <div>
           <label className={lbl}>Type</label>

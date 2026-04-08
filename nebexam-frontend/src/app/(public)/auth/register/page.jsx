@@ -10,7 +10,7 @@ import { getErrorMessage } from '@/lib/utils';
 
 const inp = 'w-full border border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-700 rounded-xl px-4 py-3 text-sm text-slate-900 dark:text-slate-100 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1CA3FD] focus:border-transparent transition';
 
-const LEVEL_LABELS = { '10': 'Class 10', '11': 'Class 11', '12': 'Class 12' };
+const LEVEL_LABELS = { '8': 'Class 8', '9': 'Class 9', '10': 'Class 10', '11': 'Class 11', '12': 'Class 12' };
 const STREAM_LABELS = { science: 'Science', management: 'Management' };
 
 const NEPAL_DISTRICTS = [
@@ -321,6 +321,8 @@ export default function RegisterPage() {
                     className={inp}
                   >
                     <option value="">Select class</option>
+                    <option value="8">Class 8</option>
+                    <option value="9">Class 9</option>
                     <option value="10">Class 10</option>
                     <option value="11">Class 11</option>
                     <option value="12">Class 12</option>

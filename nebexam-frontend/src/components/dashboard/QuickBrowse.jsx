@@ -1,6 +1,8 @@
 import Link from 'next/link';
 
 const CLASSES = [
+  { level: '8',  label: 'Class 8',  desc: 'Foundation' },
+  { level: '9',  label: 'Class 9',  desc: 'Pre-SEE' },
   { level: '10', label: 'Class 10', desc: 'SEE Preparation' },
   { level: '11', label: 'Class 11', desc: 'Grade 11 Materials' },
   { level: '12', label: 'Class 12', desc: 'Grade 12 Exam Prep' },
@@ -14,7 +16,7 @@ export default function QuickBrowse({ currentLevel }) {
         <p className="text-xs text-slate-400">Pick a class to explore</p>
       </div>
 
-      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
         {CLASSES.map((item) => {
           const isCurrent = currentLevel === item.level;
           return (

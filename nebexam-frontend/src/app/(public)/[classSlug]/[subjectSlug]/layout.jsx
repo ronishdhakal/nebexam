@@ -2,7 +2,7 @@ import { notFound } from 'next/navigation';
 import { subjectsService } from '@/services/subjects.service';
 import SubjectHeader from '@/components/subject/SubjectHeader';
 
-const VALID_LEVELS = ['10', '11', '12'];
+const VALID_LEVELS = ['8', '9', '10', '11', '12'];
 
 export default async function SubjectLayout({ children, params }) {
   const { classSlug, subjectSlug } = await params;

@@ -22,6 +22,7 @@ export const metadata = {
   title: 'NEB Exam — NEB Exam Preparation Platform',
   description: 'Notes, past papers, model questions and chapter resources for NEB — Class 10, 11 and 12.',
   keywords: ['NEB exam', 'NEB notes', 'Class 10 notes', 'Class 11 notes', 'Class 12 notes', 'SEE preparation', 'Nepal board exam', 'NEB question bank', 'NEB past papers'],
+  manifest: '/manifest.json',
   icons: {
     icon: '/assets/icon.png',
     shortcut: '/assets/icon.png',
@@ -52,6 +53,15 @@ export default function RootLayout({ children }) {
             function gtag(){dataLayer.push(arguments);}
             gtag('js', new Date());
             gtag('config', 'G-3HYR0QNPZC');
+          `
+        }} />
+        <script dangerouslySetInnerHTML={{
+          __html: `
+            if ('serviceWorker' in navigator) {
+              window.addEventListener('load', function() {
+                navigator.serviceWorker.register('/sw.js');
+              });
+            }
           `
         }} />
       </head>

@@ -17,7 +17,7 @@ const TIER_STYLES = {
   '1year':  'bg-violet-50 text-violet-700 ring-violet-200',
 };
 const TIER_DISPLAY = { free: 'Free', '1month': '1 Month', '3month': '3 Months', '1year': '1 Year' };
-const LEVEL_LABEL  = { '10': 'Class 10', '11': 'Class 11', '12': 'Class 12', '': 'No Class' };
+const LEVEL_LABEL  = { '8': 'Class 8', '9': 'Class 9', '10': 'Class 10', '11': 'Class 11', '12': 'Class 12', '': 'No Class' };
 const STREAM_STYLES = {
   science:    'bg-blue-50 text-blue-700 ring-blue-200',
   management: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
@@ -172,11 +172,17 @@ function BulkPromotePanel({ onDone }) {
           Promote All (New Session)
         </button>
       </div>
-      <div className="grid grid-cols-4 gap-3 mb-4">
-        <CountBadge level="10" /><CountBadge level="11" /><CountBadge level="12" /><CountBadge level="none" />
+      <div className="grid grid-cols-3 sm:grid-cols-6 gap-3 mb-4">
+        <CountBadge level="8" /><CountBadge level="9" /><CountBadge level="10" /><CountBadge level="11" /><CountBadge level="12" /><CountBadge level="none" />
       </div>
       <div className="flex flex-wrap gap-2">
-        {[{ from: '10', to: '11', label: 'Class 10 → 11' }, { from: '11', to: '12', label: 'Class 11 → 12' }, { from: '12', to: '', label: 'Class 12 → Graduate' }].map((p) => (
+        {[
+          { from: '8',  to: '9',  label: 'Class 8 → 9' },
+          { from: '9',  to: '10', label: 'Class 9 → 10' },
+          { from: '10', to: '11', label: 'Class 10 → 11' },
+          { from: '11', to: '12', label: 'Class 11 → 12' },
+          { from: '12', to: '',   label: 'Class 12 → Graduate' },
+        ].map((p) => (
           <button key={p.label} onClick={() => { setResult(null); setModal(p); }}
             className="inline-flex items-center gap-1.5 text-xs font-medium text-slate-600 border border-gray-200 px-3 py-1.5 rounded-lg hover:border-[#1CA3FD]/40 hover:text-[#1CA3FD] hover:bg-[#f8fbff] transition-all">
             {p.label}
@@ -187,7 +193,7 @@ function BulkPromotePanel({ onDone }) {
       {result && (
         <div className="mt-3 px-4 py-3 bg-emerald-50 border border-emerald-100 rounded-xl text-xs text-emerald-700 font-medium">
           {result.session
-            ? `Session promotion complete — Class 10→11: ${result.promoted.class_10}, Class 11→12: ${result.promoted.class_11}, Class 12 graduated: ${result.promoted.class_12_graduated}`
+            ? `Session promotion complete — 8→9: ${result.promoted.class_8}, 9→10: ${result.promoted.class_9}, 10→11: ${result.promoted.class_10}, 11→12: ${result.promoted.class_11}, Class 12 graduated: ${result.promoted.class_12_graduated}`
             : `${result.updated} user${result.updated !== 1 ? 's' : ''} moved from ${LEVEL_LABEL[result.from_level] || 'Unassigned'} to ${LEVEL_LABEL[result.to_level] || 'Unassigned'}.`}
         </div>
       )}
@@ -206,7 +212,7 @@ function BulkPromotePanel({ onDone }) {
             </h3>
             <p className="text-sm text-slate-500 mb-5">
               {modal === 'session'
-                ? 'This will move all Class 10 → 11, Class 11 → 12, and graduate all Class 12 students. This action cannot be undone.'
+                ? 'This will move all Class 8→9, 9→10, 10→11, 11→12, and graduate all Class 12 students. This action cannot be undone.'
                 : `This will move ${counts?.[modal.from] ?? '?'} student${counts?.[modal.from] !== 1 ? 's' : ''} from ${LEVEL_LABEL[modal.from] || 'Unassigned'} to ${LEVEL_LABEL[modal.to] || 'Unassigned'}.`}
             </p>
             <div className="flex gap-3">
@@ -263,11 +269,18 @@ export default function UsersPage() {
   const handleExport = async () => {
     setExporting(true);
     try {
-      // Fetch all matching users without pagination for the export
-      const params = { ...buildParams(query, filters), page_size: 10000 };
-      const res = await api.get('/users/all/', { params });
-      const all = res.data.results || res.data;
-      exportCSV(all);
+      // Fetch all matching users by paginating through all pages
+      const allUsers = [];
+      let page = 1;
+      while (true) {
+        const params = { ...buildParams(query, filters), page, page_size: 100 };
+        const res = await api.get('/users/all/', { params });
+        const data = res.data.results || res.data;
+        allUsers.push(...data);
+        if (!res.data.next) break;
+        page++;
+      }
+      exportCSV(allUsers);
     } catch (err) {
       alert(getErrorMessage(err));
     } finally {
@@ -323,6 +336,7 @@ export default function UsersPage() {
         </div>
 
         <SelectFilter label="All Classes" value={filters.level} onChange={(v) => setFilter('level', v)} options={[
+          { value: '8', label: 'Class 8' }, { value: '9', label: 'Class 9' },
           { value: '10', label: 'Class 10' }, { value: '11', label: 'Class 11' }, { value: '12', label: 'Class 12' },
         ]} />
         <SelectFilter label="All Streams" value={filters.stream} onChange={(v) => setFilter('stream', v)} options={[

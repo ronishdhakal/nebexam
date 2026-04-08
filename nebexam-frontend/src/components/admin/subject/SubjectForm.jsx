@@ -4,7 +4,7 @@ import { useState } from 'react';
 import StreamSelector from './StreamSelector';
 import { getErrorMessage } from '@/lib/utils';
 
-const CLASS_LEVELS = ['10', '11', '12'];
+const CLASS_LEVELS = ['8', '9', '10', '11', '12'];
 
 const inp = 'w-full border border-slate-300 bg-white rounded-lg px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1CA3FD] focus:border-transparent transition';
 const lbl = 'block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide';

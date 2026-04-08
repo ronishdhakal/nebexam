@@ -36,6 +36,8 @@ class User(AbstractBaseUser, PermissionsMixin):
         YEAR1  = '1year',  '1 Year'
 
     class Level(models.TextChoices):
+        CLASS_8  = '8',  'Class 8'
+        CLASS_9  = '9',  'Class 9'
         CLASS_10 = '10', 'Class 10'
         CLASS_11 = '11', 'Class 11'
         CLASS_12 = '12', 'Class 12'

@@ -51,6 +51,8 @@ export default function SubjectsPage() {
       <div className="flex flex-wrap items-center gap-2 mb-4">
         <select value={classFilter} onChange={(e) => setClassFilter(e.target.value)} className={selectCls}>
           <option value="">All Classes</option>
+          <option value="8">Class 8</option>
+          <option value="9">Class 9</option>
           <option value="10">Class 10</option>
           <option value="11">Class 11</option>
           <option value="12">Class 12</option>

@@ -4,6 +4,8 @@ from django.utils.text import slugify
 
 class Subject(models.Model):
     class ClassLevel(models.TextChoices):
+        CLASS_8  = '8',  'Class 8'
+        CLASS_9  = '9',  'Class 9'
         CLASS_10 = '10', 'Class 10'
         CLASS_11 = '11', 'Class 11'
         CLASS_12 = '12', 'Class 12'

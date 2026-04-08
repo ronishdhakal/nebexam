@@ -650,10 +650,12 @@ class UserDetailView(generics.RetrieveUpdateAPIView):
 
 class BulkPromoteView(APIView):
     permission_classes = [IsAdminUser]
-    VALID_LEVELS = ['10', '11', '12', '']
+    VALID_LEVELS = ['8', '9', '10', '11', '12', '']
 
     def get(self, request):
         counts = {
+            '8':    User.objects.filter(level='8').count(),
+            '9':    User.objects.filter(level='9').count(),
             '10':   User.objects.filter(level='10').count(),
             '11':   User.objects.filter(level='11').count(),
             '12':   User.objects.filter(level='12').count(),
@@ -681,9 +683,15 @@ class BulkPromoteView(APIView):
         c12 = User.objects.filter(level='12').update(level='')
         c11 = User.objects.filter(level='11').update(level='12')
         c10 = User.objects.filter(level='10').update(level='11')
+        c9  = User.objects.filter(level='9').update(level='10')
+        c8  = User.objects.filter(level='8').update(level='9')
         return Response({
             'session': True,
-            'promoted': {'class_10': c10, 'class_11': c11, 'class_12_graduated': c12},
+            'promoted': {
+                'class_8': c8, 'class_9': c9,
+                'class_10': c10, 'class_11': c11,
+                'class_12_graduated': c12,
+            },
         })
 
 

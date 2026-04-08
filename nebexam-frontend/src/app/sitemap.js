@@ -37,6 +37,8 @@ export default async function sitemap() {
     { url: `${BASE_URL}/referral-program`, priority: 0.5, changeFrequency: 'monthly' },
     { url: `${BASE_URL}/blog`, priority: 0.8, changeFrequency: 'daily' },
     { url: `${BASE_URL}/news`, priority: 0.8, changeFrequency: 'daily' },
+    { url: `${BASE_URL}/class-8`,  priority: 0.9, changeFrequency: 'weekly' },
+    { url: `${BASE_URL}/class-9`,  priority: 0.9, changeFrequency: 'weekly' },
     { url: `${BASE_URL}/class-10`, priority: 0.9, changeFrequency: 'weekly' },
     { url: `${BASE_URL}/class-11`, priority: 0.9, changeFrequency: 'weekly' },
     { url: `${BASE_URL}/class-12`, priority: 0.9, changeFrequency: 'weekly' },
@@ -47,7 +49,7 @@ export default async function sitemap() {
 
   // ── Subjects ──────────────────────────────────────────────────────────────
   const subjectEntries = [];
-  for (const level of ['10', '11', '12']) {
+  for (const level of ['8', '9', '10', '11', '12']) {
     const data = await fetchJson(`/content/subjects/?class_level=${level}&page_size=100`);
     const subjects = data?.results ?? data ?? [];
     for (const subject of subjects) {

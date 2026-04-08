@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 import { subjectsService } from '@/services/subjects.service';
 import SubjectCard from '@/components/subject/SubjectCard';
 
-const VALID_LEVELS = ['10', '11', '12'];
+const VALID_LEVELS = ['8', '9', '10', '11', '12'];
 
 const STREAM_META = {
   science:    { label: 'Science',    color: 'bg-blue-500',    light: 'bg-blue-50 dark:bg-blue-950/30',    border: 'border-blue-100 dark:border-blue-900',    text: 'text-blue-700 dark:text-blue-400',    hover: 'hover:bg-blue-100 dark:hover:bg-blue-900/50' },

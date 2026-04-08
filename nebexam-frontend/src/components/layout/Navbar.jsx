@@ -123,16 +123,19 @@ export default function Navbar() {
 
           {/* Desktop nav links */}
           <div className="hidden md:flex items-center gap-0.5">
-            <Link
-              href="/class-10"
-              className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                pathname?.startsWith('/class-10')
-                  ? 'bg-[#1CA3FD]/10 text-[#1CA3FD]'
-                  : 'text-slate-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
-              }`}
-            >
-              Class 10
-            </Link>
+            {['8', '9', '10'].map((level) => (
+              <Link
+                key={level}
+                href={`/class-${level}`}
+                className={`px-3 py-2 rounded-lg text-sm font-medium transition-colors ${
+                  pathname?.startsWith(`/class-${level}`)
+                    ? 'bg-[#1CA3FD]/10 text-[#1CA3FD]'
+                    : 'text-slate-600 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800 hover:text-slate-900 dark:hover:text-white'
+                }`}
+              >
+                Class {level}
+              </Link>
+            ))}
 
             <ClassDropdown level="11" label="Class 11" isActive={pathname?.startsWith('/class-11')} />
             <ClassDropdown level="12" label="Class 12" isActive={pathname?.startsWith('/class-12')} />
@@ -218,16 +221,19 @@ export default function Navbar() {
         {/* Mobile menu */}
         {menuOpen && (
           <div className="md:hidden border-t border-gray-100 dark:border-slate-800 py-3 space-y-0.5">
-            {/* Class 10 */}
-            <Link
-              href="/class-10"
-              onClick={() => setMenuOpen(false)}
-              className="block px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800"
-            >
-              Class 10
-            </Link>
+            {/* Class 8, 9, 10 — simple links */}
+            {['8', '9', '10'].map((level) => (
+              <Link
+                key={level}
+                href={`/class-${level}`}
+                onClick={() => setMenuOpen(false)}
+                className="block px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800"
+              >
+                Class {level}
+              </Link>
+            ))}
 
-            {/* Class 11 — expandable */}
+            {/* Class 11, 12 — expandable */}
             {['11', '12'].map((level) => (
               <div key={level}>
                 <button

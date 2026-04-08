@@ -1,6 +1,8 @@
 import Link from 'next/link';
 
 const CLASSES = [
+  { level: '8',  label: 'Class 8',  tag: 'Grade 8',  desc: 'Build a strong foundation with chapter notes and practice questions for all subjects.' },
+  { level: '9',  label: 'Class 9',  tag: 'Grade 9',  desc: 'Prepare for SEE with topic-wise notes, model questions and past papers.' },
   { level: '10', label: 'Class 10', tag: 'SEE',      desc: 'SEE preparation with chapter notes, past papers and model sets for all subjects.' },
   { level: '11', label: 'Class 11', tag: 'Grade 11', desc: 'Science and Management stream materials with syllabus, notes and model questions.' },
   { level: '12', label: 'Class 12', tag: 'Grade 12', desc: 'Comprehensive exam prep — old questions, model sets and chapter-level notes.' },
@@ -17,7 +19,7 @@ export default function ClassesSection() {
             Select your class and access subject-specific content aligned with the NEB syllabus.
           </p>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-5">
           {CLASSES.map((cls) => {
             const isStreamed = cls.level === '11' || cls.level === '12';
             return (
