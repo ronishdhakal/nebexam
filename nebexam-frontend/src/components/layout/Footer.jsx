@@ -37,10 +37,7 @@ function InstallAppButton() {
   const [installed, setInstalled] = useState(false);
 
   useEffect(() => {
-    const handler = (e) => {
-      e.preventDefault();
-      setPrompt(e);
-    };
+    const handler = (e) => { e.preventDefault(); setPrompt(e); };
     window.addEventListener('beforeinstallprompt', handler);
     window.addEventListener('appinstalled', () => { setInstalled(true); setPrompt(null); });
     return () => window.removeEventListener('beforeinstallprompt', handler);
@@ -60,7 +57,6 @@ function InstallAppButton() {
       onClick={handleInstall}
       className="mt-5 inline-flex items-center gap-2.5 bg-[#1CA3FD] hover:bg-[#0e8fe0] text-white text-sm font-semibold px-4 py-2.5 rounded-xl transition-colors shadow-sm shadow-[#1CA3FD]/20"
     >
-      {/* Android icon */}
       <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
         <path d="M6.18 15.64a2.18 2.18 0 0 1-2.18 2.18C2.98 17.82 2 16.84 2 15.64V8.36a2.18 2.18 0 0 1 4.36 0v7.28zm11.64 0a2.18 2.18 0 0 1-4.36 0V8.36a2.18 2.18 0 0 1 4.36 0v7.28zM7.27 2.29l-.9-1.6a.26.26 0 0 1 .45-.26l.91 1.6a5.65 5.65 0 0 1 8.54 0l.91-1.6a.26.26 0 1 1 .45.26l-.9 1.6A5.6 5.6 0 0 1 19.6 6.5H4.4a5.6 5.6 0 0 1 2.87-4.21zm3.1 2.44a.56.56 0 1 0 1.12 0 .56.56 0 0 0-1.12 0zm3.18 0a.56.56 0 1 0 1.12 0 .56.56 0 0 0-1.12 0zM4.4 7.5h15.2v9.5a1.5 1.5 0 0 1-1.5 1.5h-1v2.5a2 2 0 0 1-4 0V18.5h-2v2.5a2 2 0 0 1-4 0V18.5h-1a1.5 1.5 0 0 1-1.5-1.5V7.5h.8z"/>
       </svg>
@@ -105,7 +101,10 @@ export default function Footer() {
                 )}
               </div>
             )}
-            <InstallAppButton />
+            {/* Install button — mobile only */}
+            <div className="md:hidden">
+              <InstallAppButton />
+            </div>
           </div>
 
           {/* Classes */}

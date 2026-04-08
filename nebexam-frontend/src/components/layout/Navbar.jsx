@@ -18,19 +18,35 @@ function NavLogo() {
   return <Image src={src} alt="NEB Exam" width={170} height={52} className="h-12 w-auto" />;
 }
 
+function usePwaInstall() {
+  const [prompt, setPrompt] = useState(null);
+  const [installed, setInstalled] = useState(false);
+
+  useEffect(() => {
+    const handler = (e) => { e.preventDefault(); setPrompt(e); };
+    window.addEventListener('beforeinstallprompt', handler);
+    window.addEventListener('appinstalled', () => { setInstalled(true); setPrompt(null); });
+    return () => window.removeEventListener('beforeinstallprompt', handler);
+  }, []);
+
+  const install = async () => {
+    if (!prompt) return;
+    prompt.prompt();
+    const { outcome } = await prompt.userChoice;
+    if (outcome === 'accepted') { setInstalled(true); setPrompt(null); }
+  };
+
+  return { canInstall: !installed && !!prompt, install };
+}
+
 // Dropdown for streamed classes (11 & 12)
 function ClassDropdown({ level, label, isActive }) {
   const [open, setOpen] = useState(false);
   const ref = useRef(null);
   const timerRef = useRef(null);
 
-  const open_ = () => {
-    clearTimeout(timerRef.current);
-    setOpen(true);
-  };
-  const close_ = () => {
-    timerRef.current = setTimeout(() => setOpen(false), 120);
-  };
+  const open_ = () => { clearTimeout(timerRef.current); setOpen(true); };
+  const close_ = () => { timerRef.current = setTimeout(() => setOpen(false), 120); };
 
   useEffect(() => () => clearTimeout(timerRef.current), []);
 
@@ -57,7 +73,6 @@ function ClassDropdown({ level, label, isActive }) {
         </svg>
       </button>
 
-      {/* Dropdown panel */}
       <div
         className={`absolute top-full left-1/2 -translate-x-1/2 mt-1 w-48 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-xl shadow-lg shadow-black/5 dark:shadow-black/30 overflow-hidden transition-all duration-150 origin-top ${
           open ? 'opacity-100 scale-100 pointer-events-auto' : 'opacity-0 scale-95 pointer-events-none'
@@ -103,8 +118,9 @@ function ClassDropdown({ level, label, isActive }) {
 export default function Navbar() {
   const { isAuthenticated, user, handleLogout } = useAuth();
   const [menuOpen, setMenuOpen] = useState(false);
-  const [mobileExpanded, setMobileExpanded] = useState(null); // '11' | '12' | null
+  const [mobileExpanded, setMobileExpanded] = useState(null);
   const pathname = usePathname();
+  const { canInstall, install } = usePwaInstall();
 
   const onLogout = async () => {
     setMenuOpen(false);
@@ -221,7 +237,6 @@ export default function Navbar() {
         {/* Mobile menu */}
         {menuOpen && (
           <div className="md:hidden border-t border-gray-100 dark:border-slate-800 py-3 space-y-0.5">
-            {/* Class 8, 9, 10 — simple links */}
             {['8', '9', '10'].map((level) => (
               <Link
                 key={level}
@@ -233,7 +248,6 @@ export default function Navbar() {
               </Link>
             ))}
 
-            {/* Class 11, 12 — expandable */}
             {['11', '12'].map((level) => (
               <div key={level}>
                 <button
@@ -307,6 +321,19 @@ export default function Navbar() {
                   <Link href="/auth/login" onClick={() => setMenuOpen(false)} className="block px-3 py-2.5 rounded-lg text-sm font-medium text-slate-700 dark:text-slate-300 hover:bg-gray-50 dark:hover:bg-slate-800">Log in</Link>
                   <Link href="/auth/register" onClick={() => setMenuOpen(false)} className="block px-3 py-2.5 rounded-lg text-sm font-semibold text-[#1CA3FD] hover:bg-[#1CA3FD]/5">Get Started</Link>
                 </>
+              )}
+
+              {/* PWA Install — mobile only, shown only when installable */}
+              {canInstall && (
+                <button
+                  onClick={() => { install(); setMenuOpen(false); }}
+                  className="mt-2 w-full flex items-center gap-2.5 bg-[#1CA3FD] hover:bg-[#0e8fe0] text-white text-sm font-semibold px-3 py-2.5 rounded-xl transition-colors"
+                >
+                  <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M6.18 15.64a2.18 2.18 0 0 1-2.18 2.18C2.98 17.82 2 16.84 2 15.64V8.36a2.18 2.18 0 0 1 4.36 0v7.28zm11.64 0a2.18 2.18 0 0 1-4.36 0V8.36a2.18 2.18 0 0 1 4.36 0v7.28zM7.27 2.29l-.9-1.6a.26.26 0 0 1 .45-.26l.91 1.6a5.65 5.65 0 0 1 8.54 0l.91-1.6a.26.26 0 1 1 .45.26l-.9 1.6A5.6 5.6 0 0 1 19.6 6.5H4.4a5.6 5.6 0 0 1 2.87-4.21zm3.1 2.44a.56.56 0 1 0 1.12 0 .56.56 0 0 0-1.12 0zm3.18 0a.56.56 0 1 0 1.12 0 .56.56 0 0 0-1.12 0zM4.4 7.5h15.2v9.5a1.5 1.5 0 0 1-1.5 1.5h-1v2.5a2 2 0 0 1-4 0V18.5h-2v2.5a2 2 0 0 1-4 0V18.5h-1a1.5 1.5 0 0 1-1.5-1.5V7.5h.8z"/>
+                  </svg>
+                  Install App
+                </button>
               )}
             </div>
           </div>
