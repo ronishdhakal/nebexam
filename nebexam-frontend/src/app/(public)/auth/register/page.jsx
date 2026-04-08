@@ -152,6 +152,8 @@ export default function RegisterPage() {
     e.preventDefault();
     if (!phoneValid) { setError('Please enter a correct phone number.'); return; }
     if (!form.district) { setError('Please select your district.'); return; }
+    if (!form.level) { setError('Please select your class.'); return; }
+    if (needsStream && !form.stream) { setError('Please select your stream (Science or Management).'); return; }
     if (form.password !== confirmPw) { setError('Passwords do not match.'); return; }
     setError(null);
     setShowConfirmModal(true);

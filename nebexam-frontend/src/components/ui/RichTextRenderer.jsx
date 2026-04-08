@@ -3,13 +3,30 @@
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import Image from '@tiptap/extension-image';
+import Youtube from '@tiptap/extension-youtube';
 import Link from '@tiptap/extension-link';
+import Underline from '@tiptap/extension-underline';
+import { Table } from '@tiptap/extension-table';
+import { TableRow } from '@tiptap/extension-table-row';
+import { TableHeader } from '@tiptap/extension-table-header';
+import { TableCell } from '@tiptap/extension-table-cell';
 import Mathematics, { migrateMathStrings } from '@tiptap/extension-mathematics';
 import { useEffect, useRef, useState, useMemo } from 'react';
 import ImageLightbox from '@/components/ui/ImageLightbox';
 
 export default function RichTextRenderer({ value }) {
-  const extensions = useMemo(() => [StarterKit, Image, Link, Mathematics], []);
+  const extensions = useMemo(() => [
+    StarterKit,
+    Image,
+    Youtube,
+    Link,
+    Underline,
+    Table.configure({ resizable: false }),
+    TableRow,
+    TableHeader,
+    TableCell,
+    Mathematics,
+  ], []);
   const wrapperRef = useRef(null);
   const [lightbox, setLightbox] = useState(null);
 
