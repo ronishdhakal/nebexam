@@ -14,7 +14,6 @@ import QuestionCard from '@/components/question/QuestionCard';
 import PdfViewer from '@/components/chapter/PdfViewer';
 import RichTextRenderer from '@/components/chapter/RichTextRenderer';
 import useAuthStore from '@/store/authStore';
-import StudyAbroadModal from '@/components/leads/StudyAbroadModal';
 
 const FREE_PREVIEW_COUNT = 4;
 
@@ -74,11 +73,8 @@ export default function ChapterPageClient() {
   const hasQuestions = importantQuestions.length > 0;
   const hasSidebar = areas.length > 0 || directChapters.length > 0;
 
-  const isClass12 = String(chapter.subject_class_level) === '12';
-
   return (
     <div className="bg-slate-50 dark:bg-slate-900 min-h-screen">
-      {isClass12 && <StudyAbroadModal />}
 
       {/* ── Top bar ── */}
       <div className="bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800 sticky top-0 z-20">

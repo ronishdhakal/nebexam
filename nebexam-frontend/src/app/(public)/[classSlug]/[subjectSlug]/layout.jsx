@@ -1,6 +1,7 @@
 import { notFound } from 'next/navigation';
 import { subjectsService } from '@/services/subjects.service';
 import SubjectHeader from '@/components/subject/SubjectHeader';
+import StudyAbroadModal from '@/components/leads/StudyAbroadModal';
 
 const VALID_LEVELS = ['8', '9', '10', '11', '12'];
 
@@ -23,6 +24,7 @@ export default async function SubjectLayout({ children, params }) {
 
   return (
     <div className="bg-slate-50 dark:bg-slate-900 min-h-screen">
+      {level === '12' && <StudyAbroadModal />}
       <SubjectHeader subject={subject} slug={backendSlug} hasChapters={hasChapters} hasSyllabus={hasSyllabus} />
       {children}
     </div>

@@ -2,7 +2,6 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { leadsService } from '@/services/leads.service';
-import PageHeader from '@/components/admin/shared/PageHeader';
 import Pagination from '@/components/admin/shared/Pagination';
 
 const PAGE_SIZE = 20;
@@ -86,22 +85,22 @@ export default function LeadsPage() {
 
   return (
     <div className="space-y-6">
-      <PageHeader
-        title="Study Abroad Leads"
-        description={`${total} lead${total !== 1 ? 's' : ''} collected`}
-        action={
-          <button
-            onClick={handleExport}
-            disabled={exporting}
-            className="inline-flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-slate-700 text-sm font-semibold px-4 py-2 rounded-xl transition disabled:opacity-50 shadow-sm"
-          >
-            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-              <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
-            </svg>
-            {exporting ? 'Exporting…' : 'Export CSV'}
-          </button>
-        }
-      />
+      <div className="flex items-start justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Study Abroad Leads</h1>
+          <p className="text-sm text-gray-400 mt-0.5">{total} lead{total !== 1 ? 's' : ''} collected</p>
+        </div>
+        <button
+          onClick={handleExport}
+          disabled={exporting}
+          className="inline-flex items-center gap-2 bg-white border border-gray-200 hover:bg-gray-50 text-slate-700 text-sm font-semibold px-4 py-2.5 rounded-xl transition disabled:opacity-50 shadow-sm"
+        >
+          <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+            <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/>
+          </svg>
+          {exporting ? 'Exporting…' : 'Export CSV'}
+        </button>
+      </div>
 
       {/* Filters */}
       <div className="flex flex-wrap gap-3">
@@ -170,7 +169,7 @@ export default function LeadsPage() {
                     <td className="px-4 py-3 text-slate-500 max-w-[200px]">
                       <span className="line-clamp-2">{lead.message || '—'}</span>
                     </td>
-                    <td className="px-4 py-3 text-slate-500 text-xs">{lead.user || '—'}</td>
+                    <td className="px-4 py-3 text-slate-500 text-xs">{lead.user_email || '—'}</td>
                     <td className="px-4 py-3 text-slate-400 text-xs whitespace-nowrap">
                       {lead.submitted_at ? new Date(lead.submitted_at).toLocaleDateString('en-NP', { day: '2-digit', month: 'short', year: 'numeric' }) : '—'}
                     </td>

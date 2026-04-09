@@ -23,11 +23,11 @@ const SCROLL_THRESHOLD  = 25; // percent
 export default function StudyAbroadModal() {
   const { user } = useAuthStore();
   const { leadFormEnabled, leadFormTitle, leadFormImage } = useConfigStore();
-  const [visible, setVisible]   = useState(false);
+  const [visible, setVisible]     = useState(false);
   const [submitted, setSubmitted] = useState(false);
-  const [saving, setSaving]     = useState(false);
-  const [error, setError]       = useState('');
-  const triggered               = useRef(false); // prevent double-trigger per mount
+  const [saving, setSaving]       = useState(false);
+  const [error, setError]         = useState('');
+  const triggered                 = useRef(false);
 
   const [form, setForm] = useState({
     name:               '',
@@ -52,7 +52,7 @@ export default function StudyAbroadModal() {
     }
   }, [user]);
 
-  // Scroll-depth trigger: show at 25% scroll, up to 3 times per session
+  // Scroll-depth trigger: show at 25% scroll, up to 3× per session
   useEffect(() => {
     if (!leadFormEnabled) return;
     if (localStorage.getItem(LS_SUBMITTED_KEY) === 'true') return;
@@ -67,11 +67,13 @@ export default function StudyAbroadModal() {
       setVisible(true);
     };
 
+    // Declare with let so checkScroll can reference it without TDZ error
+    let fallbackTimer;
+
     const checkScroll = () => {
       if (triggered.current) return;
       const total = document.documentElement.scrollHeight - window.innerHeight;
-      // If page is too short to scroll, treat as 100%
-      const pct = total <= 0 ? 100 : (window.scrollY / total) * 100;
+      const pct   = total <= 0 ? 100 : (window.scrollY / total) * 100;
       if (pct >= SCROLL_THRESHOLD) {
         show();
         window.removeEventListener('scroll', checkScroll);
@@ -79,13 +81,12 @@ export default function StudyAbroadModal() {
       }
     };
 
-    // Check immediately (user might have already scrolled / page is short)
+    // Check immediately in case already scrolled / page is short
     checkScroll();
-
     window.addEventListener('scroll', checkScroll, { passive: true });
 
-    // Fallback: show after 12s even if user hasn't scrolled 25%
-    const fallbackTimer = setTimeout(show, 12000);
+    // Fallback: show after 5s if user never scrolls 25%
+    fallbackTimer = setTimeout(show, 5000);
 
     return () => {
       window.removeEventListener('scroll', checkScroll);
@@ -95,8 +96,7 @@ export default function StudyAbroadModal() {
 
   const close = () => {
     setVisible(false);
-    // Allow re-trigger on next scroll within same session (up to MAX_SHOWS_SESSION)
-    triggered.current = false;
+    triggered.current = false; // allow re-show up to max count
   };
 
   const handleChange = (e) => {
@@ -108,6 +108,8 @@ export default function StudyAbroadModal() {
   const handleSubmit = async (e) => {
     e.preventDefault();
     if (!form.name.trim()) { setError('Name is required.'); return; }
+    if (!form.phone.trim()) { setError('Phone number is required.'); return; }
+    if (!/^\d{10}$/.test(form.phone.trim())) { setError('Please enter a correct phone number (10 digits).'); return; }
     if (form.interested_country === 'other' && !form.other_country.trim()) {
       setError('Please specify the country name.'); return;
     }
@@ -134,20 +136,20 @@ export default function StudyAbroadModal() {
 
   if (!visible) return null;
 
-  const inp = 'w-full border border-slate-200 rounded-lg px-3 py-2 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#1CA3FD] focus:border-transparent transition placeholder:text-slate-400 bg-white';
+  const inp = 'w-full border border-gray-200 rounded-lg px-3.5 py-2.5 text-sm text-slate-900 focus:outline-none focus:ring-2 focus:ring-[#1CA3FD] focus:border-transparent transition placeholder:text-gray-400 bg-white';
 
   return (
     <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-0 sm:p-4">
       {/* Backdrop */}
-      <div className="absolute inset-0 bg-black/50 backdrop-blur-sm" onClick={close} />
+      <div className="absolute inset-0 bg-black/40" onClick={close} />
 
-      {/* Modal — full-width sheet on mobile, card on desktop */}
-      <div className="relative bg-white w-full sm:max-w-md rounded-t-3xl sm:rounded-2xl shadow-2xl overflow-hidden max-h-[92dvh] flex flex-col">
+      {/* Modal */}
+      <div className="relative bg-white w-full sm:max-w-sm rounded-t-3xl sm:rounded-2xl shadow-2xl flex flex-col max-h-[92dvh]">
 
-        {/* Close button */}
+        {/* Close */}
         <button
           onClick={close}
-          className="absolute top-3 right-3 z-20 w-7 h-7 flex items-center justify-center rounded-full bg-black/15 hover:bg-black/25 text-white transition"
+          className="absolute top-3.5 right-3.5 z-10 w-7 h-7 flex items-center justify-center rounded-full bg-gray-100 hover:bg-gray-200 text-gray-500 hover:text-gray-700 transition"
         >
           <svg width="11" height="11" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" viewBox="0 0 24 24">
             <line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/>
@@ -173,34 +175,28 @@ export default function StudyAbroadModal() {
           </div>
         ) : (
           <>
-            {/* ── Header: title left, image right ── */}
-            <div className="flex items-stretch bg-gradient-to-br from-[#0f3460] to-[#1CA3FD] shrink-0">
-              {/* Text side */}
-              <div className="flex-1 px-5 py-5 flex flex-col justify-center">
-                <h2 className="text-base sm:text-lg font-extrabold text-white leading-snug">
+            {/* ── Header: title then logo right after ── */}
+            <div className="px-5 pt-5 pb-4 pr-10 border-b border-gray-100">
+              <div className="flex items-end gap-2 flex-wrap">
+                <p className="text-[15px] font-extrabold text-slate-900 leading-snug">
                   {leadFormTitle || 'Planning to Study Abroad?'}
-                </h2>
-                <p className="text-xs text-white/70 mt-1">Fill in your details — we'll help you get started.</p>
+                </p>
+                {leadFormImage && (
+                  <div className="relative shrink-0 h-7 w-16 mb-0.5">
+                    <Image
+                      src={leadFormImage}
+                      alt="Logo"
+                      fill
+                      className="object-contain object-left-bottom"
+                      sizes="64px"
+                    />
+                  </div>
+                )}
               </div>
-              {/* Image side */}
-              {leadFormImage && (
-                <div className="relative w-28 sm:w-36 shrink-0 self-stretch">
-                  <Image
-                    src={leadFormImage}
-                    alt="Study Abroad"
-                    fill
-                    className="object-cover"
-                    sizes="144px"
-                  />
-                </div>
-              )}
             </div>
 
-            {/* ── Scrollable form body ── */}
-            <form
-              onSubmit={handleSubmit}
-              className="overflow-y-auto px-5 py-4 space-y-3 flex-1"
-            >
+            {/* ── Scrollable form ── */}
+            <form onSubmit={handleSubmit} className="overflow-y-auto px-5 py-4 space-y-2.5 flex-1">
               <input
                 name="name" value={form.name} onChange={handleChange}
                 placeholder="Your Full Name *"
@@ -208,13 +204,16 @@ export default function StudyAbroadModal() {
               />
               <input
                 name="phone" value={form.phone} onChange={handleChange}
-                placeholder="Phone Number"
+                placeholder="Your Phone Number *"
                 type="tel"
+                inputMode="numeric"
+                maxLength={10}
                 className={inp}
+                required
               />
               <input
                 name="email" value={form.email} onChange={handleChange}
-                placeholder="Email Address"
+                placeholder="Your Email Address"
                 type="email"
                 className={inp}
               />
@@ -227,8 +226,9 @@ export default function StudyAbroadModal() {
                 name="interested_country"
                 value={form.interested_country}
                 onChange={handleChange}
-                className={inp}
+                className={`${inp} text-gray-700`}
               >
+                <option value="" disabled>Interested Country</option>
                 {COUNTRIES.map((c) => (
                   <option key={c.value} value={c.value}>{c.label}</option>
                 ))}
@@ -247,6 +247,7 @@ export default function StudyAbroadModal() {
                 rows={2}
                 className={`${inp} resize-none`}
               />
+
               {error && <p className="text-xs text-red-500">{error}</p>}
 
               <button
@@ -254,10 +255,9 @@ export default function StudyAbroadModal() {
                 disabled={saving}
                 className="w-full bg-[#1CA3FD] hover:bg-[#0e8fe0] disabled:opacity-60 text-white text-sm font-bold py-3 rounded-xl transition"
               >
-                {saving ? 'Submitting…' : 'Register Now'}
+                {saving ? 'Submitting…' : 'Register'}
               </button>
 
-              {/* Safe-area padding on mobile */}
               <div className="pb-safe" />
             </form>
           </>
