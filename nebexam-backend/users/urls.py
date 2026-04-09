@@ -5,7 +5,7 @@ from .views import (
     VerifyEmailView, ResendVerificationView,
     UserListView, UserDetailView, BulkPromoteView,
     ForgotPasswordView, ResetPasswordView, RevealAnswerView,
-    SiteSettingsView, LogStudyView, StudyStatsView,
+    SiteSettingsView, AppInstallView, LogStudyView, StudyStatsView,
     MyReferralView, AdminSetPasswordView, AdminClearReferralView,
     ClearCacheView, TriggerBackupView,
 )
@@ -27,6 +27,7 @@ urlpatterns = [
     path('reset-password/',  ResetPasswordView.as_view(),  name='reset-password'),
     path('reveal/',          RevealAnswerView.as_view(),   name='reveal-answer'),
     path('site-settings/',   SiteSettingsView.as_view(),   name='site-settings'),
+    path('app-install/',     AppInstallView.as_view(),     name='app-install'),
     path('study/log/',       LogStudyView.as_view(),       name='study-log'),
     path('study/stats/',     StudyStatsView.as_view(),     name='study-stats'),
     path('referral/',        MyReferralView.as_view(),     name='my-referral'),

@@ -57,7 +57,8 @@ export default function AdminDashboard() {
       api.get('/users/all/', { params: { page_size: 1, tier: '1month' } }),
       api.get('/users/all/', { params: { page_size: 1, tier: '3month' } }),
       api.get('/users/all/', { params: { page_size: 1, tier: '1year' } }),
-    ]).then(([subjects, areas, chapters, entries, users, tier1m, tier3m, tier1y]) => {
+      api.get('/users/site-settings/'),
+    ]).then(([subjects, areas, chapters, entries, users, tier1m, tier3m, tier1y, siteSettings]) => {
       const subjectList = subjects.data.results || subjects.data;
       const chapterList = chapters.data.results || chapters.data;
       const entryList   = entries.data.results   || entries.data;
@@ -88,6 +89,7 @@ export default function AdminDashboard() {
         draftEntries,
         users: totalUsers,
         byTier,
+        appInstalls: siteSettings.data.app_install_count ?? 0,
       });
     }).catch(() => {});
   }, []);
@@ -106,7 +108,7 @@ export default function AdminDashboard() {
       {/* Primary stats */}
       <div>
         <h2 className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-3">Overview</h2>
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
           <StatCard
             label="Total Users"
             value={stats?.users}
@@ -138,6 +140,13 @@ export default function AdminDashboard() {
             color="bg-orange-50 text-orange-600"
             href="/admin/question-bank"
             icon={<svg width="18" height="18" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>}
+          />
+          <StatCard
+            label="App Installs"
+            value={stats?.appInstalls}
+            sub="PWA installs accepted"
+            color="bg-teal-50 text-teal-600"
+            icon={<svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor" className="text-teal-600"><path d="M6.18 15.64a2.18 2.18 0 0 1-2.18 2.18C2.98 17.82 2 16.84 2 15.64V8.36a2.18 2.18 0 0 1 4.36 0v7.28zm11.64 0a2.18 2.18 0 0 1-4.36 0V8.36a2.18 2.18 0 0 1 4.36 0v7.28zM7.27 2.29l-.9-1.6a.26.26 0 0 1 .45-.26l.91 1.6a5.65 5.65 0 0 1 8.54 0l.91-1.6a.26.26 0 1 1 .45.26l-.9 1.6A5.6 5.6 0 0 1 19.6 6.5H4.4a5.6 5.6 0 0 1 2.87-4.21zm3.1 2.44a.56.56 0 1 0 1.12 0 .56.56 0 0 0-1.12 0zm3.18 0a.56.56 0 1 0 1.12 0 .56.56 0 0 0-1.12 0zM4.4 7.5h15.2v9.5a1.5 1.5 0 0 1-1.5 1.5h-1v2.5a2 2 0 0 1-4 0V18.5h-2v2.5a2 2 0 0 1-4 0V18.5h-1a1.5 1.5 0 0 1-1.5-1.5V7.5h.8z"/></svg>}
           />
         </div>
       </div>

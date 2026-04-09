@@ -64,6 +64,9 @@ export default function RootLayout({ children }) {
             }
           `
         }} />
+        <script dangerouslySetInnerHTML={{
+          __html: `document.addEventListener('contextmenu', function(e) { e.preventDefault(); });`
+        }} />
       </head>
       <body className="font-sans antialiased" suppressHydrationWarning>
         <ThemeProvider>

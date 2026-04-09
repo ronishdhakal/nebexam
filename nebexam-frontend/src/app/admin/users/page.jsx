@@ -392,8 +392,7 @@ export default function UsersPage() {
       {error   && <p className="text-sm text-red-500">{error}</p>}
 
       {!loading && (<>
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
+        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-x-auto">
             <table className="w-full text-sm min-w-[1200px]">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
@@ -480,7 +479,6 @@ export default function UsersPage() {
                 })}
               </tbody>
             </table>
-          </div>
           {users.length === 0 && (
             <div className="text-center py-12 text-slate-400 text-sm">No users found.</div>
           )}

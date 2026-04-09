@@ -49,7 +49,11 @@ function InstallAppButton() {
     if (!prompt) return;
     prompt.prompt();
     const { outcome } = await prompt.userChoice;
-    if (outcome === 'accepted') { setInstalled(true); setPrompt(null); }
+    if (outcome === 'accepted') {
+      setInstalled(true);
+      setPrompt(null);
+      fetch(`${process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api'}/users/app-install/`, { method: 'POST' }).catch(() => {});
+    }
   };
 
   return (

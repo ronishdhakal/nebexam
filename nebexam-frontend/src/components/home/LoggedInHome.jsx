@@ -146,11 +146,11 @@ export default function LoggedInHome({ user }) {
 
                 {/* Class tabs */}
                 <div className="flex items-center bg-gray-100 dark:bg-surface-2 rounded-xl p-1 gap-0.5">
-                  {['10', '11', '12'].map((l) => (
+                  {['8', '9', '10', '11', '12'].map((l) => (
                     <button
                       key={l}
                       onClick={() => handleLevel(l)}
-                      className={`px-3.5 py-1.5 rounded-lg text-sm font-bold transition-all ${
+                      className={`px-3 py-1.5 rounded-lg text-sm font-bold transition-all ${
                         level === l
                           ? 'bg-white dark:bg-surface text-slate-900 dark:text-foreground shadow-sm'
                           : 'text-slate-400 dark:text-muted hover:text-slate-600 dark:hover:text-foreground'

@@ -158,6 +158,9 @@ class SiteSettings(models.Model):
         help_text='If enabled, users must verify email via OTP on registration and get 4 free answer reveals. If disabled, no OTP required and free users get 0 answer reveals.',
     )
 
+    # App install tracking
+    app_install_count = models.PositiveIntegerField(default=0)
+
     # Contact / social info (editable from admin CRM)
     contact_email    = models.CharField(max_length=254, blank=True, default='nebexamofficial@gmail.com')
     contact_phone    = models.CharField(max_length=20,  blank=True, default='9745450062')

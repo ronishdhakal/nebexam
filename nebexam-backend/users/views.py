@@ -719,6 +719,7 @@ class SiteSettingsView(APIView):
             'contact_wa':                 cfg.contact_wa,
             'social_facebook':            cfg.social_facebook,
             'social_instagram':           cfg.social_instagram,
+            'app_install_count':          cfg.app_install_count,
         }
 
     def get(self, request):
@@ -753,6 +754,18 @@ class SiteSettingsView(APIView):
             cfg.save(update_fields=changed)
         cache.clear()
         return Response(self._serialize(cfg))
+
+
+# ── App Install Tracking ────────────────────────────────────────────────────
+
+class AppInstallView(APIView):
+    """POST — increments the app install counter. No auth required."""
+    permission_classes = [AllowAny]
+
+    def post(self, request):
+        from django.db.models import F
+        SiteSettings.objects.filter(pk=1).update(app_install_count=F('app_install_count') + 1)
+        return Response({'ok': True})
 
 
 # ── Study Analytics ─────────────────────────────────────────────────────────
