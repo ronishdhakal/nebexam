@@ -14,6 +14,11 @@ const useConfigStore = create((set) => ({
   socialFacebook:  '',
   socialInstagram: '',
 
+  // Lead form
+  leadFormEnabled: false,
+  leadFormTitle:   'Planning to Study Abroad?',
+  leadFormImage:   null,
+
   setConfig: (data) =>
     set({
       subscriptionRequired:     data.subscription_required      ?? true,
@@ -25,6 +30,9 @@ const useConfigStore = create((set) => ({
       contactWa:                data.contact_wa       ?? '9779745450062',
       socialFacebook:           data.social_facebook  ?? '',
       socialInstagram:          data.social_instagram ?? '',
+      leadFormEnabled:          data.lead_form_enabled ?? false,
+      leadFormTitle:            data.lead_form_title   ?? 'Planning to Study Abroad?',
+      leadFormImage:            data.lead_form_image   ?? null,
       loaded: true,
     }),
 }));

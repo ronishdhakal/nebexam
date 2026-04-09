@@ -15,7 +15,8 @@ const PLAN_META = {
 export default function SettingsPage() {
   const { subscriptionRequired, esewaEnabled, emailVerificationEnabled, setConfig,
           contactEmail, contactPhone, contactAddress, contactWa,
-          socialFacebook, socialInstagram } = useConfigStore();
+          socialFacebook, socialInstagram,
+          leadFormEnabled, leadFormTitle, leadFormImage } = useConfigStore();
   const [toggleLoading, setToggleLoading] = useState(null);
   const [toggleSaved, setToggleSaved]     = useState(null);
   const [toggleError, setToggleError]     = useState(null);
@@ -30,6 +31,13 @@ export default function SettingsPage() {
   const [contactSaving, setContactSaving] = useState(false);
   const [contactSaved, setContactSaved]   = useState(false);
   const [contactError, setContactError]   = useState(null);
+
+  const [leadForm, setLeadForm]         = useState(null);
+  const [leadSaving, setLeadSaving]     = useState(false);
+  const [leadSaved, setLeadSaved]       = useState(false);
+  const [leadError, setLeadError]       = useState(null);
+  const [leadImageFile, setLeadImageFile] = useState(null);
+  const [leadImagePreview, setLeadImagePreview] = useState(null);
 
   const [cacheClearing, setCacheClearing] = useState(false);
   const [cacheCleared, setCacheCleared]   = useState(false);
@@ -49,6 +57,8 @@ export default function SettingsPage() {
       if (cfgResult.status === 'fulfilled') {
         const d = cfgResult.value.data;
         setConfig(d);
+        setLeadForm({ lead_form_title: d.lead_form_title ?? 'Planning to Study Abroad?' });
+        setLeadImagePreview(d.lead_form_image ?? null);
         setContactForm({
           contact_email:    d.contact_email    ?? '',
           contact_phone:    d.contact_phone    ?? '',
@@ -67,6 +77,28 @@ export default function SettingsPage() {
       });
     }).finally(() => setFetching(false));
   }, []);
+
+  const handleSaveLeadForm = async (e) => {
+    e.preventDefault();
+    setLeadSaving(true);
+    setLeadSaved(false);
+    setLeadError(null);
+    try {
+      const fd = new FormData();
+      fd.append('lead_form_title', leadForm.lead_form_title);
+      if (leadImageFile) fd.append('lead_form_image', leadImageFile);
+      const { configService } = await import('@/services/users.service');
+      const res = await configService.updateSiteSettingsMultipart(fd);
+      setConfig(res.data);
+      setLeadSaved(true);
+      setLeadImageFile(null);
+      setTimeout(() => setLeadSaved(false), 2500);
+    } catch {
+      setLeadError('Failed to save lead form settings.');
+    } finally {
+      setLeadSaving(false);
+    }
+  };
 
   const handleTriggerBackup = async () => {
     setBackupRunning(true);
@@ -216,6 +248,77 @@ export default function SettingsPage() {
       )}
 
       {toggleError && <p className="text-xs text-red-500">{toggleError}</p>}
+
+      {/* Study Abroad Lead Form */}
+      {leadForm && (
+        <form onSubmit={handleSaveLeadForm} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="text-sm font-bold text-slate-800">Study Abroad Lead Form</h2>
+            <button
+              type="button"
+              onClick={() => handleToggle('lead_form_enabled', !leadFormEnabled)}
+              disabled={!!toggleLoading}
+              className={`relative inline-flex h-6 w-11 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors focus:outline-none disabled:opacity-60 ${leadFormEnabled ? 'bg-[#1CA3FD]' : 'bg-slate-200'}`}
+              role="switch" aria-checked={leadFormEnabled}
+            >
+              <span className={`pointer-events-none inline-block h-5 w-5 rounded-full bg-white shadow-sm transform transition-transform ${leadFormEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
+            </button>
+          </div>
+          <p className="text-xs text-slate-500 mb-5">Shown as a modal on Class 12 chapter pages. Once a user submits, they never see it again.</p>
+
+          <div className="space-y-4">
+            <div className="flex items-center gap-4">
+              <label className="shrink-0 text-xs font-semibold text-slate-500 w-24">Form Title</label>
+              <input
+                type="text"
+                value={leadForm.lead_form_title}
+                onChange={(e) => setLeadForm((p) => ({ ...p, lead_form_title: e.target.value }))}
+                placeholder="Planning to Study Abroad?"
+                className={`${inp} flex-1`}
+              />
+            </div>
+
+            <div className="flex items-start gap-4">
+              <label className="shrink-0 text-xs font-semibold text-slate-500 w-24 pt-1">Banner Image</label>
+              <div className="flex-1 space-y-2">
+                {(leadImagePreview || leadFormImage) && !leadImageFile && (
+                  <img
+                    src={leadImagePreview || leadFormImage}
+                    alt="Lead form banner"
+                    className="h-24 rounded-xl object-cover border border-gray-200"
+                  />
+                )}
+                {leadImageFile && leadImagePreview && (
+                  <img src={leadImagePreview} alt="Preview" className="h-24 rounded-xl object-cover border border-gray-200" />
+                )}
+                <input
+                  type="file"
+                  accept="image/*"
+                  onChange={(e) => {
+                    const file = e.target.files[0];
+                    if (!file) return;
+                    setLeadImageFile(file);
+                    setLeadImagePreview(URL.createObjectURL(file));
+                  }}
+                  className="text-xs text-slate-600 file:mr-3 file:py-1 file:px-3 file:rounded-lg file:border-0 file:text-xs file:font-semibold file:bg-[#1CA3FD]/10 file:text-[#1CA3FD] hover:file:bg-[#1CA3FD]/20 transition"
+                />
+                <p className="text-[11px] text-slate-400">Recommended: 800×200px. JPG or PNG.</p>
+              </div>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-3 mt-5">
+            <button
+              type="submit"
+              disabled={leadSaving}
+              className="inline-flex items-center gap-2 bg-[#1CA3FD] hover:bg-[#0e8fe0] text-white px-5 py-2 rounded-xl text-sm font-semibold transition disabled:opacity-50"
+            >
+              {leadSaving ? 'Saving…' : leadSaved ? '✓ Saved' : 'Save Lead Form'}
+            </button>
+            {leadError && <span className="text-xs text-red-500">{leadError}</span>}
+          </div>
+        </form>
+      )}
 
       {/* Contact Information */}
       {contactForm && (

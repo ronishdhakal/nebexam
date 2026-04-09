@@ -161,6 +161,11 @@ class SiteSettings(models.Model):
     # App install tracking
     app_install_count = models.PositiveIntegerField(default=0)
 
+    # Study Abroad lead capture form
+    lead_form_enabled = models.BooleanField(default=False, help_text='Show the study abroad lead form on Class 12 chapter pages.')
+    lead_form_title   = models.CharField(max_length=255, blank=True, default='Planning to Study Abroad?')
+    lead_form_image   = models.ImageField(upload_to='lead_form/', null=True, blank=True)
+
     # Contact / social info (editable from admin CRM)
     contact_email    = models.CharField(max_length=254, blank=True, default='nebexamofficial@gmail.com')
     contact_phone    = models.CharField(max_length=20,  blank=True, default='9745450062')

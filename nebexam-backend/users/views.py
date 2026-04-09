@@ -709,6 +709,10 @@ class SiteSettingsView(APIView):
     ]
 
     def _serialize(self, cfg):
+        try:
+            lead_form_image_url = cfg.lead_form_image.url if cfg.lead_form_image else None
+        except Exception:
+            lead_form_image_url = None
         return {
             'subscription_required':      cfg.subscription_required,
             'esewa_enabled':              cfg.esewa_enabled,
@@ -720,6 +724,9 @@ class SiteSettingsView(APIView):
             'social_facebook':            cfg.social_facebook,
             'social_instagram':           cfg.social_instagram,
             'app_install_count':          cfg.app_install_count,
+            'lead_form_enabled':          cfg.lead_form_enabled,
+            'lead_form_title':            cfg.lead_form_title,
+            'lead_form_image':            lead_form_image_url,
         }
 
     def get(self, request):
@@ -750,6 +757,16 @@ class SiteSettingsView(APIView):
             if (val := request.data.get(field)) is not None:
                 setattr(cfg, field, val)
                 changed.append(field)
+        # Lead form fields
+        if (val := request.data.get('lead_form_enabled')) is not None:
+            cfg.lead_form_enabled = bool(val)
+            changed.append('lead_form_enabled')
+        if (val := request.data.get('lead_form_title')) is not None:
+            cfg.lead_form_title = val
+            changed.append('lead_form_title')
+        if 'lead_form_image' in request.FILES:
+            cfg.lead_form_image = request.FILES['lead_form_image']
+            changed.append('lead_form_image')
         if changed:
             cfg.save(update_fields=changed)
         cache.clear()

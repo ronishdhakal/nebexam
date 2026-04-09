@@ -35,6 +35,7 @@ INSTALLED_APPS = [
     'questionbank',
     'payments',
     'news',
+    'leads',
 ]
 
 MIDDLEWARE = [

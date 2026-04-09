@@ -43,8 +43,9 @@ export const referralService = {
 };
 
 export const configService = {
-  getSiteSettings:    ()     => api.get('/users/site-settings/'),
-  updateSiteSettings: (data) => api.patch('/users/site-settings/', data),
-  clearCache:         ()     => api.post('/users/clear-cache/'),
-  triggerBackup:      ()     => api.post('/users/trigger-backup/'),
+  getSiteSettings:             ()     => api.get('/users/site-settings/'),
+  updateSiteSettings:          (data) => api.patch('/users/site-settings/', data),
+  updateSiteSettingsMultipart: (fd)   => api.patch('/users/site-settings/', fd, { headers: { 'Content-Type': 'multipart/form-data' } }),
+  clearCache:                  ()     => api.post('/users/clear-cache/'),
+  triggerBackup:               ()     => api.post('/users/trigger-backup/'),
 };

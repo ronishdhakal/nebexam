@@ -13,10 +13,16 @@ import { mediaUrl } from '@/lib/utils';
 import QuestionCard from '@/components/question/QuestionCard';
 import PdfViewer from '@/components/chapter/PdfViewer';
 import RichTextRenderer from '@/components/chapter/RichTextRenderer';
+import useAuthStore from '@/store/authStore';
+import StudyAbroadModal from '@/components/leads/StudyAbroadModal';
+
+const FREE_PREVIEW_COUNT = 4;
 
 export default function ChapterPageClient() {
   const { slug } = useParams();
   const { chapter, importantQuestions, loading, error } = useChapter(slug);
+  const { user } = useAuthStore();
+  const isFree = !user?.subscription_tier || user.subscription_tier === 'free';
   const [subjectData, setSubjectData] = useState(null);
   const [areas, setAreas] = useState([]);
   const [directChapters, setDirectChapters] = useState([]);
@@ -68,8 +74,11 @@ export default function ChapterPageClient() {
   const hasQuestions = importantQuestions.length > 0;
   const hasSidebar = areas.length > 0 || directChapters.length > 0;
 
+  const isClass12 = String(chapter.subject_class_level) === '12';
+
   return (
     <div className="bg-slate-50 dark:bg-slate-900 min-h-screen">
+      {isClass12 && <StudyAbroadModal />}
 
       {/* ── Top bar ── */}
       <div className="bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800 sticky top-0 z-20">
@@ -177,7 +186,7 @@ export default function ChapterPageClient() {
             {hasQuestions && (
               <section>
                 <SectionHeading icon="⭐" title="Important Questions" />
-                <ImportantQuestionsSection questions={importantQuestions} />
+                <ImportantQuestionsSection questions={importantQuestions} isFree={isFree} />
               </section>
             )}
 
@@ -214,7 +223,7 @@ const ENTRY_TYPE_LABEL = {
   model_question: 'Model Question',
 };
 
-function ImportantQuestionsSection({ questions }) {
+function ImportantQuestionsSection({ questions, isFree }) {
   const manual = questions.filter((q) => q.source === 'manual');
   const bankGroupMap = {};
   questions
@@ -228,21 +237,36 @@ function ImportantQuestionsSection({ questions }) {
     });
   const bankGroups = Object.values(bankGroupMap);
 
+  const totalCount = questions.length;
+  const showLock = isFree && totalCount > FREE_PREVIEW_COUNT;
+
+  // If free, only render up to FREE_PREVIEW_COUNT questions total
   let counter = 0;
+  let rendered = 0;
+
+  const visibleManual = showLock ? manual.slice(0, FREE_PREVIEW_COUNT) : manual;
 
   return (
     <div className="space-y-6">
-      {manual.length > 0 && (
+      {visibleManual.length > 0 && (
         <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm px-6 py-5 space-y-5">
-          {manual.map((node) => (
-            <QuestionCard key={node.id} node={node} index={counter++} depth={0} paperMode />
-          ))}
+          {visibleManual.map((node) => {
+            rendered++;
+            return <QuestionCard key={node.id} node={node} index={counter++} depth={0} paperMode />;
+          })}
         </div>
       )}
 
       {bankGroups.map((group) => {
+        if (showLock && rendered >= FREE_PREVIEW_COUNT) return null;
         const typeLabel = ENTRY_TYPE_LABEL[group.entry_type] ?? 'Question Bank';
         const headerText = group.entry_year ? `${typeLabel} · ${group.entry_year}` : typeLabel;
+        const visibleQs = showLock
+          ? group.questions.slice(0, FREE_PREVIEW_COUNT - rendered)
+          : group.questions;
+
+        if (visibleQs.length === 0) return null;
+        rendered += visibleQs.length;
 
         return (
           <div key={`${group.entry_type}__${group.entry_year}`}>
@@ -253,13 +277,52 @@ function ImportantQuestionsSection({ questions }) {
               <div className="flex-1 h-px bg-amber-100" />
             </div>
             <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm px-6 py-5 space-y-5">
-              {group.questions.map((node) => (
+              {visibleQs.map((node) => (
                 <QuestionCard key={node.id} node={node} index={counter++} depth={0} paperMode />
               ))}
             </div>
           </div>
         );
       })}
+
+      {/* Lock gate */}
+      {showLock && (
+        <div className="relative">
+          {/* Blurred ghost */}
+          <div className="pointer-events-none select-none blur-sm opacity-40">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 shadow-sm px-6 py-5 space-y-5">
+              {questions.slice(FREE_PREVIEW_COUNT, FREE_PREVIEW_COUNT + 2).map((node, i) => (
+                <QuestionCard key={node.id} node={node} index={FREE_PREVIEW_COUNT + i} depth={0} paperMode />
+              ))}
+            </div>
+          </div>
+          {/* Overlay */}
+          <div className="absolute inset-0 flex flex-col items-center justify-center bg-gradient-to-b from-transparent via-white/80 to-white dark:via-slate-900/80 dark:to-slate-900 rounded-2xl">
+            <div className="flex flex-col items-center gap-3 py-6 px-4 text-center">
+              <div className="w-12 h-12 rounded-2xl bg-[#1CA3FD]/10 flex items-center justify-center">
+                <svg width="22" height="22" fill="none" stroke="#1CA3FD" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                  <rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/>
+                </svg>
+              </div>
+              <div>
+                <p className="text-sm font-bold text-slate-900 dark:text-white">
+                  {totalCount - FREE_PREVIEW_COUNT} more question{totalCount - FREE_PREVIEW_COUNT !== 1 ? 's' : ''} locked
+                </p>
+                <p className="text-xs text-slate-500 mt-1">Upgrade to a paid plan to view all important questions</p>
+              </div>
+              <Link
+                href="/subscription"
+                className="mt-1 inline-flex items-center gap-2 bg-[#1CA3FD] hover:bg-[#1CA3FD]/90 text-white text-sm font-semibold px-5 py-2.5 rounded-xl transition-colors shadow-sm shadow-[#1CA3FD]/30"
+              >
+                <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                  <polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/>
+                </svg>
+                Upgrade to View All
+              </Link>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
