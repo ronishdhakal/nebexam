@@ -175,24 +175,22 @@ export default function StudyAbroadModal() {
           </div>
         ) : (
           <>
-            {/* ── Header: title then logo right after ── */}
+            {/* ── Header: logo flows inline right after title text ── */}
             <div className="px-5 pt-5 pb-4 pr-10 border-b border-gray-100">
-              <div className="flex items-end gap-2 flex-wrap">
-                <p className="text-[15px] font-extrabold text-slate-900 leading-snug">
-                  {leadFormTitle || 'Planning to Study Abroad?'}
-                </p>
+              <p className="text-[15px] font-extrabold text-slate-900 leading-snug">
+                {leadFormTitle || 'Planning to Study Abroad?'}
                 {leadFormImage && (
-                  <div className="relative shrink-0 h-7 w-16 mb-0.5">
+                  <span className="inline-block align-middle ml-2 relative" style={{ width: 72, height: 32 }}>
                     <Image
                       src={leadFormImage}
                       alt="Logo"
                       fill
-                      className="object-contain object-left-bottom"
-                      sizes="64px"
+                      className="object-contain object-left"
+                      sizes="72px"
                     />
-                  </div>
+                  </span>
                 )}
-              </div>
+              </p>
             </div>
 
             {/* ── Scrollable form ── */}
