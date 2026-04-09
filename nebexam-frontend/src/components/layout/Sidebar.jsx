@@ -123,7 +123,7 @@ export default function Sidebar() {
 
   return (
     <aside
-      className={`${collapsed ? 'w-14' : 'w-60'} h-screen sticky top-0 bg-white border-r border-gray-100 flex flex-col shrink-0 shadow-sm transition-all duration-200`}
+      className={`${collapsed ? 'w-14' : 'w-60'} h-full bg-white border-r border-gray-100 flex flex-col shrink-0 shadow-sm transition-all duration-200`}
     >
       {/* Logo + toggle */}
       <div className={`border-b border-gray-100 shrink-0 flex items-center ${collapsed ? 'justify-center py-5 px-2' : 'justify-between px-5 py-5'}`}>
