@@ -30,6 +30,11 @@ const CRM_CONFIG = {
   done:       { label: 'Done',       bg: 'bg-emerald-50 text-emerald-700',     dot: 'bg-emerald-500' },
 };
 
+const WHAT_AFTER_CONFIG = {
+  study_nepal:  { label: 'Study in Nepal', bg: 'bg-emerald-50 text-emerald-700 ring-emerald-200' },
+  study_abroad: { label: 'Study Abroad',   bg: 'bg-violet-50 text-violet-700 ring-violet-200' },
+};
+
 const PURCHASE_STATUS_CONFIG = {
   active:    { label: 'Subscribed',    bg: 'bg-emerald-50 text-emerald-700 ring-emerald-200' },
   attempted: { label: 'Attempted',     bg: 'bg-amber-50 text-amber-700 ring-amber-200' },
@@ -43,7 +48,7 @@ function getPurchaseStatus(user) {
 }
 
 function exportCSV(users) {
-  const cols = ['ID', 'Name', 'Email', 'Phone', 'District', 'Class', 'Stream', 'Plan', 'Expires', 'Status', 'Email Verified', 'Last Checkout', 'CRM', 'Joined'];
+  const cols = ['ID', 'Name', 'Email', 'Phone', 'District', 'Class', 'Stream', 'After +2', 'Plan', 'Expires', 'Status', 'Email Verified', 'Last Checkout', 'CRM', 'Joined'];
   const rows = users.map((u) => [
     u.id,
     `"${u.name || ''}"`,
@@ -52,6 +57,7 @@ function exportCSV(users) {
     u.district || '',
     u.level ? `Class ${u.level}` : '',
     u.stream || '',
+    WHAT_AFTER_CONFIG[u.what_after_plus_two]?.label || '',
     TIER_DISPLAY[u.subscription_tier] || u.subscription_tier,
     u.subscription_expires_at ? new Date(u.subscription_expires_at).toLocaleDateString() : '',
     u.is_active ? 'Active' : 'Disabled',
@@ -401,6 +407,7 @@ export default function UsersPage() {
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Phone</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">District</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Class</th>
+                  <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">After +2</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Plan</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Email</th>
                   <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Purchase</th>
@@ -428,6 +435,13 @@ export default function UsersPage() {
                       <td className="px-5 py-3.5 text-slate-400">{user.phone || '—'}</td>
                       <td className="px-5 py-3.5 text-slate-400">{user.district || '—'}</td>
                       <td className="px-5 py-3.5 text-slate-500 font-medium">{user.level ? `Class ${user.level}` : '—'}</td>
+                      <td className="px-5 py-3.5">
+                        {user.what_after_plus_two ? (
+                          <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ring-1 ${WHAT_AFTER_CONFIG[user.what_after_plus_two]?.bg}`}>
+                            {WHAT_AFTER_CONFIG[user.what_after_plus_two]?.label}
+                          </span>
+                        ) : '—'}
+                      </td>
                       <td className="px-5 py-3.5">
                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ring-1 ${TIER_STYLES[user.subscription_tier] || TIER_STYLES.free}`}>
                           {TIER_DISPLAY[user.subscription_tier] || user.subscription_tier}

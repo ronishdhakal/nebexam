@@ -46,6 +46,10 @@ class User(AbstractBaseUser, PermissionsMixin):
         SCIENCE    = 'science',    'Science'
         MANAGEMENT = 'management', 'Management'
 
+    class WhatAfterPlusTwo(models.TextChoices):
+        STUDY_NEPAL  = 'study_nepal',  'Study in Nepal'
+        STUDY_ABROAD = 'study_abroad', 'Study Abroad'
+
     email = models.EmailField(unique=True)
     name = models.CharField(max_length=255)
     phone = models.CharField(max_length=20, blank=True)
@@ -76,6 +80,9 @@ class User(AbstractBaseUser, PermissionsMixin):
     crm_status = models.CharField(max_length=20, choices=CRM_CHOICES, default=CRM_NONE)
     is_email_verified = models.BooleanField(default=False)
     district = models.CharField(max_length=100, blank=True)
+    what_after_plus_two = models.CharField(
+        max_length=15, choices=WhatAfterPlusTwo.choices, blank=True
+    )
 
     USERNAME_FIELD = 'email'
     REQUIRED_FIELDS = ['name']

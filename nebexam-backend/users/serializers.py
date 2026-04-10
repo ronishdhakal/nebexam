@@ -6,7 +6,7 @@ from .models import User, EmailVerificationOTP
 class UserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
-        fields = ['id', 'email', 'name', 'phone', 'district', 'profile_picture', 'level', 'stream', 'subscription_tier', 'subscription_expires_at', 'free_answers_used', 'is_staff', 'date_joined', 'referral_code']
+        fields = ['id', 'email', 'name', 'phone', 'district', 'profile_picture', 'level', 'stream', 'what_after_plus_two', 'subscription_tier', 'subscription_expires_at', 'free_answers_used', 'is_staff', 'date_joined', 'referral_code']
         read_only_fields = ['subscription_tier', 'subscription_expires_at', 'free_answers_used', 'is_staff', 'date_joined', 'referral_code']
 
 
@@ -18,7 +18,7 @@ class AdminUserSerializer(serializers.ModelSerializer):
     class Meta:
         model = User
         fields = [
-            'id', 'email', 'name', 'phone', 'district', 'level', 'stream',
+            'id', 'email', 'name', 'phone', 'district', 'level', 'stream', 'what_after_plus_two',
             'subscription_tier', 'subscription_expires_at',
             'is_active', 'is_staff', 'is_email_verified', 'date_joined',
             'crm_status',
@@ -33,7 +33,7 @@ class RegisterSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = User
-        fields = ['email', 'name', 'phone', 'district', 'password', 'level', 'stream']
+        fields = ['email', 'name', 'phone', 'district', 'password', 'level', 'stream', 'what_after_plus_two']
 
     def validate_phone(self, value):
         if value and User.objects.filter(phone=value).exists():

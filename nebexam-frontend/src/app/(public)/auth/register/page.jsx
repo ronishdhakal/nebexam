@@ -12,6 +12,7 @@ const inp = 'w-full border border-slate-200 dark:border-slate-600 bg-white dark:
 
 const LEVEL_LABELS = { '8': 'Class 8', '9': 'Class 9', '10': 'Class 10', '11': 'Class 11', '12': 'Class 12' };
 const STREAM_LABELS = { science: 'Science', management: 'Management' };
+const WHAT_AFTER_LABELS = { study_nepal: 'Study in Nepal', study_abroad: 'Study Abroad' };
 
 const NEPAL_DISTRICTS = [
   // Koshi Province
@@ -130,7 +131,7 @@ function DistrictSelect({ value, onChange, hasError }) {
 }
 
 export default function RegisterPage() {
-  const [form, setForm] = useState({ email: '', name: '', phone: '', district: '', password: '', level: '', stream: '' });
+  const [form, setForm] = useState({ email: '', name: '', phone: '', district: '', password: '', level: '', stream: '', what_after_plus_two: '' });
   const [confirmPw, setConfirmPw] = useState('');
   const [showPw, setShowPw] = useState(false);
   const [showConfirm, setShowConfirm] = useState(false);
@@ -145,6 +146,7 @@ export default function RegisterPage() {
   const router = useRouter();
 
   const needsStream = form.level === '11' || form.level === '12';
+  const needsWhatAfter = form.level === '12';
   const pwMatch = !confirmPw || form.password === confirmPw;
   const phoneValid = /^\d{10}$/.test(form.phone);
 
@@ -154,6 +156,7 @@ export default function RegisterPage() {
     if (!form.district) { setError('Please select your district.'); return; }
     if (!form.level) { setError('Please select your class.'); return; }
     if (needsStream && !form.stream) { setError('Please select your stream (Science or Management).'); return; }
+    if (needsWhatAfter && !form.what_after_plus_two) { setError('Please select your plan after +2.'); return; }
     if (form.password !== confirmPw) { setError('Passwords do not match.'); return; }
     setError(null);
     setShowConfirmModal(true);
@@ -224,6 +227,7 @@ export default function RegisterPage() {
               {form.district && <DetailRow label="District" value={form.district} />}
               <DetailRow label="Class" value={LEVEL_LABELS[form.level] || '—'} />
               {needsStream && <DetailRow label="Stream" value={STREAM_LABELS[form.stream] || '—'} />}
+              {needsWhatAfter && form.what_after_plus_two && <DetailRow label="After +2" value={WHAT_AFTER_LABELS[form.what_after_plus_two] || '—'} />}
             </div>
             <div className="flex gap-3">
               <button
@@ -317,7 +321,7 @@ export default function RegisterPage() {
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">Class</label>
                   <select
                     value={form.level}
-                    onChange={(e) => setForm({ ...form, level: e.target.value, stream: '' })}
+                    onChange={(e) => setForm({ ...form, level: e.target.value, stream: '', what_after_plus_two: '' })}
                     className={inp}
                   >
                     <option value="">Select class</option>
@@ -365,6 +369,35 @@ export default function RegisterPage() {
                 <div>
                   <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">District</label>
                   <DistrictSelect value={form.district} onChange={(d) => setForm({ ...form, district: d })} hasError={!!error && !form.district} />
+                </div>
+              )}
+
+              {/* What After +2 (Class 12 only) */}
+              {needsWhatAfter && (
+                <div>
+                  <label className="block text-xs font-semibold text-slate-600 mb-1.5 uppercase tracking-wide">
+                    What After +2? <span className="text-red-400">*</span>
+                  </label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { value: 'study_nepal',  label: 'Study in Nepal',  color: 'emerald' },
+                      { value: 'study_abroad', label: 'Study Abroad',    color: 'violet' },
+                    ].map(({ value, label, color }) => (
+                      <button
+                        key={value} type="button"
+                        onClick={() => setForm({ ...form, what_after_plus_two: value })}
+                        className={`py-3 rounded-xl border-2 text-sm font-semibold transition-all ${
+                          form.what_after_plus_two === value
+                            ? color === 'emerald'
+                              ? 'border-emerald-500 bg-emerald-50 text-emerald-700 dark:bg-emerald-950/40 dark:text-emerald-400 dark:border-emerald-500'
+                              : 'border-violet-500 bg-violet-50 text-violet-700 dark:bg-violet-950/40 dark:text-violet-400 dark:border-violet-500'
+                            : 'border-slate-200 dark:border-slate-600 text-slate-500 hover:border-slate-300'
+                        }`}
+                      >
+                        {label}
+                      </button>
+                    ))}
+                  </div>
                 </div>
               )}
 
