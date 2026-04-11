@@ -36,6 +36,7 @@ INSTALLED_APPS = [
     'payments',
     'news',
     'leads',
+    'advertisements',
 ]
 
 MIDDLEWARE = [

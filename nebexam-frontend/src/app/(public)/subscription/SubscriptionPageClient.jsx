@@ -8,9 +8,6 @@ import useAuthStore from '@/store/authStore';
 import useConfigStore from '@/store/configStore';
 import { paymentService } from '@/services/users.service';
 
-const LAUNCH_SLOTS_TOTAL = 1000;
-const LAUNCH_SLOTS_USED = 900;
-
 const FEATURES = [
   { icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/></svg>, label: 'Full notes for all subjects — Class 10, 11 & 12' },
   { icon: <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>, label: 'Complete question bank with answers' },
@@ -58,13 +55,13 @@ export default function SubscriptionPageClient() {
   const { isAuthenticated, user } = useAuthStore();
   const { esewaEnabled, contactWa } = useConfigStore();
 
-  const [prices, setPrices] = useState({});
+  const [planData, setPlanData] = useState({});
   const [loadingPrices, setLoadingPrices] = useState(true);
 
   useEffect(() => {
     paymentService.getPlans()
-      .then((res) => setPrices(res.data || {}))
-      .catch(() => setPrices({}))
+      .then((res) => setPlanData(res.data || {}))
+      .catch(() => setPlanData({}))
       .finally(() => setLoadingPrices(false));
   }, []);
 
@@ -84,22 +81,17 @@ export default function SubscriptionPageClient() {
     if (esewaEnabled) {
       router.push(`/checkout/${planKey}`);
     } else {
-      const msg = encodeURIComponent(`Hi, I'd like to subscribe to the NEB Exam ${planKey === '1month' ? '1 Month' : planKey === '3month' ? '3 Months' : '1 Year'} plan.`);
+      const pd = planData[planKey] ?? {};
+      const planName = planKey === '1month' ? '1 Month' : planKey === '3month' ? '3 Months' : '1 Year';
+      const price = pd.offer_price ?? pd.amount;
+      const priceLine = price ? `\nPlan: ${planName} — Rs. ${price}${pd.offer_title ? ` (${pd.offer_title})` : ''}` : `\nPlan: ${planName}`;
+      const msg = encodeURIComponent(`Hello! I would like to subscribe to the NEB Exam ${planName} plan.${priceLine}\n\nPlease guide me through the payment process. Thank you!`);
       window.open(`https://wa.me/${contactWa}?text=${msg}`, '_blank');
     }
   };
 
   return (
     <div className="min-h-screen bg-white dark:bg-slate-950">
-
-      {/* Launch offer top bar */}
-      <div className="bg-amber-500 text-white text-xs sm:text-sm font-semibold text-center py-2.5 px-4 flex flex-wrap items-center justify-center gap-2">
-        <svg width="14" height="14" fill="currentColor" viewBox="0 0 24 24"><path d="M13 10V3L4 14h7v7l9-11h-7z"/></svg>
-        <span>Launch Offer — Only for the first <strong>1,000 students</strong>. Price doubles after that.</span>
-        <span className="bg-white/20 rounded-full px-2 py-0.5 text-white font-bold">
-          {LAUNCH_SLOTS_TOTAL - LAUNCH_SLOTS_USED} spots left
-        </span>
-      </div>
 
       {/* Hero */}
       <section className="bg-gradient-to-b from-slate-50 to-white dark:from-slate-900 dark:to-slate-950 border-b border-slate-100 dark:border-slate-800 pt-14 pb-12 px-4 text-center">
@@ -113,26 +105,6 @@ export default function SubscriptionPageClient() {
         <p className="text-slate-500 dark:text-slate-400 text-base sm:text-lg max-w-xl mx-auto leading-relaxed">
           Get full access to notes, question banks, and past papers for Class 10, 11 &amp; 12 — all streams.
         </p>
-
-        {/* Slots progress bar */}
-        <div className="mt-8 max-w-sm mx-auto">
-          <div className="flex items-center justify-between text-xs font-semibold mb-2">
-            <span className="text-amber-600 dark:text-amber-400 flex items-center gap-1">
-              <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
-              {LAUNCH_SLOTS_USED}+ already registered
-            </span>
-            <span className="text-slate-400">{LAUNCH_SLOTS_TOTAL} max</span>
-          </div>
-          <div className="h-3 bg-slate-200 dark:bg-slate-700 rounded-full overflow-hidden">
-            <div
-              className="h-full bg-gradient-to-r from-amber-400 to-amber-500 rounded-full transition-all"
-              style={{ width: `${(LAUNCH_SLOTS_USED / LAUNCH_SLOTS_TOTAL) * 100}%` }}
-            />
-          </div>
-          <p className="text-xs text-slate-400 mt-1.5 text-right">
-            Only <span className="text-amber-600 dark:text-amber-400 font-bold">{LAUNCH_SLOTS_TOTAL - LAUNCH_SLOTS_USED} spots</span> remaining at launch price
-          </p>
-        </div>
 
         {/* Current subscription banner */}
         {isAuthenticated && isSubscribed && (
@@ -154,16 +126,18 @@ export default function SubscriptionPageClient() {
       {/* Pricing cards */}
       <section className="max-w-5xl mx-auto px-4 py-14">
         <div className="text-center mb-10">
-          <span className="inline-flex items-center gap-1.5 bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-800 text-amber-700 dark:text-amber-400 text-xs font-bold px-3 py-1.5 rounded-full">
-            <svg width="12" height="12" fill="currentColor" viewBox="0 0 24 24"><path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/></svg>
-            Launch pricing — locks in before it doubles
-          </span>
+          <h2 className="text-xl sm:text-2xl font-extrabold text-slate-900 dark:text-white mb-2">Simple, affordable pricing</h2>
+          <p className="text-sm text-slate-500 dark:text-slate-400">Choose the plan that fits your study schedule.</p>
         </div>
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
           {PLANS.map((plan) => {
-            const price = prices[plan.key]?.amount;
-            const futurePrice = price != null ? price * 2 : null;
-            const perMonth = price && plan.months > 1 ? Math.round(price / plan.months) : null;
+            const pd         = planData[plan.key] ?? {};
+            const price      = pd.amount;
+            const offerTitle = pd.offer_title;
+            const offerPrice = pd.offer_price;
+            const hasOffer   = offerTitle && offerPrice != null;
+            const displayPrice = hasOffer ? offerPrice : price;
+            const perMonth   = displayPrice && plan.months > 1 ? Math.round(displayPrice / plan.months) : null;
 
             return (
               <div
@@ -176,25 +150,36 @@ export default function SubscriptionPageClient() {
                   </div>
                 )}
 
-                <div className="mb-4">
+                <div className="mb-3">
                   <p className="text-xs font-semibold text-slate-400 uppercase tracking-widest mb-1">{plan.desc}</p>
                   <h2 className="text-xl font-extrabold text-slate-900 dark:text-white">{plan.name}</h2>
                 </div>
+
+                {hasOffer && (
+                  <div className="mb-3 inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-amber-50 dark:bg-amber-900/20 border border-amber-200 dark:border-amber-700 text-amber-700 dark:text-amber-400 text-xs font-bold w-fit">
+                    <span className="relative flex h-1.5 w-1.5">
+                      <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                      <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-400" />
+                    </span>
+                    {offerTitle}
+                  </div>
+                )}
 
                 <div className="mb-5">
                   {loadingPrices ? (
                     <div className="h-10 w-28 bg-slate-100 dark:bg-slate-800 rounded-lg animate-pulse" />
                   ) : price != null ? (
                     <div>
-                      {/* Future price (strikethrough) */}
-                      <div className="flex items-center gap-2 mb-0.5">
-                        <span className="text-sm text-slate-400 line-through">Rs. {futurePrice}</span>
-                        <span className="text-xs font-bold text-red-500 bg-red-50 dark:bg-red-900/20 px-1.5 py-0.5 rounded">After 1000</span>
-                      </div>
-                      {/* Launch price */}
+                      {hasOffer && (
+                        <div className="flex items-center gap-2 mb-0.5">
+                          <span className="text-sm text-slate-400 line-through">Rs. {price}</span>
+                          <span className="text-xs font-bold text-red-500 bg-red-50 dark:bg-red-900/20 px-1.5 py-0.5 rounded">
+                            Save Rs. {price - offerPrice}
+                          </span>
+                        </div>
+                      )}
                       <div className="flex items-end gap-2">
-                        <span className="text-4xl font-extrabold text-slate-900 dark:text-white">Rs. {price}</span>
-                        <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 mb-1.5">Launch price</span>
+                        <span className="text-4xl font-extrabold text-slate-900 dark:text-white">Rs. {displayPrice}</span>
                       </div>
                       {perMonth && (
                         <p className="text-xs text-slate-400 mt-1">Rs. {perMonth}/month</p>
@@ -227,7 +212,7 @@ export default function SubscriptionPageClient() {
                   ) : (
                     <>
                       <svg width="15" height="15" fill="currentColor" viewBox="0 0 24 24"><path d="M17.472 14.382c-.297-.149-1.758-.867-2.03-.967-.273-.099-.471-.148-.67.15-.197.297-.767.966-.94 1.164-.173.199-.347.223-.644.075-.297-.15-1.255-.463-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.298-.347.446-.52.149-.174.198-.298.298-.497.099-.198.05-.371-.025-.52-.075-.149-.669-1.612-.916-2.207-.242-.579-.487-.5-.669-.51-.173-.008-.371-.01-.57-.01-.198 0-.52.074-.792.372-.272.297-1.04 1.016-1.04 2.479 0 1.462 1.065 2.875 1.213 3.074.149.198 2.096 3.2 5.077 4.487.709.306 1.262.489 1.694.625.712.227 1.36.195 1.871.118.571-.085 1.758-.719 2.006-1.413.248-.694.248-1.289.173-1.413-.074-.124-.272-.198-.57-.347z"/><path d="M12 0C5.373 0 0 5.373 0 12c0 2.625.846 5.059 2.28 7.041L.787 23.41l4.473-1.434A11.94 11.94 0 0 0 12 24c6.627 0 12-5.373 12-12S18.627 0 12 0zm0 22c-2.163 0-4.181-.581-5.912-1.595l-.424-.252-3.375 1.082 1.1-3.292-.275-.447A9.954 9.954 0 0 1 2 12C2 6.477 6.477 2 12 2s10 4.477 10 10-4.477 10-10 10z"/></svg>
-                      Subscribe via WhatsApp
+                      Message on WhatsApp to Pay
                     </>
                   )}
                 </button>
@@ -308,20 +293,11 @@ export default function SubscriptionPageClient() {
       {/* Bottom CTA */}
       <section className="bg-gradient-to-br from-[#1CA3FD] to-[#0e7dd4] py-14 px-4 text-center">
         <div className="max-w-lg mx-auto">
-          {/* Urgency pill */}
-          <div className="inline-flex items-center gap-1.5 bg-white/20 text-white text-xs font-bold px-3 py-1.5 rounded-full mb-5">
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-300 opacity-75" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-300" />
-            </span>
-            {LAUNCH_SLOTS_USED}+ students joined — only {LAUNCH_SLOTS_TOTAL - LAUNCH_SLOTS_USED} launch spots left
-          </div>
-
           <h2 className="text-2xl sm:text-3xl font-extrabold text-white mb-3 leading-tight">
-            Lock in the launch price before it doubles
+            Ready to ace your NEB exams?
           </h2>
           <p className="text-white/80 text-sm mb-6 max-w-sm mx-auto">
-            After the first 1,000 students, prices go up 100%. Subscribe now and save.
+            Join thousands of students who study smarter with NEB Exam. Start today.
           </p>
 
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3">

@@ -16,10 +16,12 @@ class SubscriptionPlan(models.Model):
         ('3month', '3 Months'),
         ('1year',  '1 Year'),
     ]
-    tier   = models.CharField(max_length=10, choices=TIER_CHOICES, unique=True)
-    label  = models.CharField(max_length=50)
-    amount = models.PositiveIntegerField(help_text='Price in NPR')
-    months = models.PositiveSmallIntegerField(help_text='Duration in months')
+    tier        = models.CharField(max_length=10, choices=TIER_CHOICES, unique=True)
+    label       = models.CharField(max_length=50)
+    amount      = models.PositiveIntegerField(help_text='Price in NPR')
+    months      = models.PositiveSmallIntegerField(help_text='Duration in months')
+    offer_title = models.CharField(max_length=100, blank=True, help_text='Short offer label, e.g. "Dashain Offer"')
+    offer_price = models.PositiveIntegerField(null=True, blank=True, help_text='Discounted price in NPR; leave blank for no offer')
 
     class Meta:
         ordering = ['months']

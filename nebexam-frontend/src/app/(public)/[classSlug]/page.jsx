@@ -2,6 +2,7 @@ import Link from 'next/link';
 import { notFound } from 'next/navigation';
 import { subjectsService } from '@/services/subjects.service';
 import SubjectCard from '@/components/subject/SubjectCard';
+import TextAdBanner from '@/components/TextAdBanner';
 
 const VALID_LEVELS = ['8', '9', '10', '11', '12'];
 
@@ -75,6 +76,7 @@ export default async function ClassSlugPage({ params }) {
 
   return (
     <div className="bg-slate-50 dark:bg-slate-900 min-h-screen">
+      <TextAdBanner page={`class-${level}`} />
       <div className="bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="flex items-center gap-2 text-sm text-slate-400 mb-3">

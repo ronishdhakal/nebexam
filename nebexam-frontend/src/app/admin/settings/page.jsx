@@ -71,9 +71,9 @@ export default function SettingsPage() {
       const p = planResult.status === 'fulfilled' ? planResult.value.data : {};
       setPlans(p);
       setPlanForm({
-        '1month': { amount: p['1month']?.amount ?? 100 },
-        '3month': { amount: p['3month']?.amount ?? 200 },
-        '1year':  { amount: p['1year']?.amount  ?? 300 },
+        '1month': { amount: p['1month']?.amount ?? 100, offer_title: p['1month']?.offer_title ?? '', offer_price: p['1month']?.offer_price ?? '' },
+        '3month': { amount: p['3month']?.amount ?? 200, offer_title: p['3month']?.offer_title ?? '', offer_price: p['3month']?.offer_price ?? '' },
+        '1year':  { amount: p['1year']?.amount  ?? 300, offer_title: p['1year']?.offer_title  ?? '', offer_price: p['1year']?.offer_price  ?? '' },
       });
     }).finally(() => setFetching(false));
   }, []);
@@ -172,7 +172,12 @@ export default function SettingsPage() {
     try {
       const payload = {};
       for (const tier of ['1month', '3month', '1year']) {
-        payload[tier] = { amount: Number(planForm[tier].amount) };
+        const f = planForm[tier];
+        payload[tier] = {
+          amount:      Number(f.amount),
+          offer_title: f.offer_title || '',
+          offer_price: f.offer_price !== '' ? Number(f.offer_price) : null,
+        };
       }
       await paymentService.updatePlans(payload);
       setPlanSaved(true);
@@ -408,28 +413,61 @@ export default function SettingsPage() {
       {planForm && (
         <form onSubmit={handleSavePlans} className="bg-white rounded-2xl border border-gray-100 shadow-sm p-6">
           <h2 className="text-sm font-bold text-slate-800 mb-1">Plan Pricing</h2>
-          <p className="text-xs text-slate-500 mb-5">Change prices here — no code deployment needed.</p>
+          <p className="text-xs text-slate-500 mb-5">
+            Set prices and optional offers (e.g. a seasonal discount) for each plan. Leave Offer Title blank to hide the offer badge.
+          </p>
 
-          <div className="space-y-4">
+          <div className="space-y-6">
             {['1month', '3month', '1year'].map((tier) => {
               const meta = PLAN_META[tier];
               return (
-                <div key={tier} className="flex items-center gap-4">
-                  <span className={`shrink-0 inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold w-24 justify-center ${meta.badge}`}>
+                <div key={tier} className="rounded-xl border border-slate-100 p-4 space-y-3">
+                  <span className={`inline-flex items-center px-2.5 py-1 rounded-lg text-xs font-semibold ${meta.badge}`}>
                     {meta.label}
                   </span>
-                  <div className="flex items-center gap-2 flex-1">
-                    <span className="text-sm text-slate-500 shrink-0">Rs.</span>
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs font-semibold text-slate-500 w-24 shrink-0">Regular Price</label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-slate-500">Rs.</span>
+                      <input
+                        type="number"
+                        required
+                        min="0"
+                        value={planForm[tier].amount}
+                        onChange={(e) =>
+                          setPlanForm((prev) => ({ ...prev, [tier]: { ...prev[tier], amount: e.target.value } }))
+                        }
+                        className={`${inp} max-w-[120px]`}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs font-semibold text-slate-500 w-24 shrink-0">Offer Title</label>
                     <input
-                      type="number"
-                      required
-                      min="0"
-                      value={planForm[tier].amount}
+                      type="text"
+                      placeholder='e.g. "Dashain Offer" — leave blank to hide'
+                      value={planForm[tier].offer_title}
                       onChange={(e) =>
-                        setPlanForm((prev) => ({ ...prev, [tier]: { amount: e.target.value } }))
+                        setPlanForm((prev) => ({ ...prev, [tier]: { ...prev[tier], offer_title: e.target.value } }))
                       }
-                      className={`${inp} max-w-[120px]`}
+                      className={`${inp} flex-1`}
                     />
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <label className="text-xs font-semibold text-slate-500 w-24 shrink-0">Offer Price</label>
+                    <div className="flex items-center gap-2">
+                      <span className="text-sm text-slate-500">Rs.</span>
+                      <input
+                        type="number"
+                        min="0"
+                        placeholder="e.g. 149 — leave blank for no offer"
+                        value={planForm[tier].offer_price}
+                        onChange={(e) =>
+                          setPlanForm((prev) => ({ ...prev, [tier]: { ...prev[tier], offer_price: e.target.value } }))
+                        }
+                        className={`${inp} max-w-[120px]`}
+                      />
+                    </div>
                   </div>
                 </div>
               );

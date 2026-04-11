@@ -2,6 +2,7 @@ import './globals.css';
 import { Plus_Jakarta_Sans, Noto_Sans_Devanagari } from 'next/font/google';
 import ThemeProvider from '@/components/ThemeProvider';
 import ConfigLoader from '@/components/ConfigLoader';
+import PopupAd from '@/components/PopupAd';
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -71,6 +72,7 @@ export default function RootLayout({ children }) {
       <body className="font-sans antialiased" suppressHydrationWarning>
         <ThemeProvider>
           <ConfigLoader />
+          <PopupAd />
           {children}
         </ThemeProvider>
       </body>

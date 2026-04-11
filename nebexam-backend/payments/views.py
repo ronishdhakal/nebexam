@@ -76,12 +76,13 @@ class SubscriptionPlanListView(APIView):
         cached = cache.get(key)
         if cached is not None:
             return Response(cached)
-        plans = {p.tier: {'label': p.label, 'amount': p.amount, 'months': p.months}
+        plans = {p.tier: {'label': p.label, 'amount': p.amount, 'months': p.months,
+                          'offer_title': p.offer_title, 'offer_price': p.offer_price}
                  for p in SubscriptionPlan.objects.all()}
         # Merge fallback tiers that may not be in DB yet
         for tier, defaults in PLAN_PRICES.items():
             if tier not in plans:
-                plans[tier] = defaults
+                plans[tier] = {**defaults, 'offer_title': '', 'offer_price': None}
         cache.set(key, plans, CACHE_TTL)
         return Response(plans)
 
@@ -103,6 +104,11 @@ class SubscriptionPlanListView(APIView):
                 plan.months = int(data['months'])
             if 'label' in data:
                 plan.label = data['label']
+            if 'offer_title' in data:
+                plan.offer_title = data['offer_title'] or ''
+            if 'offer_price' in data:
+                val = data['offer_price']
+                plan.offer_price = int(val) if val not in (None, '', 0, '0') else None
             plan.save()
             updated.append(tier)
         cache.clear()

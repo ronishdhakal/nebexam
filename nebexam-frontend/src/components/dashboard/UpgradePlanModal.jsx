@@ -6,9 +6,6 @@ import Image from 'next/image';
 import { paymentService } from '@/services/users.service';
 import useConfigStore from '@/store/configStore';
 
-const LAUNCH_SLOTS_TOTAL = 1000;
-const LAUNCH_SLOTS_USED = 900;
-
 const PAID_FEATURES = [
   'Unlimited answer reveals',
   'Solution of all Subject Model Questions',
@@ -60,8 +57,9 @@ function WaIcon() {
   );
 }
 
-function waLink(number, planName) {
-  const msg = encodeURIComponent(`Hi, I would like to purchase the ${planName} Plan on NEB Exam. Please assist me with the payment process.`);
+function waLink(number, planName, price, offerTitle) {
+  const priceLine = price ? `\nPlan: ${planName} — Rs. ${price}${offerTitle ? ` (${offerTitle})` : ''}` : `\nPlan: ${planName}`;
+  const msg = encodeURIComponent(`Hello! I would like to purchase the NEB Exam ${planName} plan.${priceLine}\n\nPlease guide me through the payment process. Thank you!`);
   return `https://wa.me/${number}?text=${msg}`;
 }
 
@@ -70,13 +68,13 @@ export default function UpgradePlanModal({ currentTier, onClose }) {
   const contactWa    = useConfigStore((s) => s.contactWa);
   const router       = useRouter();
 
-  const [prices, setPrices]           = useState({});
+  const [plans, setPlans]           = useState({});
   const [loadingPrices, setLoadingPrices] = useState(true);
 
   useEffect(() => {
     paymentService.getPlans()
-      .then((res) => setPrices(res.data))
-      .catch(() => setPrices({ '1month': { amount: 100 }, '3month': { amount: 200 }, '1year': { amount: 300 } }))
+      .then((res) => setPlans(res.data))
+      .catch(() => setPlans({ '1month': { amount: 100 }, '3month': { amount: 200 }, '1year': { amount: 300 } }))
       .finally(() => setLoadingPrices(false));
   }, []);
 
@@ -109,34 +107,6 @@ export default function UpgradePlanModal({ currentTier, onClose }) {
           <p className="text-[10px] sm:text-xs font-bold uppercase tracking-widest text-white/60 mb-1">Unlock Full Access</p>
           <h2 className="text-xl sm:text-2xl font-extrabold mb-1">Stop Guessing. Start Scoring.</h2>
           <p className="text-xs sm:text-sm text-white/80 max-w-md">Get solutions to every Subject Model Question + full notes, PDFs & past papers — everything you need to ace NEB.</p>
-
-          {/* Launch offer urgency strip */}
-          <div className="mt-4 bg-white/15 rounded-xl px-3 py-2.5 flex flex-col sm:flex-row sm:items-center gap-2 sm:gap-4">
-            <div className="flex items-center gap-2 shrink-0">
-              <span className="relative flex h-2 w-2">
-                <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-300 opacity-75" />
-                <span className="relative inline-flex rounded-full h-2 w-2 bg-amber-300" />
-              </span>
-              <span className="text-[11px] sm:text-xs font-bold text-white">
-                Launch price — first {LAUNCH_SLOTS_TOTAL} students only
-              </span>
-              <span className="bg-amber-400/30 text-amber-200 text-[10px] font-bold px-2 py-0.5 rounded-full">
-                {LAUNCH_SLOTS_TOTAL - LAUNCH_SLOTS_USED} spots left
-              </span>
-            </div>
-            <div className="flex-1 min-w-0">
-              <div className="flex items-center justify-between text-[10px] text-white/60 mb-1">
-                <span>{LAUNCH_SLOTS_USED}+ registered</span>
-                <span>{LAUNCH_SLOTS_TOTAL} max</span>
-              </div>
-              <div className="h-1.5 bg-white/20 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-amber-300 to-amber-400 rounded-full"
-                  style={{ width: `${(LAUNCH_SLOTS_USED / LAUNCH_SLOTS_TOTAL) * 100}%` }}
-                />
-              </div>
-            </div>
-          </div>
         </div>
 
         {/* Plans */}
@@ -146,9 +116,13 @@ export default function UpgradePlanModal({ currentTier, onClose }) {
               const isCurrent   = (currentTier || 'free') === plan.id;
               const isHighlight = plan.highlight;
               const isBestValue = plan.bestValue;
-              const amount      = prices[plan.id]?.amount;
+              const planData    = plans[plan.id] ?? {};
+              const amount      = planData.amount;
+              const offerTitle  = planData.offer_title;
+              const offerPrice  = planData.offer_price;
+              const hasOffer    = offerTitle && offerPrice != null;
               const savings     = plan.savingsNote?.(
-                Object.fromEntries(Object.entries(prices).map(([k, v]) => [k, v?.amount]))
+                Object.fromEntries(Object.entries(plans).map(([k, v]) => [k, v?.amount]))
               );
 
               return (
@@ -175,6 +149,18 @@ export default function UpgradePlanModal({ currentTier, onClose }) {
                       isHighlight || isBestValue ? 'text-white/70' : 'text-slate-400'
                     }`}>{plan.name}</p>
 
+                    {hasOffer && (
+                      <div className={`mb-1.5 inline-flex items-center gap-1.5 px-2 py-0.5 rounded-full text-[9px] sm:text-[10px] font-bold ${
+                        isHighlight ? 'bg-amber-300/30 text-amber-200' : isBestValue ? 'bg-amber-300/30 text-amber-200' : 'bg-amber-50 text-amber-600'
+                      }`}>
+                        <span className="relative flex h-1.5 w-1.5">
+                          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-amber-400 opacity-75" />
+                          <span className="relative inline-flex rounded-full h-1.5 w-1.5 bg-amber-400" />
+                        </span>
+                        {offerTitle}
+                      </div>
+                    )}
+
                     <div className="mb-0.5">
                       {plan.id === 'free' ? (
                         <span className={`text-2xl sm:text-3xl font-extrabold ${isHighlight || isBestValue ? 'text-white' : 'text-slate-900 dark:text-white'}`}>
@@ -182,21 +168,26 @@ export default function UpgradePlanModal({ currentTier, onClose }) {
                         </span>
                       ) : loadingPrices ? (
                         <span className="h-7 sm:h-8 w-16 sm:w-20 bg-white/20 dark:bg-slate-700 rounded animate-pulse inline-block" />
-                      ) : (
+                      ) : hasOffer ? (
                         <>
-                          {/* Future price strikethrough */}
                           <div className="flex items-center gap-1.5 mb-0.5">
                             <span className={`text-[10px] sm:text-xs line-through ${isHighlight || isBestValue ? 'text-white/50' : 'text-slate-400'}`}>
-                              Rs. {amount != null ? amount * 2 : '—'}
+                              Rs. {amount ?? '—'}
                             </span>
-                            <span className="text-[9px] sm:text-[10px] font-bold bg-red-500/20 text-red-300 px-1.5 py-0.5 rounded-full">
-                              after 1000
+                            <span className={`text-[9px] sm:text-[10px] font-bold px-1.5 py-0.5 rounded-full ${
+                              isHighlight || isBestValue ? 'bg-red-400/30 text-red-200' : 'bg-red-50 text-red-500'
+                            }`}>
+                              Save Rs. {amount - offerPrice}
                             </span>
                           </div>
                           <span className={`text-2xl sm:text-3xl font-extrabold ${isHighlight || isBestValue ? 'text-white' : 'text-slate-900 dark:text-white'}`}>
-                            Rs. {amount ?? '—'}
+                            Rs. {offerPrice}
                           </span>
                         </>
+                      ) : (
+                        <span className={`text-2xl sm:text-3xl font-extrabold ${isHighlight || isBestValue ? 'text-white' : 'text-slate-900 dark:text-white'}`}>
+                          Rs. {amount ?? '—'}
+                        </span>
                       )}
                     </div>
 
@@ -256,7 +247,7 @@ export default function UpgradePlanModal({ currentTier, onClose }) {
                     ) : (
                       <div className="flex flex-col gap-1">
                         <a
-                          href={waLink(contactWa, plan.name)}
+                          href={waLink(contactWa, plan.name, hasOffer ? offerPrice : amount, hasOffer ? offerTitle : null)}
                           target="_blank" rel="noopener noreferrer"
                           className={`w-full py-2.5 rounded-xl text-[10px] sm:text-xs font-bold flex items-center justify-center gap-1.5 transition ${
                             isHighlight ? 'bg-white text-[#1CA3FD] hover:bg-white/90'
@@ -265,8 +256,8 @@ export default function UpgradePlanModal({ currentTier, onClose }) {
                           }`}
                         >
                           <WaIcon />
-                          <span className="hidden sm:inline">Tap to Pay via WhatsApp</span>
-                          <span className="sm:hidden">Pay via WhatsApp</span>
+                          <span className="hidden sm:inline">Message on WhatsApp to Pay</span>
+                          <span className="sm:hidden">Message on WhatsApp to Pay</span>
                         </a>
                         <p className={`text-[9px] sm:text-[10px] text-center ${isHighlight || isBestValue ? 'text-white/60' : 'text-slate-400'}`}>
                           Click above → send message → done!
