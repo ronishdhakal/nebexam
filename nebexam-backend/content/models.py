@@ -73,7 +73,7 @@ class Chapter(models.Model):
         Subject, null=True, blank=True,
         on_delete=models.CASCADE, related_name='direct_chapters'
     )
-    name = models.CharField(max_length=255)
+    name = models.CharField(max_length=955)
     slug = models.SlugField(blank=True, unique=True)
     order = models.PositiveIntegerField(default=999)
     rich_text_notes = models.JSONField(null=True, blank=True)  # Tiptap JSON
