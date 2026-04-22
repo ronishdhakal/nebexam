@@ -114,7 +114,7 @@ function QuestionsList({ chapterSlug }) {
         {questions.length} question{questions.length !== 1 ? 's' : ''} found
       </p>
       {questions.map((q, idx) => (
-        <QuestionCard key={q.id} question={q} index={idx} isNepali={false} depth={0} />
+        <QuestionCard key={q.id} node={q} index={idx} isNepali={false} depth={0} />
       ))}
     </div>
   );
