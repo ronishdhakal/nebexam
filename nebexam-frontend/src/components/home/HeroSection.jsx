@@ -41,8 +41,8 @@ export default function HeroSection() {
             {/* Class links */}
             <div className="flex items-center gap-2.5 mb-9 flex-wrap">
               {[
-                { href: '/class-10', label: 'Class 10' },
-                { href: '/class-11', label: 'Class 11' },
+                // { href: '/class-10', label: 'Class 10' },
+                // { href: '/class-11', label: 'Class 11' },
                 { href: '/class-12', label: 'Class 12' },
               ].map((p) => (
                 <Link

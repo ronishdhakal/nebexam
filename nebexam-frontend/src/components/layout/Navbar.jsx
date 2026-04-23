@@ -143,7 +143,7 @@ export default function Navbar() {
 
           {/* Desktop nav links */}
           <div className="hidden md:flex items-center gap-0.5">
-            {['8', '9', '10'].map((level) => (
+            {/* {['8', '9', '10'].map((level) => (
               <Link
                 key={level}
                 href={`/class-${level}`}
@@ -155,9 +155,9 @@ export default function Navbar() {
               >
                 Class {level}
               </Link>
-            ))}
+            ))} */}
 
-            <ClassDropdown level="11" label="Class 11" isActive={pathname?.startsWith('/class-11')} />
+            {/* <ClassDropdown level="11" label="Class 11" isActive={pathname?.startsWith('/class-11')} /> */}
             <ClassDropdown level="12" label="Class 12" isActive={pathname?.startsWith('/class-12')} />
 
             <Link
@@ -241,7 +241,7 @@ export default function Navbar() {
         {/* Mobile menu */}
         {menuOpen && (
           <div className="md:hidden border-t border-gray-100 dark:border-slate-800 py-3 space-y-0.5">
-            {['8', '9', '10'].map((level) => (
+            {/* {['8', '9', '10'].map((level) => (
               <Link
                 key={level}
                 href={`/class-${level}`}
@@ -250,7 +250,7 @@ export default function Navbar() {
               >
                 Class {level}
               </Link>
-            ))}
+            ))} */}
 
             {['11', '12'].map((level) => (
               <div key={level}>
