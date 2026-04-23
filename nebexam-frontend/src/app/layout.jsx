@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans, Noto_Sans_Devanagari } from 'next/font/google';
 import ThemeProvider from '@/components/ThemeProvider';
 import ConfigLoader from '@/components/ConfigLoader';
 import PopupAd from '@/components/PopupAd';
+import Script from 'next/script';
 
 const jakarta = Plus_Jakarta_Sans({
   subsets: ['latin'],
@@ -47,28 +48,59 @@ export default function RootLayout({ children }) {
   return (
     <html lang="en" suppressHydrationWarning className={`${jakarta.variable} ${devanagari.variable}`}>
       <head>
-        <script async src="https://www.googletagmanager.com/gtag/js?id=G-3HYR0QNPZC"></script>
-        <script dangerouslySetInnerHTML={{
-          __html: `
-            window.dataLayer = window.dataLayer || [];
-            function gtag(){dataLayer.push(arguments);}
-            gtag('js', new Date());
-            gtag('config', 'G-3HYR0QNPZC');
-          `
-        }} />
-        <script dangerouslySetInnerHTML={{
-          __html: `
-            if ('serviceWorker' in navigator) {
-              window.addEventListener('load', function() {
-                navigator.serviceWorker.register('/sw.js');
-              });
-            }
-          `
-        }} />
-        <script dangerouslySetInnerHTML={{
-          __html: `document.addEventListener('contextmenu', function(e) { e.preventDefault(); });`
-        }} />
+
+        {/* ✅ Google AdSense */}
+        <Script
+          async
+          strategy="afterInteractive"
+          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2331292940175826"
+          crossOrigin="anonymous"
+        />
+
+        {/* ✅ Google Analytics */}
+        <Script
+          async
+          src="https://www.googletagmanager.com/gtag/js?id=G-3HYR0QNPZC"
+        />
+        <Script
+          id="google-analytics"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              window.dataLayer = window.dataLayer || [];
+              function gtag(){dataLayer.push(arguments);}
+              gtag('js', new Date());
+              gtag('config', 'G-3HYR0QNPZC');
+            `,
+          }}
+        />
+
+        {/* ✅ Service Worker */}
+        <Script
+          id="sw-register"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `
+              if ('serviceWorker' in navigator) {
+                window.addEventListener('load', function() {
+                  navigator.serviceWorker.register('/sw.js');
+                });
+              }
+            `,
+          }}
+        />
+
+        {/* ❌ (Optional) Remove this if you care about UX/SEO */}
+        <Script
+          id="disable-right-click"
+          strategy="afterInteractive"
+          dangerouslySetInnerHTML={{
+            __html: `document.addEventListener('contextmenu', function(e) { e.preventDefault(); });`,
+          }}
+        />
+
       </head>
+
       <body className="font-sans antialiased" suppressHydrationWarning>
         <ThemeProvider>
           <ConfigLoader />
