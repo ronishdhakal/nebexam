@@ -137,7 +137,7 @@ export default function Footer() {
 
           {/* Legal */}
           <div>
-            <ColHeading>Legal</ColHeading>
+            <ColHeading>Legal & Policies</ColHeading>
             <ul className="space-y-2.5">
               <li><FooterLink href="/privacy-policy">Privacy Policy</FooterLink></li>
               <li><FooterLink href="/terms">Terms &amp; Conditions</FooterLink></li>
