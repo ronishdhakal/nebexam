@@ -45,6 +45,10 @@ def _resolve_code(code):
     # Admin coupon
     try:
         coupon = Coupon.objects.get(code=code, is_active=True)
+        if coupon.max_uses is not None:
+            used = coupon.payments.filter(status=Payment.STATUS_SUCCESS).count()
+            if used >= coupon.max_uses:
+                return None, None, None
         return 'coupon', coupon, coupon.discount_percent
     except Coupon.DoesNotExist:
         pass
@@ -122,20 +126,26 @@ class CouponListCreateView(APIView):
     permission_classes = [IsAdminUser]
 
     def get(self, request):
+        from django.db.models import Sum
         coupons = Coupon.objects.all()
-        data = [
-            {
+        data = []
+        for c in coupons:
+            uses = c.payments.filter(status=Payment.STATUS_SUCCESS).count()
+            total_paid = c.payments.filter(status=Payment.STATUS_SUCCESS).aggregate(t=Sum('amount'))['t'] or 0
+            dp = c.discount_percent
+            total_discount = round(total_paid * dp / (100 - dp)) if dp < 100 else total_paid
+            data.append({
                 'id':               c.id,
                 'name':             c.name,
                 'purpose':          c.purpose,
                 'code':             c.code,
                 'discount_percent': c.discount_percent,
+                'max_uses':         c.max_uses,
                 'is_active':        c.is_active,
                 'created_at':       c.created_at,
-                'uses':             c.payments.filter(status=Payment.STATUS_SUCCESS).count(),
-            }
-            for c in coupons
-        ]
+                'uses':             uses,
+                'total_discount':   total_discount,
+            })
         return Response(data)
 
     def post(self, request):
@@ -143,6 +153,7 @@ class CouponListCreateView(APIView):
         name             = request.data.get('name', '').strip()
         purpose          = request.data.get('purpose', '').strip()
         discount_percent = request.data.get('discount_percent')
+        max_uses_raw     = request.data.get('max_uses')
 
         if not code or not name or discount_percent is None:
             return Response({'detail': 'code, name and discount_percent are required.'}, status=400)
@@ -154,12 +165,21 @@ class CouponListCreateView(APIView):
         except (ValueError, TypeError):
             return Response({'detail': 'discount_percent must be 1–100.'}, status=400)
 
+        max_uses = None
+        if max_uses_raw not in (None, '', '0', 0):
+            try:
+                max_uses = int(max_uses_raw)
+                if max_uses < 1:
+                    raise ValueError
+            except (ValueError, TypeError):
+                return Response({'detail': 'max_uses must be a positive integer.'}, status=400)
+
         if Coupon.objects.filter(code=code).exists():
             return Response({'detail': 'A coupon with this code already exists.'}, status=400)
 
         coupon = Coupon.objects.create(
             code=code, name=name, purpose=purpose,
-            discount_percent=discount_percent,
+            discount_percent=discount_percent, max_uses=max_uses,
         )
         return Response({
             'id':               coupon.id,
@@ -167,9 +187,11 @@ class CouponListCreateView(APIView):
             'purpose':          coupon.purpose,
             'code':             coupon.code,
             'discount_percent': coupon.discount_percent,
+            'max_uses':         coupon.max_uses,
             'is_active':        coupon.is_active,
             'created_at':       coupon.created_at,
             'uses':             0,
+            'total_discount':   0,
         }, status=201)
 
 
@@ -190,6 +212,18 @@ class CouponDetailView(APIView):
         for field in ('name', 'purpose', 'is_active'):
             if field in request.data:
                 setattr(coupon, field, request.data[field])
+        if 'max_uses' in request.data:
+            raw = request.data['max_uses']
+            if raw in (None, '', '0', 0):
+                coupon.max_uses = None
+            else:
+                try:
+                    v = int(raw)
+                    if v < 1:
+                        raise ValueError
+                    coupon.max_uses = v
+                except (ValueError, TypeError):
+                    return Response({'detail': 'max_uses must be a positive integer or blank.'}, status=400)
         if 'discount_percent' in request.data:
             try:
                 dp = int(request.data['discount_percent'])

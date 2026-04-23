@@ -35,6 +35,7 @@ class Coupon(models.Model):
     purpose          = models.CharField(max_length=255, blank=True)
     code             = models.CharField(max_length=50, unique=True)
     discount_percent = models.PositiveSmallIntegerField(help_text='1–100')
+    max_uses         = models.PositiveIntegerField(null=True, blank=True, help_text='Leave blank for unlimited')
     is_active        = models.BooleanField(default=True)
     created_at       = models.DateTimeField(auto_now_add=True)
 

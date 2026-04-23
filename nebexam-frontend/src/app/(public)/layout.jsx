@@ -1,5 +1,6 @@
 import Navbar from '@/components/layout/Navbar';
 import Footer from '@/components/layout/Footer';
+import AppInstallPrompt from '@/components/AppInstallPrompt';
 
 export default function PublicLayout({ children }) {
   return (
@@ -9,6 +10,7 @@ export default function PublicLayout({ children }) {
         {children}
       </main>
       <Footer />
+      <AppInstallPrompt />
     </div>
   );
 }

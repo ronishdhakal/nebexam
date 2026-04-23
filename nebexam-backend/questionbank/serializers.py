@@ -51,7 +51,7 @@ class QuestionBankEntrySerializer(serializers.ModelSerializer):
         model = QuestionBankEntry
         fields = [
             'id', 'slug', 'subject', 'subject_name', 'subject_slug', 'type', 'title', 'year', 'source',
-            'sub_code', 'time', 'full_marks', 'pass_marks', 'has_group', 'is_nepali', 'is_published'
+            'sub_code', 'time', 'full_marks', 'pass_marks', 'has_group', 'is_nepali', 'has_solution', 'is_published'
         ]
 
 

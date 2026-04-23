@@ -7,16 +7,16 @@ import { getErrorMessage, formatDate } from '@/lib/utils';
 const inp = 'w-full border border-slate-200 bg-white rounded-lg px-3 py-2 text-sm text-slate-900 placeholder:text-slate-400 focus:outline-none focus:ring-2 focus:ring-[#1CA3FD] focus:border-transparent transition';
 const lbl = 'block text-xs font-semibold text-slate-600 mb-1 uppercase tracking-wide';
 
-const EMPTY_FORM = { name: '', purpose: '', code: '', discount_percent: '' };
+const EMPTY_FORM = { name: '', purpose: '', code: '', discount_percent: '', max_uses: '' };
 
 export default function CouponsPage() {
-  const [coupons, setCoupons]     = useState([]);
-  const [loading, setLoading]     = useState(true);
-  const [form, setForm]           = useState(EMPTY_FORM);
+  const [coupons, setCoupons]       = useState([]);
+  const [loading, setLoading]       = useState(true);
+  const [form, setForm]             = useState(EMPTY_FORM);
   const [submitting, setSubmitting] = useState(false);
-  const [error, setError]         = useState(null);
-  const [success, setSuccess]     = useState(null);
-  const [deleteId, setDeleteId]   = useState(null);
+  const [error, setError]           = useState(null);
+  const [success, setSuccess]       = useState(null);
+  const [deleteId, setDeleteId]     = useState(null);
   const [togglingId, setTogglingId] = useState(null);
 
   const fetchCoupons = useCallback(async () => {
@@ -42,6 +42,7 @@ export default function CouponsPage() {
         ...form,
         code: form.code.toUpperCase(),
         discount_percent: Number(form.discount_percent),
+        max_uses: form.max_uses ? Number(form.max_uses) : null,
       });
       setForm(EMPTY_FORM);
       setSuccess('Coupon created.');
@@ -79,11 +80,29 @@ export default function CouponsPage() {
     }
   };
 
+  const totalUses     = coupons.reduce((s, c) => s + (c.uses || 0), 0);
+  const totalDiscount = coupons.reduce((s, c) => s + (c.total_discount || 0), 0);
+
   return (
-    <div className="max-w-4xl space-y-8">
+    <div className="max-w-5xl space-y-8">
       <div>
         <h1 className="text-2xl font-bold text-slate-900 mb-1">Coupons</h1>
         <p className="text-sm text-slate-500">Create discount codes for eSewa payments.</p>
+      </div>
+
+      {/* Analytics summary */}
+      <div className="grid grid-cols-2 sm:grid-cols-4 gap-4">
+        {[
+          { label: 'Total Coupons', value: coupons.length },
+          { label: 'Active', value: coupons.filter((c) => c.is_active).length },
+          { label: 'Total Uses', value: totalUses },
+          { label: 'Total Discount Given', value: `Rs. ${totalDiscount.toLocaleString()}` },
+        ].map(({ label, value }) => (
+          <div key={label} className="bg-white rounded-xl border border-gray-100 shadow-sm px-5 py-4">
+            <p className="text-xs text-slate-400 font-semibold uppercase tracking-wide mb-1">{label}</p>
+            <p className="text-xl font-bold text-slate-900">{value}</p>
+          </div>
+        ))}
       </div>
 
       {/* Create form */}
@@ -126,6 +145,15 @@ export default function CouponsPage() {
               className={inp}
             />
           </div>
+          <div>
+            <label className={lbl}>Max Uses <span className="text-slate-400 font-normal normal-case">(blank = unlimited)</span></label>
+            <input
+              type="number" min="1" placeholder="e.g. 50"
+              value={form.max_uses}
+              onChange={(e) => setForm({ ...form, max_uses: e.target.value })}
+              className={inp}
+            />
+          </div>
         </div>
 
         <div className="flex items-center gap-3 mt-4">
@@ -151,56 +179,79 @@ export default function CouponsPage() {
           <div className="text-center py-12 text-slate-400 text-sm">No coupons yet.</div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-sm min-w-[700px]">
+            <table className="w-full text-sm min-w-[820px]">
               <thead>
                 <tr className="border-b border-gray-100 bg-gray-50">
-                  {['Code', 'Person', 'Purpose', 'Discount', 'Uses', 'Created', 'Active', ''].map((h) => (
+                  {['Code', 'Person', 'Purpose', 'Discount', 'Uses', 'Total Discount', 'Created', 'Active', ''].map((h) => (
                     <th key={h} className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody className="divide-y divide-gray-50">
-                {coupons.map((c) => (
-                  <tr key={c.id} className="hover:bg-gray-50 transition-colors">
-                    <td className="px-5 py-3.5">
-                      <span className="font-mono font-semibold text-slate-800 bg-slate-100 px-2 py-0.5 rounded text-xs tracking-wider">
-                        {c.code}
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5 text-slate-700 font-medium">{c.name}</td>
-                    <td className="px-5 py-3.5 text-slate-400 text-xs">{c.purpose || '—'}</td>
-                    <td className="px-5 py-3.5">
-                      <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-violet-50 text-violet-700 ring-1 ring-violet-200">
-                        {c.discount_percent}% off
-                      </span>
-                    </td>
-                    <td className="px-5 py-3.5 text-slate-500 text-xs font-medium">{c.uses}</td>
-                    <td className="px-5 py-3.5 text-slate-400 text-xs">{formatDate(c.created_at)}</td>
-                    <td className="px-5 py-3.5">
-                      <button
-                        onClick={() => handleToggle(c)}
-                        disabled={togglingId === c.id}
-                        className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors disabled:opacity-50 ${
-                          c.is_active ? 'bg-[#1CA3FD]' : 'bg-slate-200'
-                        }`}
-                        role="switch" aria-checked={c.is_active}
-                      >
-                        <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform ${c.is_active ? 'translate-x-4' : 'translate-x-0'}`} />
-                      </button>
-                    </td>
-                    <td className="px-5 py-3.5">
-                      <button
-                        onClick={() => setDeleteId(c.id)}
-                        className="text-slate-300 hover:text-red-500 transition-colors"
-                        title="Delete"
-                      >
-                        <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
-                          <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
-                        </svg>
-                      </button>
-                    </td>
-                  </tr>
-                ))}
+                {coupons.map((c) => {
+                  const usageFull = c.max_uses != null && c.uses >= c.max_uses;
+                  return (
+                    <tr key={c.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-5 py-3.5">
+                        <span className="font-mono font-semibold text-slate-800 bg-slate-100 px-2 py-0.5 rounded text-xs tracking-wider">
+                          {c.code}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-slate-700 font-medium">{c.name}</td>
+                      <td className="px-5 py-3.5 text-slate-400 text-xs">{c.purpose || '—'}</td>
+                      <td className="px-5 py-3.5">
+                        <span className="inline-flex items-center px-2 py-0.5 rounded-full text-xs font-semibold bg-violet-50 text-violet-700 ring-1 ring-violet-200">
+                          {c.discount_percent}% off
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-1.5">
+                          <span className={`text-xs font-semibold ${usageFull ? 'text-red-500' : 'text-slate-600'}`}>
+                            {c.uses}{c.max_uses != null ? ` / ${c.max_uses}` : ''}
+                          </span>
+                          {usageFull && (
+                            <span className="text-xs font-medium text-red-400 bg-red-50 px-1.5 py-0.5 rounded-full">full</span>
+                          )}
+                        </div>
+                        {c.max_uses != null && (
+                          <div className="mt-1 w-16 h-1 bg-slate-100 rounded-full overflow-hidden">
+                            <div
+                              className={`h-full rounded-full ${usageFull ? 'bg-red-400' : 'bg-[#1CA3FD]'}`}
+                              style={{ width: `${Math.min((c.uses / c.max_uses) * 100, 100)}%` }}
+                            />
+                          </div>
+                        )}
+                      </td>
+                      <td className="px-5 py-3.5 text-slate-500 text-xs font-medium">
+                        Rs. {(c.total_discount || 0).toLocaleString()}
+                      </td>
+                      <td className="px-5 py-3.5 text-slate-400 text-xs">{formatDate(c.created_at)}</td>
+                      <td className="px-5 py-3.5">
+                        <button
+                          onClick={() => handleToggle(c)}
+                          disabled={togglingId === c.id}
+                          className={`relative inline-flex h-5 w-9 shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors disabled:opacity-50 ${
+                            c.is_active ? 'bg-[#1CA3FD]' : 'bg-slate-200'
+                          }`}
+                          role="switch" aria-checked={c.is_active}
+                        >
+                          <span className={`inline-block h-4 w-4 rounded-full bg-white shadow transform transition-transform ${c.is_active ? 'translate-x-4' : 'translate-x-0'}`} />
+                        </button>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <button
+                          onClick={() => setDeleteId(c.id)}
+                          className="text-slate-300 hover:text-red-500 transition-colors"
+                          title="Delete"
+                        >
+                          <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
+                            <polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14H6L5 6"/><path d="M10 11v6"/><path d="M14 11v6"/><path d="M9 6V4h6v2"/>
+                          </svg>
+                        </button>
+                      </td>
+                    </tr>
+                  );
+                })}
               </tbody>
             </table>
           </div>

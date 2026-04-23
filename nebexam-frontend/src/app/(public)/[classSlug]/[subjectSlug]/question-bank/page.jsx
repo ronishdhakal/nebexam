@@ -2,13 +2,24 @@ import Link from 'next/link';
 import { entriesService } from '@/services/questionbank.service';
 import { subjectsService } from '@/services/subjects.service';
 
+function currentBsYear() {
+  const now = new Date();
+  const m = now.getMonth() + 1;
+  const d = now.getDate();
+  // Baisakh 1 falls ~April 14 each year
+  return now.getFullYear() + (m > 4 || (m === 4 && d >= 14) ? 57 : 56);
+}
+
 export async function generateMetadata({ params }) {
   const { classSlug, subjectSlug } = await params;
   const level = classSlug.replace('class-', '');
+  const backendSlug = `${subjectSlug}-class-${level}`;
   try {
-    const res = await subjectsService.getOne(`${subjectSlug}-class-${level}`);
-    const title = `Class ${res.data.class_level} ${res.data.name} Question Bank — NEB Exam`;
-    const description = `Past papers and model questions for Class ${res.data.class_level} ${res.data.name} with solutions — NEB exam preparation.`;
+    const res = await subjectsService.getOne(backendSlug);
+    const subject = res.data;
+    const bsYear = currentBsYear();
+    const title = `Class ${subject.class_level} ${subject.name} Model & Old Question ${bsYear} — NEB Exam`;
+    const description = `Class ${subject.class_level} ${subject.name} model questions and old question papers ${bsYear} with solutions — NEB exam preparation.`;
     return {
       title,
       description,

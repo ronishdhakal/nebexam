@@ -2,11 +2,22 @@ import Link from 'next/link';
 import { entriesService } from '@/services/questionbank.service';
 import { subjectsService } from '@/services/subjects.service';
 
+
+function currentBsYear() {
+  const now = new Date();
+  const m = now.getMonth() + 1;
+  const d = now.getDate();
+  return now.getFullYear() + (m > 4 || (m === 4 && d >= 14) ? 57 : 56);
+}
+
 export async function generateMetadata({ params }) {
   const { slug } = await params;
   try {
     const res = await subjectsService.getOne(slug);
-    return { title: `${res.data.name} Question Bank — NEB Exam` };
+    const subject = res.data;
+    const bsYear = currentBsYear();
+    const title = `${subject.name} Model & Old Question ${bsYear} — NEB Exam`;
+    return { title };
   } catch {
     return { title: 'Question Bank — NEB Exam' };
   }
@@ -19,14 +30,12 @@ function EntryCard({ entry, subjectSlug }) {
       className="group flex items-center justify-between px-5 py-4 bg-white dark:bg-slate-800 border border-gray-100 dark:border-slate-700 rounded-xl hover:bg-[#f8fbff] dark:hover:bg-slate-700 hover:border-[#1CA3FD]/30 transition-all"
     >
       <div className="flex items-center gap-4 min-w-0">
-        {/* Year badge */}
         <span className="shrink-0 text-sm font-bold text-slate-700 dark:text-slate-200 w-12 text-center tabular-nums">
           {entry.year ?? '—'}
         </span>
 
         <div className="w-px h-8 bg-gray-100 dark:bg-slate-600 shrink-0" />
 
-        {/* Title + meta */}
         <div className="min-w-0">
           <p className="text-sm font-semibold text-slate-900 dark:text-slate-100 group-hover:text-[#1CA3FD] transition-colors leading-snug truncate">
             {entry.title}
@@ -45,7 +54,6 @@ function EntryCard({ entry, subjectSlug }) {
         </div>
       </div>
 
-      {/* Arrow */}
       <svg className="shrink-0 ml-4 text-slate-300 group-hover:text-[#1CA3FD] transition-colors" width="15" height="15" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" viewBox="0 0 24 24">
         <polyline points="9 18 15 12 9 6"/>
       </svg>
