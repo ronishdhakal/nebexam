@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { chaptersService } from '@/services/chapters.service';
 import { subjectsService } from '@/services/subjects.service';
 import { areasService } from '@/services/areas.service';
 import { getErrorMessage } from '@/lib/utils';
 import PageHeader from '@/components/admin/shared/PageHeader';
+import Pagination from '@/components/admin/shared/Pagination';
 
+const PAGE_SIZE = 20;
 const selectCls = 'text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1CA3FD]/30 focus:border-[#1CA3FD]';
 
 export default function ChaptersPage() {
@@ -16,6 +18,8 @@ export default function ChaptersPage() {
   const [areasForSubject, setAreasForSubject] = useState([]);
   const [loading, setLoading]           = useState(true);
   const [error, setError]               = useState(null);
+  const [count, setCount]               = useState(0);
+  const [page, setPage]                 = useState(1);
   const [classFilter, setClassFilter]   = useState('');
   const [subjectFilter, setSubjectFilter] = useState('');
   const [areaFilter, setAreaFilter]     = useState('');
@@ -37,25 +41,30 @@ export default function ChaptersPage() {
     setAreaFilter('');
   }, [subjectFilter]);
 
-  const fetchChapters = async (params = {}) => {
+  const fetchChapters = useCallback(async (p, params = {}) => {
     try {
       setLoading(true);
-      const res = await chaptersService.getAll(params);
+      const res = await chaptersService.getAll({ ...params, page: p, page_size: PAGE_SIZE });
       setChapters(res.data.results || res.data);
+      setCount(res.data.count ?? res.data.length);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  // Re-fetch when subject or area filter changes
+  useEffect(() => { setPage(1); }, [subjectFilter, areaFilter, statusFilter]);
+
+  // Re-fetch when filters or page changes
   useEffect(() => {
     const params = {};
-    if (areaFilter)    params.area    = areaFilter;
+    if (areaFilter)         params.area    = areaFilter;
     else if (subjectFilter) params.subject = subjectFilter;
-    fetchChapters(params);
-  }, [subjectFilter, areaFilter]);
+    if (statusFilter === 'published') params.is_published = 'true';
+    if (statusFilter === 'draft')     params.is_published = 'false';
+    fetchChapters(page, params);
+  }, [page, subjectFilter, areaFilter, statusFilter, fetchChapters]);
 
   const handleDelete = async (slug) => {
     if (!confirm('Delete this chapter?')) return;
@@ -64,7 +73,9 @@ export default function ChaptersPage() {
       const params = {};
       if (areaFilter)         params.area    = areaFilter;
       else if (subjectFilter) params.subject = subjectFilter;
-      fetchChapters(params);
+      if (statusFilter === 'published') params.is_published = 'true';
+      if (statusFilter === 'draft')     params.is_published = 'false';
+      fetchChapters(page, params);
     } catch (err) {
       alert(getErrorMessage(err));
     }
@@ -82,11 +93,6 @@ export default function ChaptersPage() {
       if (!still) { setSubjectFilter(''); setAreaFilter(''); }
     }
   };
-
-  // Status filter is client-side
-  const filtered = statusFilter
-    ? chapters.filter((c) => statusFilter === 'published' ? c.is_published : !c.is_published)
-    : chapters;
 
   const hasFilter = classFilter || subjectFilter || areaFilter || statusFilter;
 
@@ -141,9 +147,7 @@ export default function ChaptersPage() {
         )}
 
         {!loading && (
-          <span className="ml-auto text-xs text-slate-400">
-            {filtered.length}{statusFilter ? ` of ${chapters.length}` : ''} chapters
-          </span>
+          <span className="ml-auto text-xs text-slate-400">{count} chapters</span>
         )}
       </div>
 
@@ -151,40 +155,43 @@ export default function ChaptersPage() {
       {error && <p className="text-sm text-red-500">{error}</p>}
 
       {!loading && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[600px]">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Chapter</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Area</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Order</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {filtered.map((chapter) => (
-                <tr key={chapter.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-5 py-3.5 font-medium text-slate-900">{chapter.name}</td>
-                  <td className="px-5 py-3.5 text-slate-500">{chapter.area_name}</td>
-                  <td className="px-5 py-3.5 text-slate-400 text-xs font-mono">{chapter.order}</td>
-                  <td className="px-5 py-3.5">
-                    <StatusBadge published={chapter.is_published} />
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-3">
-                      <Link href={`/admin/chapters/${chapter.slug}`} className="text-[#1CA3FD] hover:text-[#0e8fe0] text-xs font-medium">Edit</Link>
-                      <button onClick={() => handleDelete(chapter.slug)} className="text-red-500 hover:text-red-700 text-xs font-medium">Delete</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <>
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[600px]">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50">
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Chapter</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Area</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Order</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {chapters.map((chapter) => (
+                    <tr key={chapter.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-5 py-3.5 font-medium text-slate-900">{chapter.name}</td>
+                      <td className="px-5 py-3.5 text-slate-500">{chapter.area_name}</td>
+                      <td className="px-5 py-3.5 text-slate-400 text-xs font-mono">{chapter.order}</td>
+                      <td className="px-5 py-3.5">
+                        <StatusBadge published={chapter.is_published} />
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <Link href={`/admin/chapters/${chapter.slug}`} className="text-[#1CA3FD] hover:text-[#0e8fe0] text-xs font-medium">Edit</Link>
+                          <button onClick={() => handleDelete(chapter.slug)} className="text-red-500 hover:text-red-700 text-xs font-medium">Delete</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {chapters.length === 0 && <div className="text-center py-12 text-slate-400 text-sm">No chapters found.</div>}
           </div>
-          {filtered.length === 0 && <div className="text-center py-12 text-slate-400 text-sm">No chapters found.</div>}
-        </div>
+          <Pagination page={page} count={count} pageSize={PAGE_SIZE} onPage={setPage} />
+        </>
       )}
     </div>
   );

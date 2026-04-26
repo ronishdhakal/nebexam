@@ -1,12 +1,14 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import AreaList from '@/components/admin/area/AreaList';
 import { areasService } from '@/services/areas.service';
 import { subjectsService } from '@/services/subjects.service';
 import { getErrorMessage } from '@/lib/utils';
 import PageHeader from '@/components/admin/shared/PageHeader';
+import Pagination from '@/components/admin/shared/Pagination';
 
+const PAGE_SIZE = 20;
 const selectCls = 'text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1CA3FD]/30 focus:border-[#1CA3FD]';
 
 export default function AreasPage() {
@@ -14,6 +16,8 @@ export default function AreasPage() {
   const [allSubjects, setAllSubjects] = useState([]);
   const [loading, setLoading]       = useState(true);
   const [error, setError]           = useState(null);
+  const [count, setCount]           = useState(0);
+  const [page, setPage]             = useState(1);
   const [classFilter, setClassFilter]     = useState('');
   const [subjectFilter, setSubjectFilter] = useState('');
 
@@ -24,24 +28,27 @@ export default function AreasPage() {
     }).catch(() => {});
   }, []);
 
-  const fetchAreas = async (params = {}) => {
+  const fetchAreas = useCallback(async (p, params = {}) => {
     try {
       setLoading(true);
-      const res = await areasService.getAll(params);
+      const res = await areasService.getAll({ ...params, page: p, page_size: PAGE_SIZE });
       setAreas(res.data.results || res.data);
+      setCount(res.data.count ?? res.data.length);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  // Re-fetch when subject filter changes
+  useEffect(() => { setPage(1); }, [subjectFilter]);
+
+  // Re-fetch when subject filter or page changes
   useEffect(() => {
     const params = {};
     if (subjectFilter) params.subject = subjectFilter;
-    fetchAreas(params);
-  }, [subjectFilter]);
+    fetchAreas(page, params);
+  }, [page, subjectFilter, fetchAreas]);
 
   const handleDelete = async (id) => {
     if (!confirm('Delete this area?')) return;
@@ -49,7 +56,7 @@ export default function AreasPage() {
       await areasService.delete(id);
       const params = {};
       if (subjectFilter) params.subject = subjectFilter;
-      fetchAreas(params);
+      fetchAreas(page, params);
     } catch (err) {
       alert(getErrorMessage(err));
     }
@@ -60,7 +67,6 @@ export default function AreasPage() {
     ? allSubjects.filter((s) => String(s.class_level) === classFilter)
     : allSubjects;
 
-  // When class changes, clear subject if it no longer belongs to that class
   const handleClassChange = (val) => {
     setClassFilter(val);
     if (val && subjectFilter) {
@@ -107,13 +113,18 @@ export default function AreasPage() {
         )}
 
         {!loading && (
-          <span className="ml-auto text-xs text-slate-400">{areas.length} areas</span>
+          <span className="ml-auto text-xs text-slate-400">{count} areas</span>
         )}
       </div>
 
       {loading && <p className="text-sm text-slate-500">Loading...</p>}
       {error && <p className="text-sm text-red-500">{error}</p>}
-      {!loading && <AreaList areas={areas} onDelete={handleDelete} />}
+      {!loading && (
+        <>
+          <AreaList areas={areas} onDelete={handleDelete} />
+          <Pagination page={page} count={count} pageSize={PAGE_SIZE} onPage={setPage} />
+        </>
+      )}
     </div>
   );
 }

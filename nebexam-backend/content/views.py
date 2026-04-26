@@ -20,6 +20,7 @@ from .serializers import (
 )
 from questionbank.serializers import QuestionNodeSerializer
 from nebexam.cache import CachedViewSetMixin, make_cache_key, CACHE_TTL
+from nebexam.pagination import OptionalPagination
 
 
 class SubjectViewSet(CachedViewSetMixin, viewsets.ModelViewSet):
@@ -27,6 +28,7 @@ class SubjectViewSet(CachedViewSetMixin, viewsets.ModelViewSet):
     lookup_field = 'slug'
     filter_backends = [filters.SearchFilter]
     search_fields = ['name', 'subject_code']
+    pagination_class = OptionalPagination
 
     def get_serializer_class(self):
         if self.action in ('retrieve', 'update', 'partial_update'):
@@ -37,6 +39,12 @@ class SubjectViewSet(CachedViewSetMixin, viewsets.ModelViewSet):
         qs = Subject.objects.all()
         if not (self.request.user.is_authenticated and self.request.user.is_staff):
             qs = qs.filter(is_published=True)
+        else:
+            is_published = self.request.query_params.get('is_published')
+            if is_published == 'true':
+                qs = qs.filter(is_published=True)
+            elif is_published == 'false':
+                qs = qs.filter(is_published=False)
         class_level = self.request.query_params.get('class_level')
         stream = self.request.query_params.get('stream')
         if class_level:
@@ -51,6 +59,7 @@ class AreaViewSet(CachedViewSetMixin, viewsets.ModelViewSet):
         Prefetch('chapters', queryset=Chapter.objects.order_by('order', 'name'))
     ).order_by('order', 'name')
     serializer_class = AreaSerializer
+    pagination_class = OptionalPagination
 
     def get_queryset(self):
         qs = super().get_queryset()
@@ -63,6 +72,7 @@ class AreaViewSet(CachedViewSetMixin, viewsets.ModelViewSet):
 class ChapterViewSet(CachedViewSetMixin, viewsets.ModelViewSet):
     queryset = Chapter.objects.select_related('area__subject', 'subject').order_by('order', 'name')
     lookup_field = 'slug'
+    pagination_class = OptionalPagination
 
     def get_serializer_class(self):
         if self.action == 'retrieve':
@@ -73,6 +83,14 @@ class ChapterViewSet(CachedViewSetMixin, viewsets.ModelViewSet):
 
     def get_queryset(self):
         qs = super().get_queryset()
+        if not (self.request.user.is_authenticated and self.request.user.is_staff):
+            qs = qs.filter(is_published=True)
+        else:
+            is_published = self.request.query_params.get('is_published')
+            if is_published == 'true':
+                qs = qs.filter(is_published=True)
+            elif is_published == 'false':
+                qs = qs.filter(is_published=False)
         area = self.request.query_params.get('area')
         subject = self.request.query_params.get('subject')
         if area:

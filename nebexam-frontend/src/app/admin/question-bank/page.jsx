@@ -1,20 +1,27 @@
 'use client';
 
-import { useState, useEffect, useMemo } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import Link from 'next/link';
 import { entriesService } from '@/services/questionbank.service';
 import { subjectsService } from '@/services/subjects.service';
 import { getErrorMessage } from '@/lib/utils';
 import PageHeader from '@/components/admin/shared/PageHeader';
+import Pagination from '@/components/admin/shared/Pagination';
 import SearchableSelect from '@/components/ui/SearchableSelect';
 
+const PAGE_SIZE = 20;
 const selectCls = 'text-sm border border-gray-200 rounded-lg px-3 py-1.5 bg-white text-slate-700 focus:outline-none focus:ring-2 focus:ring-[#1CA3FD]/30 focus:border-[#1CA3FD]';
+
+// Static BS year range for NEB exams
+const YEARS = Array.from({ length: 18 }, (_, i) => 2082 - i);
 
 export default function QuestionBankPage() {
   const [entries, setEntries]           = useState([]);
   const [allSubjects, setAllSubjects]   = useState([]);
   const [loading, setLoading]           = useState(true);
   const [error, setError]               = useState(null);
+  const [count, setCount]               = useState(0);
+  const [page, setPage]                 = useState(1);
   const [classFilter, setClassFilter]   = useState('');
   const [subjectFilter, setSubjectFilter] = useState('');
   const [typeFilter, setTypeFilter]     = useState('');
@@ -28,25 +35,31 @@ export default function QuestionBankPage() {
     }).catch(() => {});
   }, []);
 
-  const fetchEntries = async (params = {}) => {
+  const fetchEntries = useCallback(async (p, params = {}) => {
     try {
       setLoading(true);
-      const res = await entriesService.getAll(params);
+      const res = await entriesService.getAll({ ...params, page: p, page_size: PAGE_SIZE });
       setEntries(res.data.results || res.data);
+      setCount(res.data.count ?? res.data.length);
     } catch (err) {
       setError(getErrorMessage(err));
     } finally {
       setLoading(false);
     }
-  };
+  }, []);
 
-  // Re-fetch when server-side filters change
+  useEffect(() => { setPage(1); }, [subjectFilter, typeFilter, yearFilter, statusFilter]);
+
+  // Re-fetch when filters or page changes
   useEffect(() => {
     const params = {};
     if (subjectFilter) params.subject = subjectFilter;
     if (typeFilter)    params.type    = typeFilter;
-    fetchEntries(params);
-  }, [subjectFilter, typeFilter]);
+    if (yearFilter)    params.year    = yearFilter;
+    if (statusFilter === 'published') params.is_published = 'true';
+    if (statusFilter === 'draft')     params.is_published = 'false';
+    fetchEntries(page, params);
+  }, [page, subjectFilter, typeFilter, yearFilter, statusFilter, fetchEntries]);
 
   const handleDelete = async (slug) => {
     if (!confirm('Delete this entry?')) return;
@@ -55,7 +68,10 @@ export default function QuestionBankPage() {
       const params = {};
       if (subjectFilter) params.subject = subjectFilter;
       if (typeFilter)    params.type    = typeFilter;
-      fetchEntries(params);
+      if (yearFilter)    params.year    = yearFilter;
+      if (statusFilter === 'published') params.is_published = 'true';
+      if (statusFilter === 'draft')     params.is_published = 'false';
+      fetchEntries(page, params);
     } catch (err) {
       alert(getErrorMessage(err));
     }
@@ -73,20 +89,6 @@ export default function QuestionBankPage() {
       if (!still) setSubjectFilter('');
     }
   };
-
-  // Unique years from loaded entries for the year dropdown
-  const availableYears = useMemo(() => {
-    const years = [...new Set(entries.map((e) => e.year).filter(Boolean))].sort((a, b) => b - a);
-    return years;
-  }, [entries]);
-
-  // Client-side filters: year and status
-  const filtered = entries.filter((e) => {
-    if (yearFilter   && String(e.year) !== yearFilter)              return false;
-    if (statusFilter === 'published' && !e.is_published)            return false;
-    if (statusFilter === 'draft'     &&  e.is_published)            return false;
-    return true;
-  });
 
   const hasFilter = classFilter || subjectFilter || typeFilter || yearFilter || statusFilter;
 
@@ -129,7 +131,7 @@ export default function QuestionBankPage() {
 
         <select value={yearFilter} onChange={(e) => setYearFilter(e.target.value)} className={selectCls}>
           <option value="">All Years</option>
-          {availableYears.map((y) => (
+          {YEARS.map((y) => (
             <option key={y} value={String(y)}>{y}</option>
           ))}
         </select>
@@ -150,9 +152,7 @@ export default function QuestionBankPage() {
         )}
 
         {!loading && (
-          <span className="ml-auto text-xs text-slate-400">
-            {filtered.length}{(yearFilter || statusFilter) ? ` of ${entries.length}` : ''} entries
-          </span>
+          <span className="ml-auto text-xs text-slate-400">{count} entries</span>
         )}
       </div>
 
@@ -160,56 +160,59 @@ export default function QuestionBankPage() {
       {error && <p className="text-sm text-red-500">{error}</p>}
 
       {!loading && (
-        <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto">
-          <table className="w-full text-sm min-w-[700px]">
-            <thead>
-              <tr className="border-b border-gray-100 bg-gray-50">
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Title</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Subject</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Type</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Year</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</th>
-                <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-gray-50">
-              {filtered.map((entry) => (
-                <tr key={entry.id} className="hover:bg-gray-50 transition-colors">
-                  <td className="px-5 py-3.5 font-medium text-slate-900">{entry.title}</td>
-                  <td className="px-5 py-3.5 text-slate-500">{entry.subject_name}</td>
-                  <td className="px-5 py-3.5">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ring-1 ${
-                      entry.type === 'old_question'
-                        ? 'bg-orange-50 text-orange-700 ring-orange-200'
-                        : 'bg-blue-50 text-blue-700 ring-blue-200'
-                    }`}>
-                      {entry.type.replace('_', ' ')}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3.5 text-slate-400 font-mono text-xs">{entry.year || '—'}</td>
-                  <td className="px-5 py-3.5">
-                    <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ring-1 ${
-                      entry.is_published
-                        ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
-                        : 'bg-amber-50 text-amber-700 ring-amber-200'
-                    }`}>
-                      {entry.is_published ? 'Published' : 'Draft'}
-                    </span>
-                  </td>
-                  <td className="px-5 py-3.5">
-                    <div className="flex items-center gap-3">
-                      <Link href={`/admin/question-bank/${entry.slug}`} className="text-[#1CA3FD] hover:text-[#0e8fe0] text-xs font-medium">Edit</Link>
-                      <button onClick={() => handleDelete(entry.slug)} className="text-red-500 hover:text-red-700 text-xs font-medium">Delete</button>
-                    </div>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+        <>
+          <div className="bg-white rounded-2xl border border-gray-100 shadow-sm overflow-hidden">
+            <div className="overflow-x-auto">
+              <table className="w-full text-sm min-w-[700px]">
+                <thead>
+                  <tr className="border-b border-gray-100 bg-gray-50">
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Title</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Subject</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Type</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Year</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Status</th>
+                    <th className="text-left px-5 py-3 text-xs font-semibold text-gray-400 uppercase tracking-wide">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-gray-50">
+                  {entries.map((entry) => (
+                    <tr key={entry.id} className="hover:bg-gray-50 transition-colors">
+                      <td className="px-5 py-3.5 font-medium text-slate-900">{entry.title}</td>
+                      <td className="px-5 py-3.5 text-slate-500">{entry.subject_name}</td>
+                      <td className="px-5 py-3.5">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ring-1 ${
+                          entry.type === 'old_question'
+                            ? 'bg-orange-50 text-orange-700 ring-orange-200'
+                            : 'bg-blue-50 text-blue-700 ring-blue-200'
+                        }`}>
+                          {entry.type.replace('_', ' ')}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5 text-slate-400 font-mono text-xs">{entry.year || '—'}</td>
+                      <td className="px-5 py-3.5">
+                        <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ring-1 ${
+                          entry.is_published
+                            ? 'bg-emerald-50 text-emerald-700 ring-emerald-200'
+                            : 'bg-amber-50 text-amber-700 ring-amber-200'
+                        }`}>
+                          {entry.is_published ? 'Published' : 'Draft'}
+                        </span>
+                      </td>
+                      <td className="px-5 py-3.5">
+                        <div className="flex items-center gap-3">
+                          <Link href={`/admin/question-bank/${entry.slug}`} className="text-[#1CA3FD] hover:text-[#0e8fe0] text-xs font-medium">Edit</Link>
+                          <button onClick={() => handleDelete(entry.slug)} className="text-red-500 hover:text-red-700 text-xs font-medium">Delete</button>
+                        </div>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+            {entries.length === 0 && <div className="text-center py-12 text-slate-400 text-sm">No entries found.</div>}
           </div>
-          {filtered.length === 0 && <div className="text-center py-12 text-slate-400 text-sm">No entries found.</div>}
-        </div>
+          <Pagination page={page} count={count} pageSize={PAGE_SIZE} onPage={setPage} />
+        </>
       )}
     </div>
   );

@@ -5,6 +5,7 @@ from .serializers import (
     QuestionGroupSerializer, QuestionNodeSerializer
 )
 from nebexam.cache import CachedViewSetMixin
+from nebexam.pagination import OptionalPagination
 
 
 class QuestionBankEntryViewSet(CachedViewSetMixin, viewsets.ModelViewSet):
@@ -12,6 +13,7 @@ class QuestionBankEntryViewSet(CachedViewSetMixin, viewsets.ModelViewSet):
     lookup_field = 'slug'
     filter_backends = [filters.SearchFilter]
     search_fields = ['title', 'year', 'subject__name']
+    pagination_class = OptionalPagination
 
     def get_serializer_class(self):
         if self.action == 'retrieve':
@@ -22,6 +24,12 @@ class QuestionBankEntryViewSet(CachedViewSetMixin, viewsets.ModelViewSet):
         qs = super().get_queryset()
         if not (self.request.user.is_authenticated and self.request.user.is_staff):
             qs = qs.filter(is_published=True)
+        else:
+            is_published = self.request.query_params.get('is_published')
+            if is_published == 'true':
+                qs = qs.filter(is_published=True)
+            elif is_published == 'false':
+                qs = qs.filter(is_published=False)
         subject = self.request.query_params.get('subject')
         entry_type = self.request.query_params.get('type')
         year = self.request.query_params.get('year')

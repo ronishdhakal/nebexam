@@ -2,6 +2,9 @@
 
 import { useState, useEffect, useRef, useCallback } from 'react';
 import api from '@/lib/api';
+import Pagination from '@/components/admin/shared/Pagination';
+
+const PAGE_SIZE = 20;
 
 const IMAGE_EXTS = new Set(['jpg', 'jpeg', 'png', 'gif', 'webp', 'svg', 'avif']);
 const PDF_EXT = 'pdf';
@@ -32,6 +35,7 @@ export default function BucketPage() {
   const [error, setError] = useState('');
   const [search, setSearch] = useState('');
   const [filter, setFilter] = useState('all'); // all | image | pdf | other
+  const [page, setPage] = useState(1);
   const [copied, setCopied] = useState('');
   const [deleting, setDeleting] = useState('');
   const [confirmDelete, setConfirmDelete] = useState(null);
@@ -114,6 +118,11 @@ export default function BucketPage() {
       (filter === 'other' && !IMAGE_EXTS.has(e) && e !== PDF_EXT);
     return matchSearch && matchFilter;
   });
+
+  // Reset to page 1 when search or filter changes
+  useEffect(() => { setPage(1); }, [search, filter]);
+
+  const paginatedFiles = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   return (
     <div className="p-6 space-y-6">
@@ -266,7 +275,7 @@ export default function BucketPage() {
         </div>
       ) : (
         <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
-          {filtered.map((file) => (
+          {paginatedFiles.map((file) => (
             <FileCard
               key={file.key}
               file={file}
@@ -279,12 +288,7 @@ export default function BucketPage() {
         </div>
       )}
 
-      {/* Count */}
-      {!loading && filtered.length > 0 && (
-        <p className="text-xs text-gray-400 text-center">
-          Showing {filtered.length} of {files.length} files
-        </p>
-      )}
+      <Pagination page={page} count={filtered.length} pageSize={PAGE_SIZE} onPage={setPage} />
 
       {/* Delete confirm modal */}
       {confirmDelete && (
