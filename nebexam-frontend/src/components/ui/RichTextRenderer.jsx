@@ -13,6 +13,7 @@ import { TableCell } from '@tiptap/extension-table-cell';
 import Mathematics, { migrateMathStrings } from '@tiptap/extension-mathematics';
 import { useEffect, useRef, useState, useMemo } from 'react';
 import ImageLightbox from '@/components/ui/ImageLightbox';
+import { migrateCustomLatexDelimiters } from '@/lib/latexMigration';
 
 export default function RichTextRenderer({ value }) {
   const extensions = useMemo(() => [
@@ -38,7 +39,7 @@ export default function RichTextRenderer({ value }) {
   });
 
   useEffect(() => {
-    if (editor) migrateMathStrings(editor);
+    if (editor) { migrateCustomLatexDelimiters(editor); migrateMathStrings(editor); }
   }, [editor]);
 
   useEffect(() => {

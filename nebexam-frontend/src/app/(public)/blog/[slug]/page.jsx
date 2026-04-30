@@ -52,129 +52,128 @@ export default async function BlogDetailPage({ params }) {
   const showModified = item.updated_at && item.updated_at !== item.created_at;
 
   return (
-    <div className="bg-slate-50 dark:bg-slate-900 min-h-screen">
-      <div className="max-w-7xl mx-auto px-6 py-10">
+    <div className="bg-white dark:bg-slate-950 min-h-screen">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
+
         {/* Breadcrumb */}
-        <nav className="flex items-center gap-2 text-sm text-slate-400 mb-6 flex-wrap">
+        <nav className="flex items-center gap-2 text-sm text-slate-400 mb-8 flex-wrap">
           <Link href="/" className="hover:text-[#1CA3FD] transition-colors">Home</Link>
-          <span>/</span>
+          <span className="text-slate-300 dark:text-slate-600">/</span>
           <Link href="/blog" className="hover:text-[#1CA3FD] transition-colors">Blog</Link>
           {item.category_name && (
             <>
-              <span>/</span>
+              <span className="text-slate-300 dark:text-slate-600">/</span>
               <Link href={`/blog/category/${item.category_slug}`} className="hover:text-[#1CA3FD] transition-colors">
                 {item.category_name}
               </Link>
             </>
           )}
-          <span>/</span>
-          <span className="text-slate-600 dark:text-slate-300 line-clamp-1 max-w-xs">{item.title}</span>
+          <span className="text-slate-300 dark:text-slate-600">/</span>
+          <span className="text-slate-500 dark:text-slate-400 line-clamp-1 max-w-xs">{item.title}</span>
         </nav>
 
-        <div className="flex gap-8 items-start">
+        <div className="flex gap-12 items-start">
+
           {/* ── Main Article ── */}
-          <article className="flex-1 min-w-0 bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 overflow-hidden shadow-sm">
-            <div className="p-6 sm:p-8">
-              {/* Title */}
-              <h1 className="text-2xl sm:text-3xl font-bold text-slate-900 dark:text-white leading-tight mb-3">
+          <article className="flex-1 min-w-0">
+
+            {/* Category + Title + Meta */}
+            <header className="mb-6">
+              {item.category_name && (
+                <Link
+                  href={`/blog/category/${item.category_slug}`}
+                  className="inline-block mb-3 text-xs font-semibold uppercase tracking-widest text-[#1CA3FD] hover:text-[#0e8fd9] transition-colors"
+                >
+                  {item.category_name}
+                </Link>
+              )}
+              <h1 className="text-3xl sm:text-4xl font-bold text-slate-900 dark:text-white leading-tight mb-4">
                 {item.title}
               </h1>
-
-              {/* Meta */}
-              <div className="flex flex-wrap items-center gap-3 mb-6 pb-6 border-b border-gray-100 dark:border-slate-700">
-                {item.category_name && (
-                  <Link
-                    href={`/blog/category/${item.category_slug}`}
-                    className="inline-flex items-center px-3 py-1 rounded-full text-xs font-bold bg-[#1CA3FD]/10 text-[#1CA3FD] hover:bg-[#1CA3FD]/20 transition-colors"
-                  >
-                    {item.category_name}
-                  </Link>
-                )}
-                <div className="flex flex-wrap items-center gap-4 text-xs text-slate-400">
+              <div className="flex flex-wrap items-center gap-4 text-sm text-slate-400">
+                <span className="flex items-center gap-1.5">
+                  <CalendarIcon />
+                  Published: {publishedDate}
+                </span>
+                {showModified && (
                   <span className="flex items-center gap-1.5">
-                    <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
-                    </svg>
-                    Published: {publishedDate}
+                    <EditIcon />
+                    Updated: {modifiedDate}
                   </span>
-                  {showModified && (
-                    <span className="flex items-center gap-1.5">
-                      <svg width="12" height="12" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-                        <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
-                      </svg>
-                      Updated: {modifiedDate}
-                    </span>
-                  )}
-                </div>
+                )}
               </div>
-            </div>
+            </header>
 
-            {/* Featured Image — full width, natural height, after meta */}
+            {/* Featured Image */}
             {image && (
-              <div className="w-full bg-slate-100 dark:bg-slate-900">
+              <div className="w-full mb-8 rounded-xl overflow-hidden">
                 <Image
                   src={image}
                   alt={item.title}
                   width={0}
                   height={0}
-                  sizes="(max-width: 1280px) 100vw, 900px"
+                  sizes="(max-width: 1280px) 100vw, 860px"
                   className="w-full h-auto block"
                   priority
                 />
               </div>
             )}
 
-            <div className="p-6 sm:p-8">
-              {/* Excerpt */}
-              {item.excerpt && (
-                <p className="text-base text-slate-600 dark:text-slate-300 leading-relaxed mb-6 pb-6 border-b border-gray-100 dark:border-slate-700">
-                  {item.excerpt}
-                </p>
-              )}
+            {/* Excerpt */}
+            {item.excerpt && (
+              <p className="text-lg text-slate-600 dark:text-slate-300 leading-relaxed mb-8 pb-8 border-b border-slate-100 dark:border-slate-800 font-medium">
+                {item.excerpt}
+              </p>
+            )}
 
-              {/* Rich text content */}
-              {item.content && (
-                <div className="prose prose-slate dark:prose-invert max-w-none">
-                  <RichTextRenderer value={item.content} />
-                </div>
-              )}
-            </div>
+            {/* Rich text content */}
+            {item.content && (
+              <div className="prose prose-slate dark:prose-invert max-w-none">
+                <RichTextRenderer value={item.content} />
+              </div>
+            )}
           </article>
 
-          {/* ── Right Sidebar ── */}
-          <aside className="w-72 shrink-0 hidden lg:block space-y-5">
+          {/* ── Sidebar ── */}
+          <aside className="w-64 shrink-0 hidden lg:flex flex-col gap-8 sticky top-8">
+            <Link
+              href="/blog"
+              className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-[#1CA3FD] transition-colors"
+            >
+              <ArrowLeftIcon />
+              Back to Blog
+            </Link>
+
             {recentPosts.length > 0 && (
-              <div className="bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 p-5">
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-4 flex items-center justify-between">
-                  Recent Posts
-                  <Link href="/blog" className="text-xs font-medium text-[#1CA3FD] hover:underline">View all</Link>
-                </h3>
-                <ul className="space-y-4">
+              <div>
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-xs font-semibold uppercase tracking-widest text-slate-400">Recent Posts</h3>
+                  <Link href="/blog" className="text-xs text-[#1CA3FD] hover:underline">View all</Link>
+                </div>
+                <ul className="space-y-5">
                   {recentPosts.map((p) => (
                     <li key={p.id}>
                       <Link href={`/blog/${p.slug}`} className="group flex gap-3 items-start">
                         {p.featured_image ? (
-                          <div className="w-16 h-12 rounded-lg overflow-hidden shrink-0 border border-gray-100 dark:border-slate-700 relative">
+                          <div className="w-14 h-10 rounded-md overflow-hidden shrink-0 relative">
                             <Image
                               src={mediaUrl(p.featured_image)}
                               alt={p.title}
                               fill
-                              sizes="64px"
+                              sizes="56px"
                               className="object-cover"
                             />
                           </div>
                         ) : (
-                          <div className="w-16 h-12 rounded-lg bg-slate-100 dark:bg-slate-700 shrink-0 flex items-center justify-center">
-                            <svg width="16" height="16" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" className="text-slate-300">
-                              <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
-                            </svg>
+                          <div className="w-14 h-10 rounded-md bg-slate-100 dark:bg-slate-800 shrink-0 flex items-center justify-center">
+                            <DocIcon />
                           </div>
                         )}
                         <div className="flex-1 min-w-0">
-                          <p className="text-xs font-semibold text-slate-800 dark:text-slate-200 line-clamp-2 group-hover:text-[#1CA3FD] transition-colors leading-snug">
+                          <p className="text-sm font-medium text-slate-700 dark:text-slate-200 line-clamp-2 group-hover:text-[#1CA3FD] transition-colors leading-snug">
                             {p.title}
                           </p>
-                          <p className="text-xs text-slate-400 mt-1">{fmt(p.published_at || p.created_at)}</p>
+                          <p className="text-xs text-slate-400 mt-0.5">{fmt(p.published_at || p.created_at)}</p>
                         </div>
                       </Link>
                     </li>
@@ -182,30 +181,75 @@ export default async function BlogDetailPage({ params }) {
                 </ul>
               </div>
             )}
-
-            {/* Back link */}
-            <Link
-              href="/blog"
-              className="flex items-center gap-2 text-sm text-slate-500 hover:text-[#1CA3FD] transition-colors"
-            >
-              <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M19 12H5M12 5l-7 7 7 7"/>
-              </svg>
-              Back to Blog
-            </Link>
           </aside>
         </div>
 
-        {/* Mobile back link */}
-        <div className="mt-8 lg:hidden">
-          <Link href="/blog" className="inline-flex items-center gap-2 text-sm text-slate-500 hover:text-[#1CA3FD] transition-colors">
-            <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M19 12H5M12 5l-7 7 7 7"/>
-            </svg>
+        {/* Mobile bottom nav */}
+        <div className="mt-10 pt-8 border-t border-slate-100 dark:border-slate-800 lg:hidden">
+          <Link href="/blog" className="inline-flex items-center gap-2 text-sm text-slate-400 hover:text-[#1CA3FD] transition-colors">
+            <ArrowLeftIcon />
             Back to Blog
           </Link>
+
+          {recentPosts.length > 0 && (
+            <div className="mt-8">
+              <h3 className="text-xs font-semibold uppercase tracking-widest text-slate-400 mb-4">Recent Posts</h3>
+              <ul className="space-y-4">
+                {recentPosts.map((p) => (
+                  <li key={p.id}>
+                    <Link href={`/blog/${p.slug}`} className="group flex gap-3 items-start">
+                      {p.featured_image ? (
+                        <div className="w-16 h-12 rounded-md overflow-hidden shrink-0 relative">
+                          <Image src={mediaUrl(p.featured_image)} alt={p.title} fill sizes="64px" className="object-cover" />
+                        </div>
+                      ) : (
+                        <div className="w-16 h-12 rounded-md bg-slate-100 dark:bg-slate-800 shrink-0 flex items-center justify-center">
+                          <DocIcon />
+                        </div>
+                      )}
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-slate-700 dark:text-slate-200 line-clamp-2 group-hover:text-[#1CA3FD] transition-colors">
+                          {p.title}
+                        </p>
+                        <p className="text-xs text-slate-400 mt-0.5">{fmt(p.published_at || p.created_at)}</p>
+                      </div>
+                    </Link>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
         </div>
       </div>
     </div>
+  );
+}
+
+function CalendarIcon() {
+  return (
+    <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/>
+    </svg>
+  );
+}
+function EditIcon() {
+  return (
+    <svg width="13" height="13" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+    </svg>
+  );
+}
+function ArrowLeftIcon() {
+  return (
+    <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M19 12H5M12 5l-7 7 7 7"/>
+    </svg>
+  );
+}
+function DocIcon() {
+  return (
+    <svg width="14" height="14" fill="none" stroke="currentColor" strokeWidth="1.5" viewBox="0 0 24 24" strokeLinecap="round" strokeLinejoin="round" className="text-slate-300">
+      <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/>
+    </svg>
   );
 }

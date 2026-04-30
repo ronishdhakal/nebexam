@@ -13,6 +13,7 @@ import { TableCell } from '@tiptap/extension-table-cell';
 import Mathematics, { migrateMathStrings } from '@tiptap/extension-mathematics';
 import { useEffect, useRef, useState } from 'react';
 import ImageLightbox from '@/components/ui/ImageLightbox';
+import { migrateCustomLatexDelimiters } from '@/lib/latexMigration';
 
 export default function RichTextRenderer({ content }) {
   const wrapperRef = useRef(null);
@@ -37,7 +38,7 @@ export default function RichTextRenderer({ content }) {
   });
 
   useEffect(() => {
-    if (editor) migrateMathStrings(editor);
+    if (editor) { migrateCustomLatexDelimiters(editor); migrateMathStrings(editor); }
   }, [editor]);
 
   // Attach click listener to all images inside the rendered content

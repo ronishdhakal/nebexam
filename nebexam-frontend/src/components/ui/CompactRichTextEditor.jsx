@@ -9,6 +9,7 @@ import Mathematics, { migrateMathStrings } from '@tiptap/extension-mathematics';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import api from '@/lib/api';
 import MathDropdown from '@/components/ui/MathDropdown';
+import { migrateCustomLatexDelimiters } from '@/lib/latexMigration';
 
 /** Lightweight inline editor — bold, italic, underline, code only. */
 export default function CompactRichTextEditor({ value, onChange, placeholder = 'Write here...' }) {
@@ -41,7 +42,7 @@ export default function CompactRichTextEditor({ value, onChange, placeholder = '
   });
 
   useEffect(() => {
-    if (editor) migrateMathStrings(editor);
+    if (editor) { migrateCustomLatexDelimiters(editor); migrateMathStrings(editor); }
   }, [editor]);
 
   // mathMenu: null | { initialTemplate?: string }
@@ -85,7 +86,7 @@ export default function CompactRichTextEditor({ value, onChange, placeholder = '
   return (
     <div
       className="border border-slate-300 rounded-lg bg-white focus-within:ring-2 focus-within:ring-blue-500 focus-within:border-transparent"
-      onPaste={() => setTimeout(() => { if (editor) migrateMathStrings(editor); }, 0)}
+      onPaste={() => setTimeout(() => { if (editor) { migrateCustomLatexDelimiters(editor); migrateMathStrings(editor); } }, 0)}
     >
       {/* Mini toolbar */}
       <div className="flex items-center gap-0.5 px-2 py-1 bg-slate-50 border-b border-slate-200 rounded-t-lg">

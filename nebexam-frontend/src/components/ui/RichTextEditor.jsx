@@ -15,6 +15,7 @@ import Mathematics, { migrateMathStrings } from '@tiptap/extension-mathematics';
 import { useEffect, useMemo, useRef, useState } from 'react';
 import api from '@/lib/api';
 import MathDropdown from '@/components/ui/MathDropdown';
+import { migrateCustomLatexDelimiters } from '@/lib/latexMigration';
 
 export default function RichTextEditor({ value, onChange, placeholder = 'Write here...' }) {
   const initialContent = useRef(value);
@@ -49,7 +50,7 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write h
   });
 
   useEffect(() => {
-    if (editor) migrateMathStrings(editor);
+    if (editor) { migrateCustomLatexDelimiters(editor); migrateMathStrings(editor); }
   }, [editor]);
 
   const fileRef = useRef();
@@ -89,7 +90,7 @@ export default function RichTextEditor({ value, onChange, placeholder = 'Write h
   return (
     <div
       className="border border-gray-200 rounded-xl shadow-sm bg-white"
-      onPaste={() => setTimeout(() => { if (editor) migrateMathStrings(editor); }, 0)}
+      onPaste={() => setTimeout(() => { if (editor) { migrateCustomLatexDelimiters(editor); migrateMathStrings(editor); } }, 0)}
     >
       {/* Toolbar */}
       <div className="flex flex-wrap items-center gap-0.5 px-2 py-1.5 bg-gray-50 border-b border-gray-200 rounded-t-xl">
