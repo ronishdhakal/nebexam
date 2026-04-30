@@ -1,39 +1,47 @@
 /**
  * Custom LaTeX delimiter migration.
  *
- * Supported syntax:
- *   $$$formula$$$          → inline math
- *   $$$$formula$$          → block/display math (single line)
- *   $$$$                   → block/display math (multi-line: opener on its own line,
- *   formula lines...          formula on following lines, $$ on its own closing line)
- *   $$
+ * Supported input syntax (from ChatGPT prompt / manual entry):
+ *   $$$formula$$$          → inline math  (inlineMath node)
+ *   $$$$formula$$          → block math, single line  (blockMath node)
+ *   $$$$                   → block math, multi-line opener
+ *   formula lines...
+ *   $$                     → block math, multi-line closer  (blockMath node)
  *
- * After conversion, migrateMathStrings() from @tiptap/extension-mathematics
- * converts the standard $...$ and $$...$$ patterns to proper math nodes.
+ * migrateMathStrings() from @tiptap/extension-mathematics only handles
+ * $...$ → inlineMath, so we must create blockMath nodes ourselves.
  */
 export function migrateCustomLatexDelimiters(editor) {
-  // Step 1: Merge multi-paragraph $$$$...\n...\n$$ blocks into a single paragraph
-  _mergeMultiParagraphBlockMath(editor);
-  // Step 2: Convert remaining single-line custom delimiters inside text nodes
-  _convertSingleNodeDelimiters(editor);
+  // Order matters: longest patterns first to avoid partial matches.
+
+  // 1. Multi-paragraph: $$$$\nformula lines\n$$  →  blockMath node
+  _migrateMultiParaBlock(editor);
+
+  // 2. Single-paragraph full line: $$$$formula$$  →  blockMath node
+  _migrateSingleLineBlock(editor);
+
+  // 3. Inline: $$$formula$$$  →  $formula$
+  //    migrateMathStrings() (called by the component) then converts $...$ → inlineMath node
+  _convertInlineDelimiters(editor);
 }
 
-/**
- * Finds sequences of paragraphs like:
- *   [paragraph: "$$$$"]
- *   [paragraph: formula line 1]
- *   [paragraph: formula line 2]
- *   [paragraph: "$$"]
- * and collapses them into a single paragraph containing "$$formula$$".
- * migrateMathStrings() then turns that into a proper mathDisplay node.
- */
-function _mergeMultiParagraphBlockMath(editor) {
-  const { state, view } = editor;
-  const { doc } = state;
+// ─── Block math: multi-paragraph ────────────────────────────────────────────
 
-  // Collect all top-level block nodes with their document positions
+/**
+ * Finds sequences:
+ *   paragraph("$$$$")
+ *   paragraph(formula line 1)
+ *   ...
+ *   paragraph("$$")
+ * and replaces the whole range with a single blockMath node.
+ */
+function _migrateMultiParaBlock(editor) {
+  const { state, view } = editor;
+  const blockMathType = state.schema.nodes.blockMath;
+  if (!blockMathType) return;
+
   const blocks = [];
-  doc.forEach((node, offset) => {
+  state.doc.forEach((node, offset) => {
     blocks.push({ node, offset, end: offset + node.nodeSize });
   });
 
@@ -42,11 +50,8 @@ function _mergeMultiParagraphBlockMath(editor) {
   for (let i = 0; i < blocks.length; i++) {
     const { node, offset } = blocks[i];
     if (!node.isTextblock) continue;
+    if (node.textContent.trim() !== '$$$$') continue;
 
-    const text = node.textContent.trim();
-    if (text !== '$$$$') continue; // Only handle standalone $$$$ opener
-
-    // Scan forward for the closing $$
     const contentParts = [];
     let j = i + 1;
     let found = false;
@@ -54,9 +59,7 @@ function _mergeMultiParagraphBlockMath(editor) {
     while (j < blocks.length) {
       const jNode = blocks[j].node;
       if (!jNode.isTextblock) { j++; continue; }
-      const jText = jNode.textContent.trim();
-
-      if (jText === '$$') {
+      if (jNode.textContent.trim() === '$$') {
         found = true;
         break;
       }
@@ -70,46 +73,71 @@ function _mergeMultiParagraphBlockMath(editor) {
         to: blocks[j].end,
         latex: contentParts.join('\n').trim(),
       });
-      i = j; // skip over processed blocks
+      i = j;
     }
   }
 
   if (!replacements.length) return;
 
   const tr = state.tr;
-  // Apply in reverse order so later positions don't shift earlier ones
   for (let i = replacements.length - 1; i >= 0; i--) {
     const { from, to, latex } = replacements[i];
-    const textNode = state.schema.text(`$$${latex}$$`);
-    const para = state.schema.nodes.paragraph.create(null, textNode);
-    tr.replaceWith(from, to, para);
+    tr.replaceWith(from, to, blockMathType.create({ latex }));
   }
   view.dispatch(tr);
 }
 
+// ─── Block math: single-line paragraph ──────────────────────────────────────
+
 /**
- * Within individual text nodes, converts:
- *   $$$$content$$  →  $$content$$   (single-line block math)
- *   $$$content$$$  →  $content$     (inline math)
- *
- * Block is processed first so a leading $$$$ is never misread as inline $$$.
+ * Finds paragraphs whose entire text is $$$$formula$$
+ * and replaces the paragraph with a blockMath node.
  */
-function _convertSingleNodeDelimiters(editor) {
+function _migrateSingleLineBlock(editor) {
   const { state, view } = editor;
-  const { doc } = state;
+  const blockMathType = state.schema.nodes.blockMath;
+  if (!blockMathType) return;
+
+  const replacements = [];
+
+  state.doc.forEach((node, offset) => {
+    if (!node.isTextblock) return;
+    const text = node.textContent;
+    const match = text.match(/^\$\$\$\$([\s\S]+?)\$\$(?!\$)$/);
+    if (match) {
+      replacements.push({
+        from: offset,
+        to: offset + node.nodeSize,
+        latex: match[1].trim(),
+      });
+    }
+  });
+
+  if (!replacements.length) return;
+
+  const tr = state.tr;
+  for (let i = replacements.length - 1; i >= 0; i--) {
+    const { from, to, latex } = replacements[i];
+    tr.replaceWith(from, to, blockMathType.create({ latex }));
+  }
+  view.dispatch(tr);
+}
+
+// ─── Inline math: text-node conversion ──────────────────────────────────────
+
+/**
+ * Within text nodes, converts $$$formula$$$ → $formula$.
+ * migrateMathStrings() then converts $...$ → inlineMath nodes.
+ */
+function _convertInlineDelimiters(editor) {
+  const { state, view } = editor;
   const tr = state.tr;
   const replacements = [];
 
-  doc.descendants((node, pos) => {
+  state.doc.descendants((node, pos) => {
     if (!node.isText) return;
     const text = node.text;
-    let newText = text;
-
-    // Block: $$$$content$$  →  $$content$$
-    newText = newText.replace(/\$\$\$\$([\s\S]*?)\$\$(?!\$)/g, (_, c) => `$$${c}$$`);
-    // Inline: $$$content$$$  →  $content$
-    newText = newText.replace(/\$\$\$([\s\S]*?)\$\$\$(?!\$)/g, (_, c) => `$${c}$`);
-
+    const newText = text.replace(/\$\$\$([\s\S]*?)\$\$\$(?!\$)/g, (_, c) => `$${c}$`);
     if (newText !== text) {
       replacements.push({ pos, end: pos + node.nodeSize, newText, marks: node.marks });
     }
