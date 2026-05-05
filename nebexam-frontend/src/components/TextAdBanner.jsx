@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { advertisementsService } from '@/services/advertisements.service';
+import useAuthStore from '@/store/authStore';
 
 function AdCard({ ad, single }) {
   return (
@@ -45,15 +46,19 @@ function AdCard({ ad, single }) {
 }
 
 export default function TextAdBanner({ page }) {
+  const user = useAuthStore((s) => s.user);
+  const isPaid = user?.subscription_tier && user.subscription_tier !== 'free';
+
   const [ads, setAds] = useState([]);
 
   useEffect(() => {
+    if (isPaid) return;
     advertisementsService.getActiveTextAds(page)
       .then((res) => setAds(res.data || []))
       .catch(() => {});
-  }, [page]);
+  }, [page, isPaid]);
 
-  if (!ads.length) return null;
+  if (isPaid || !ads.length) return null;
 
   const single = ads.length === 1;
 

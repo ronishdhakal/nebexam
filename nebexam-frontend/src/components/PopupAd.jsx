@@ -2,11 +2,15 @@
 
 import { useEffect, useState, useRef } from 'react';
 import { advertisementsService } from '@/services/advertisements.service';
+import useAuthStore from '@/store/authStore';
 
 const SESSION_KEY = 'popup_ad_shown_count';
 const MAX_SHOWS = 2;
 
 export default function PopupAd() {
+  const user = useAuthStore((s) => s.user);
+  const isPaid = user?.subscription_tier && user.subscription_tier !== 'free';
+
   const [ad, setAd] = useState(null);
   const [visible, setVisible] = useState(false);
   const [countdown, setCountdown] = useState(0);
@@ -21,6 +25,7 @@ export default function PopupAd() {
   }, []);
 
   useEffect(() => {
+    if (isPaid) return;
     const shown = parseInt(sessionStorage.getItem(SESSION_KEY) || '0', 10);
     if (shown >= MAX_SHOWS) return;
 
@@ -36,7 +41,7 @@ export default function PopupAd() {
         sessionStorage.setItem(SESSION_KEY, String(shown + 1));
       })
       .catch(() => {});
-  }, []);
+  }, [isPaid]);
 
   useEffect(() => {
     if (!visible || countdown <= 0) return;

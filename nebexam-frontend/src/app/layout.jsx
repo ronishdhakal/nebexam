@@ -3,6 +3,7 @@ import { Plus_Jakarta_Sans, Noto_Sans_Devanagari } from 'next/font/google';
 import ThemeProvider from '@/components/ThemeProvider';
 import ConfigLoader from '@/components/ConfigLoader';
 import PopupAd from '@/components/PopupAd';
+import AdSenseLoader from '@/components/AdSenseLoader';
 import Script from 'next/script';
 
 const jakarta = Plus_Jakarta_Sans({
@@ -49,13 +50,8 @@ export default function RootLayout({ children }) {
     <html lang="en" suppressHydrationWarning className={`${jakarta.variable} ${devanagari.variable}`}>
       <head>
 
-        {/* ✅ Google AdSense */}
-        <Script
-          async
-          strategy="afterInteractive"
-          src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-2331292940175826"
-          crossOrigin="anonymous"
-        />
+        {/* ✅ Google AdSense — hidden for paid subscribers (see AdSenseLoader) */}
+        <AdSenseLoader />
 
         {/* ✅ Google Analytics */}
         <Script
