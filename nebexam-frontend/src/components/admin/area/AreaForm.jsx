@@ -60,6 +60,7 @@ export default function AreaForm({ initial = {}, onSubmit, loading }) {
         <input
           type="text"
           required
+          maxLength={500}
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
           placeholder="e.g. Mechanics"

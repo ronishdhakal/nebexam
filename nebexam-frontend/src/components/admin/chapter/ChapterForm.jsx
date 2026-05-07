@@ -128,6 +128,7 @@ export default function ChapterForm({ initial = {}, onSubmit, onRemovePdf, loadi
         <input
           type="text"
           required
+          maxLength={2000}
           value={form.name}
           onChange={(e) => setForm({ ...form, name: e.target.value })}
           placeholder="e.g. Laws of Motion"

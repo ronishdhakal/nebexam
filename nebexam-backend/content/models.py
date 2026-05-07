@@ -45,8 +45,8 @@ class Subject(models.Model):
 
 class Area(models.Model):
     subject = models.ForeignKey(Subject, on_delete=models.CASCADE, related_name='areas')
-    name = models.CharField(max_length=255)
-    slug = models.SlugField(blank=True)
+    name = models.CharField(max_length=500)
+    slug = models.SlugField(max_length=500, blank=True)
     order = models.PositiveIntegerField(default=999)
     created_at = models.DateTimeField(auto_now_add=True)
 
@@ -73,8 +73,8 @@ class Chapter(models.Model):
         Subject, null=True, blank=True,
         on_delete=models.CASCADE, related_name='direct_chapters'
     )
-    name = models.CharField(max_length=955)
-    slug = models.SlugField(blank=True, unique=True)
+    name = models.CharField(max_length=2000)
+    slug = models.SlugField(max_length=500, blank=True, unique=True)
     order = models.PositiveIntegerField(default=999)
     rich_text_notes = models.JSONField(null=True, blank=True)  # Tiptap JSON
     pdf_notes = models.FileField(upload_to='chapter_pdfs/', null=True, blank=True)
