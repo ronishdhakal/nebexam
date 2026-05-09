@@ -9,6 +9,9 @@ import { subjectsService } from '@/services/subjects.service';
 import SubjectCard from '@/components/subject/SubjectCard';
 import { mediaUrl } from '@/lib/utils';
 
+const SUBJECTS_TTL = 10 * 60 * 1000; // 10 minutes
+const subjectsCache = new Map(); // key: "level:stream" → { data, ts }
+
 // ── helpers ──────────────────────────────────────────────────────────────────
 
 function getDaysLeft(expiresAt) {
@@ -55,13 +58,23 @@ export default function LoggedInHome({ user }) {
 
   // ── fetch subjects ──────────────────────────────────────────────────────────
   const fetchSubjects = useCallback(async () => {
+    const cacheKey = `${level}:${isStreamed ? stream : ''}`;
+    const cached = subjectsCache.get(cacheKey);
+    if (cached && Date.now() - cached.ts < SUBJECTS_TTL) {
+      setSubjects(cached.data);
+      setLoading(false);
+      return;
+    }
+
     setLoading(true);
     try {
       const params = { class_level: level };
       if (isStreamed && stream) params.stream = stream;
       const res  = await subjectsService.getAll(params);
       const list = res.data.results ?? res.data;
-      setSubjects(Array.isArray(list) ? list : []);
+      const data = Array.isArray(list) ? list : [];
+      subjectsCache.set(cacheKey, { data, ts: Date.now() });
+      setSubjects(data);
     } catch {
       setSubjects([]);
     } finally {
