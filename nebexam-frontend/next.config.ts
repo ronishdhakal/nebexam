@@ -2,6 +2,11 @@ import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
   output: 'standalone',
+  turbopack: {
+    resolveAlias: {
+      canvas: './src/canvas-empty.js',
+    },
+  },
   images: {
     remotePatterns: [
       // Local Django dev server

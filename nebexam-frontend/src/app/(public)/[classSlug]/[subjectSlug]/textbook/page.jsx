@@ -1,6 +1,6 @@
 import { subjectsService } from '@/services/subjects.service';
 import RichTextRenderer from '@/components/chapter/RichTextRenderer';
-import PdfViewer from '@/components/chapter/PdfViewer';
+import PdfViewer from '@/components/chapter/PdfViewerClient';
 import { mediaUrl } from '@/lib/utils';
 
 export async function generateMetadata({ params }) {

@@ -11,7 +11,8 @@ import { chaptersService } from '@/services/chapters.service';
 import { subjectPath } from '@/lib/urls';
 import { mediaUrl } from '@/lib/utils';
 import QuestionCard from '@/components/question/QuestionCard';
-import PdfViewer from '@/components/chapter/PdfViewer';
+import dynamic from 'next/dynamic';
+const PdfViewer = dynamic(() => import('@/components/chapter/PdfViewer'), { ssr: false });
 import RichTextRenderer from '@/components/chapter/RichTextRenderer';
 import useAuthStore from '@/store/authStore';
 

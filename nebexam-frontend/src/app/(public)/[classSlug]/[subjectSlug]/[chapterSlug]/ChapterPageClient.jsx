@@ -10,7 +10,8 @@ import { areasService } from '@/services/areas.service';
 import { chaptersService } from '@/services/chapters.service';
 import { mediaUrl } from '@/lib/utils';
 import QuestionTree from '@/components/question/QuestionTree';
-import PdfViewer from '@/components/chapter/PdfViewer';
+import dynamic from 'next/dynamic';
+const PdfViewer = dynamic(() => import('@/components/chapter/PdfViewer'), { ssr: false });
 import RichTextRenderer from '@/components/chapter/RichTextRenderer';
 import useAuthStore from '@/store/authStore';
 
