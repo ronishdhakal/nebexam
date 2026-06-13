@@ -6,10 +6,7 @@ import Image from 'next/image';
 import 'react-pdf/dist/Page/AnnotationLayer.css';
 import 'react-pdf/dist/Page/TextLayer.css';
 
-pdfjs.GlobalWorkerOptions.workerSrc = new URL(
-  'pdfjs-dist/build/pdf.worker.min.mjs',
-  import.meta.url,
-).toString();
+pdfjs.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@${pdfjs.version}/build/pdf.worker.min.mjs`;
 
 function PageSkeleton() {
   return (
@@ -24,10 +21,11 @@ export default function PdfViewer({ url }) {
   const [numPages, setNumPages] = useState(null);
   const [scale, setScale] = useState(1.0);
   const [containerWidth, setContainerWidth] = useState(null);
+  const [loadError, setLoadError] = useState(null);
+  const [retryKey, setRetryKey] = useState(0);
   const containerRef = useRef(null);
   const scrollRef = useRef(null);
 
-  // Measure scroll area width so pages fill it responsively
   useEffect(() => {
     if (!scrollRef.current) return;
     const observer = new ResizeObserver(([entry]) => {
@@ -39,7 +37,21 @@ export default function PdfViewer({ url }) {
 
   if (!url) return null;
 
-  const onLoadSuccess = ({ numPages }) => setNumPages(numPages);
+  const onLoadSuccess = ({ numPages }) => {
+    setLoadError(null);
+    setNumPages(numPages);
+  };
+
+  const onLoadError = (err) => {
+    console.error('[PdfViewer] load error:', err);
+    setLoadError(err?.message || 'Unknown error');
+  };
+
+  const handleRetry = () => {
+    setNumPages(null);
+    setLoadError(null);
+    setRetryKey((k) => k + 1);
+  };
 
   const handleFullscreen = () => {
     const el = containerRef.current;
@@ -78,6 +90,19 @@ export default function PdfViewer({ url }) {
             title="Zoom in"
           >+</button>
           <div className="w-px h-4 bg-gray-200 dark:bg-slate-700 mx-1" />
+          <a
+            href={url}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 hover:text-[#1CA3FD] transition-colors"
+            title="Open in new tab"
+          >
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+              <path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/>
+              <polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/>
+            </svg>
+          </a>
+          <div className="w-px h-4 bg-gray-200 dark:bg-slate-700 mx-1" />
           <button
             onClick={handleFullscreen}
             className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 hover:text-[#1CA3FD] transition-colors"
@@ -101,12 +126,33 @@ export default function PdfViewer({ url }) {
           <PageSkeleton />
         ) : (
           <Document
+            key={retryKey}
             file={url}
             onLoadSuccess={onLoadSuccess}
+            onLoadError={onLoadError}
             loading={<PageSkeleton />}
             error={
-              <div className="flex items-center justify-center h-64">
+              <div className="flex flex-col items-center justify-center gap-3 h-64 px-4 text-center">
                 <p className="text-sm text-red-400">Failed to load PDF.</p>
+                {loadError && (
+                  <p className="text-xs text-slate-400 max-w-xs break-words">{loadError}</p>
+                )}
+                <div className="flex items-center gap-2">
+                  <button
+                    onClick={handleRetry}
+                    className="px-3 py-1.5 text-xs rounded-lg bg-[#1CA3FD] text-white hover:bg-[#0e8fe0] transition-colors"
+                  >
+                    Retry
+                  </button>
+                  <a
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-3 py-1.5 text-xs rounded-lg border border-slate-300 dark:border-slate-600 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-700 transition-colors"
+                  >
+                    Open in new tab
+                  </a>
+                </div>
               </div>
             }
             className="flex flex-col items-center gap-3"
