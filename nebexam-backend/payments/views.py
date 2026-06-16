@@ -74,10 +74,9 @@ class SubscriptionPlanListView(APIView):
         return [IsAdminUser()]
 
     def get(self, request):
-        from django.core.cache import cache
-        from nebexam.cache import make_cache_key, CACHE_TTL
+        from nebexam.cache import make_cache_key, CACHE_TTL, _cache_get, _cache_set
         key = make_cache_key(request)
-        cached = cache.get(key)
+        cached = _cache_get(key)
         if cached is not None:
             return Response(cached)
         plans = {p.tier: {'label': p.label, 'amount': p.amount, 'months': p.months,
@@ -87,7 +86,7 @@ class SubscriptionPlanListView(APIView):
         for tier, defaults in PLAN_PRICES.items():
             if tier not in plans:
                 plans[tier] = {**defaults, 'offer_title': '', 'offer_price': None}
-        cache.set(key, plans, CACHE_TTL)
+        _cache_set(key, plans, CACHE_TTL)
         return Response(plans)
 
     def patch(self, request):
@@ -95,7 +94,7 @@ class SubscriptionPlanListView(APIView):
         Expects: { "1month": {"amount": 120}, "3month": {"amount": 250}, ... }
         Only updates fields provided.
         """
-        from django.core.cache import cache
+        from nebexam.cache import _cache_clear
         updated = []
         for tier, data in request.data.items():
             try:
@@ -115,7 +114,7 @@ class SubscriptionPlanListView(APIView):
                 plan.offer_price = int(val) if val not in (None, '', 0, '0') else None
             plan.save()
             updated.append(tier)
-        cache.clear()
+        _cache_clear()
         return Response({'updated': updated})
 
 

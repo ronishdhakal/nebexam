@@ -730,18 +730,16 @@ class SiteSettingsView(APIView):
         }
 
     def get(self, request):
-        from django.core.cache import cache
-        from nebexam.cache import make_cache_key, CACHE_TTL
+        from nebexam.cache import make_cache_key, CACHE_TTL, _cache_get, _cache_set
         key = make_cache_key(request)
-        cached = cache.get(key)
+        cached = _cache_get(key)
         if cached is not None:
             return Response(cached)
         data = self._serialize(SiteSettings.get())
-        cache.set(key, data, CACHE_TTL)
+        _cache_set(key, data, CACHE_TTL)
         return Response(data)
 
     def patch(self, request):
-        from django.core.cache import cache
         cfg = SiteSettings.get()
         changed = []
         if (val := request.data.get('subscription_required')) is not None:
@@ -769,7 +767,8 @@ class SiteSettingsView(APIView):
             changed.append('lead_form_image')
         if changed:
             cfg.save(update_fields=changed)
-        cache.clear()
+        from nebexam.cache import _cache_clear
+        _cache_clear()
         return Response(self._serialize(cfg))
 
 
@@ -910,8 +909,8 @@ class ClearCacheView(APIView):
     permission_classes = [IsAdminUser]
 
     def post(self, request):
-        from django.core.cache import cache
-        cache.clear()
+        from nebexam.cache import _cache_clear
+        _cache_clear()
         return Response({'detail': 'Cache cleared successfully.'})
 
 

@@ -19,7 +19,7 @@ from .serializers import (
     AreaSerializer, ChapterSerializer, ChapterDetailSerializer, ChapterMinimalSerializer
 )
 from questionbank.serializers import QuestionNodeSerializer
-from nebexam.cache import CachedViewSetMixin, make_cache_key, CACHE_TTL
+from nebexam.cache import CachedViewSetMixin, make_cache_key, CACHE_TTL, _cache_get, _cache_set, _cache_clear
 from nebexam.pagination import OptionalPagination
 
 
@@ -107,13 +107,13 @@ class ChapterViewSet(CachedViewSetMixin, viewsets.ModelViewSet):
             chapter.pdf_notes.delete(save=False)
             chapter.pdf_notes = None
             chapter.save(update_fields=['pdf_notes'])
-        cache.clear()
+        _cache_clear()
         return Response(ChapterDetailSerializer(chapter).data)
 
     @action(detail=True, methods=['get'], url_path='important_questions')
     def important_questions(self, request, slug=None):
         key = make_cache_key(request)
-        cached = cache.get(key)
+        cached = _cache_get(key)
         if cached is not None:
             return Response(cached)
         chapter = self.get_object()
@@ -124,7 +124,7 @@ class ChapterViewSet(CachedViewSetMixin, viewsets.ModelViewSet):
             .order_by('source', 'order')   # manual first, then bank
         )
         serializer = QuestionNodeSerializer(questions, many=True)
-        cache.set(key, serializer.data, CACHE_TTL)
+        _cache_set(key, serializer.data, CACHE_TTL)
         return Response(serializer.data)
 
 
