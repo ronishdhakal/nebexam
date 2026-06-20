@@ -188,12 +188,12 @@ ESEWA_URL          = os.getenv('ESEWA_URL', 'https://rc-epay.esewa.com.np/api/ep
 ESEWA_PRODUCT_CODE = os.getenv('ESEWA_PRODUCT_CODE', 'EPAYTEST')
 ESEWA_SECRET_KEY   = os.getenv('ESEWA_SECRET_KEY', '8gBm/:&EnhH.1/q')
 
-# ── Cache (file-based) ────────────────────────────────────────────────────
+# ── Cache (in-memory per worker — no filesystem contention) ──────────────
 CACHES = {
     'default': {
-        'BACKEND': 'django.core.cache.backends.filebased.FileBasedCache',
-        'LOCATION': BASE_DIR / '.cache',
-        'TIMEOUT': 60 * 60,  # 1 hour default
+        'BACKEND': 'django.core.cache.backends.locmem.LocMemCache',
+        'LOCATION': 'nebexam-cache',
+        'TIMEOUT': 60 * 60,
         'OPTIONS': {
             'MAX_ENTRIES': 1000,
         },

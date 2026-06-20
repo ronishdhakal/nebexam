@@ -3,7 +3,7 @@ from django.contrib import admin
 from django.urls import path, include, re_path
 from django.conf import settings
 from django.views.static import serve
-from django.http import Http404
+from django.http import Http404, JsonResponse
 from drf_spectacular.views import SpectacularAPIView, SpectacularSwaggerView
 
 
@@ -16,7 +16,13 @@ def media_serve(request, path):
     raise Http404
 
 
+def health_check(request):
+    """No-auth, no-DB ping — use to verify the backend is reachable and CORS is working."""
+    return JsonResponse({'status': 'ok'})
+
+
 urlpatterns = [
+    path('api/health/', health_check, name='health-check'),
     path('admin/', admin.site.urls),
     path('api/users/', include('users.urls')),
     path('api/payments/', include('payments.urls')),
