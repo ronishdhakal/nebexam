@@ -39,6 +39,10 @@ function LoginForm() {
       const data = await handleLogin(form);
       router.push(data.user.is_staff ? '/admin' : '/dashboard');
     } catch (err) {
+      if (!err.response) {
+        setError('Unable to reach the server. Please check your connection and try again.');
+        return;
+      }
       const body = err.response?.data;
       if (err.response?.status === 403 && body?.code === 'new_device') {
         setNewDevice(body);

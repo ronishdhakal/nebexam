@@ -35,8 +35,12 @@ export const slugify = (text) => {
 };
 
 export const getErrorMessage = (error) => {
-  if (error.response?.data) {
-    const data = error.response.data;
+  if (!error.response) {
+    // Network error — no response received (DNS fail, connection refused, timeout)
+    return 'Unable to reach the server. Please check your connection and try again.';
+  }
+  const data = error.response.data;
+  if (data) {
     if (typeof data === 'string') return data;
     if (data.detail) return data.detail;
     const firstKey = Object.keys(data)[0];
