@@ -102,6 +102,9 @@ STATIC_URL = 'static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
+DATA_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024   # 100 MB
+FILE_UPLOAD_MAX_MEMORY_SIZE = 100 * 1024 * 1024   # 100 MB
+
 # ── Cloudflare R2 Storage ──────────────────────────────────────────────────
 _R2_KEY_ID     = os.getenv('R2_ACCESS_KEY_ID')
 _R2_SECRET_KEY = os.getenv('R2_SECRET_ACCESS_KEY')
