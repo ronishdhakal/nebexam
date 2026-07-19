@@ -18,9 +18,15 @@ export async function generateMetadata({ params }) {
     const categories = res.data.results || res.data;
     const cat = categories.find((c) => c.slug === slug);
     if (!cat) return { title: 'Blog — NEB Exam' };
+    const title = `${cat.name} — NEB Exam Blog`;
+    const description = `${cat.name} articles and posts for NEB students in Nepal.`;
+    const canonical = `/blog/category/${slug}`;
     return {
-      title: `${cat.name} — NEB Exam Blog`,
-      description: `${cat.name} articles and posts for NEB students in Nepal.`,
+      title,
+      description,
+      alternates: { canonical },
+      openGraph: { title, description, type: 'website', url: canonical },
+      twitter: { card: 'summary_large_image', title, description },
     };
   } catch {
     return { title: 'Blog — NEB Exam' };

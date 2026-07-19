@@ -8,6 +8,8 @@ const GRADE = { '10': 'X', '11': 'XI', '12': 'XII' };
 const TYPE_LABEL    = { old_question: 'Old Question',    model_question: 'Model Question' };
 const TYPE_LABEL_NP = { old_question: 'पुरानो प्रश्नपत्र', model_question: 'नमुना प्रश्नपत्र' };
 
+export const revalidate = 3600;
+
 export async function generateMetadata({ params }) {
   const { classSlug, subjectSlug, entrySlug } = await params;
   const level = classSlug.replace('class-', '');
@@ -27,9 +29,15 @@ export async function generateMetadata({ params }) {
       entry.year || null,
       '(With Solution)',
     ].filter(Boolean);
+    const title = `${parts.join(' ')} — NEB Exam`;
+    const description = `${parts.join(' ')} — complete questions with solutions for NEB exam preparation.`;
+    const canonical = `/${classSlug}/${subjectSlug}/question-bank/${entrySlug}`;
     return {
-      title: `${parts.join(' ')} — NEB Exam`,
-      description: `${parts.join(' ')} — complete questions with solutions for NEB exam preparation.`,
+      title,
+      description,
+      alternates: { canonical },
+      openGraph: { title, description, type: 'article', url: canonical },
+      twitter: { card: 'summary_large_image', title, description },
     };
   } catch {
     return { title: 'Question Paper — NEB Exam' };
@@ -184,7 +192,7 @@ export default async function EntryPage({ params }) {
           </div>
 
           {/* ── PAPER ── */}
-          <div className="bg-white dark:bg-slate-800 shadow-lg border border-gray-200 dark:border-slate-700 sm:rounded-sm print:shadow-none">
+          <div lang={isNp ? 'ne' : undefined} className="bg-white dark:bg-slate-800 shadow-lg border border-gray-200 dark:border-slate-700 sm:rounded-sm print:shadow-none">
             <div className="px-3 sm:px-10 md:px-14 pt-6 sm:pt-8 pb-6 border-b-2 border-black dark:border-slate-400">
               {entry.sub_code && (
                 <p className="text-right text-sm font-bold mb-3">
@@ -195,7 +203,9 @@ export default async function EntryPage({ params }) {
                 <p className="font-bold text-base tracking-wide">NEB — {isNp ? 'कक्षा' : 'GRADE'} {grade}</p>
                 <p className="text-sm font-medium">{entry.year}</p>
                 <p className="text-sm font-medium">{typeLabel}</p>
-                <p className="text-2xl font-extrabold tracking-tight mt-2">{subject?.name}</p>
+                <h1 className="text-2xl font-extrabold tracking-tight mt-2">
+                  {subject?.name} {typeLabel} {entry.year}
+                </h1>
               </div>
               <div className="mt-5 text-sm italic text-slate-700 dark:text-slate-300 leading-relaxed">
                 {entry.disclaimer ? (

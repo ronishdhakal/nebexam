@@ -14,7 +14,7 @@ function FooterLogo() {
   return (
     <Image
       src={resolvedTheme === 'dark' ? '/assets/logo/dark-logo.svg' : '/assets/logo/light-logo.svg'}
-      alt="NEB Exam" width={110} height={32}
+      alt="NEB Exam" width={63} height={32}
       className="h-8 w-auto"
     />
   );

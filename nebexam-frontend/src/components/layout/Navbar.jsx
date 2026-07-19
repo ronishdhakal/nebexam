@@ -15,7 +15,7 @@ function NavLogo() {
   const src = mounted && resolvedTheme === 'dark'
     ? '/assets/logo/dark-logo.svg'
     : '/assets/logo/light-logo.svg';
-  return <Image src={src} alt="NEB Exam" width={170} height={52} className="h-12 w-auto" />;
+  return <Image src={src} alt="NEB Exam" width={103} height={52} className="h-12 w-auto" />;
 }
 
 function usePwaInstall() {

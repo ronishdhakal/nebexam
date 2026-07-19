@@ -1,30 +1,42 @@
-<svg width="400" height="130" viewBox="0 0 400 130" xmlns="http://www.w3.org/2000/svg">
-
-  <!-- Paper: top=28, height=74, center y=65 -->
-  <rect x="16" y="28" width="56" height="74" rx="6" fill="white" stroke="#e0e0e0" stroke-width="1.5"/>
-  <line x1="29" y1="46" x2="63" y2="46" stroke="#ebebeb" stroke-width="1.5" stroke-linecap="round"/>
-  <line x1="29" y1="57" x2="63" y2="57" stroke="#ebebeb" stroke-width="1.5" stroke-linecap="round"/>
-  <line x1="29" y1="68" x2="63" y2="68" stroke="#ebebeb" stroke-width="1.5" stroke-linecap="round"/>
-  <line x1="29" y1="79" x2="56" y2="79" stroke="#ebebeb" stroke-width="1.5" stroke-linecap="round"/>
-
-  <!-- Checkmark -->
-  <polyline points="29,66 41,82 69,42" fill="none" stroke="#1ca3fd" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
-
-  <!-- Pencil -->
-  <g transform="rotate(-42, 69, 28)">
-    <rect x="61" y="1" width="16" height="10" rx="3.5" fill="#ffb3b3"/>
-    <rect x="61" y="11" width="16" height="5" rx="0" fill="#c0082a" opacity="0.45"/>
-    <rect x="61" y="16" width="16" height="34" rx="0" fill="#de0b2e"/>
-    <polygon points="61,50 77,50 69,65" fill="#f5d5a0"/>
-    <polygon points="64,56 74,56 69,65" fill="#555555"/>
-  </g>
-
-  <!-- NEB -->
-  <text x="94" y="47" dominant-baseline="central"
-    font-family="Georgia, serif" font-weight="bold" font-size="42" fill="#de0b2e">NEB</text>
-
-  <!-- EXAM -->
-  <text x="94" y="87" dominant-baseline="central"
-    font-family="Georgia, serif" font-weight="bold" font-size="30" fill="#1ca3fd" letter-spacing="6">EXAM</text>
-
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Generator: Adobe Illustrator 27.1.1, SVG Export Plug-In . SVG Version: 6.00 Build 0)  -->
+<svg version="1.1" id="Layer_1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px"
+	 viewBox="0 0 1078 544" style="enable-background:new 0 0 1078 544;" xml:space="preserve">
+<style type="text/css">
+	.st0{fill:none;}
+	.st1{fill:#26A6FF;}
+	.st2{font-family:'EurostileExtended-Black';}
+	.st3{font-size:147.3465px;}
+	.st4{fill:#ED1C24;stroke:#ED1C24;stroke-miterlimit:10;}
+	.st5{font-size:214.4016px;}
+	.st6{fill:none;stroke:#3FA9F5;stroke-width:9;stroke-miterlimit:10;}
+	.st7{fill:none;stroke:#ED1C24;stroke-width:9;stroke-miterlimit:10;}
+	.st8{fill:#FFA774;}
+	.st9{fill:#3FA9F5;}
+	.st10{fill:#FF0000;}
+</style>
+<rect x="397.39" y="292.92" class="st0" width="616.61" height="128.08"/>
+<text transform="matrix(0.9491 0 0 1 397.3906 391.1953)" class="st1 st2 st3">EXAM</text>
+<text transform="matrix(0.9491 0 0 1 397.3301 252.7012)" class="st4 st2 st5">NEB</text>
+<polyline class="st6" points="92.89,100 74,115.2 74,404.3 264.88,404.3 285.55,388.9 "/>
+<polygon class="st7" points="92.89,100 244.22,100 285.55,147.76 285.55,388.9 92.89,388.9 "/>
+<polyline class="st7" points="285.55,147.76 248.23,147.76 244.22,100 "/>
+<line class="st6" x1="126.89" y1="204.2" x2="254.93" y2="204.2"/>
+<g>
+	<g>
+		<polyline class="st8" points="237.75,291.76 215.49,357.23 263.15,312.73 		"/>
+		<polygon class="st9" points="309.48,179.67 334.37,199.99 262.85,312.48 238.05,292.01 		"/>
+		<path class="st10" d="M324.98,155.28l-9.8,15.41l24.85,20.39l9.75-15.33c3.11-4.88,0.18-13.41-6.37-18.99
+			C336.65,150.99,328.2,150.23,324.98,155.28z"/>
+		<line class="st0" x1="315.18" y1="170.7" x2="309.48" y2="179.67"/>
+	</g>
+	<line class="st0" x1="340.04" y1="191.09" x2="334.37" y2="199.99"/>
+	<polygon points="215.49,357.23 223.82,332.73 233.33,340.58 	"/>
+</g>
+<line class="st6" x1="126.89" y1="291.76" x2="224.41" y2="291.76"/>
+<line class="st6" x1="126.89" y1="244.45" x2="244.05" y2="244.45"/>
+<line class="st6" x1="204.09" y1="357.23" x2="126.89" y2="357.23"/>
+<line class="st6" x1="233.33" y1="357.23" x2="263.15" y2="357.23"/>
+<line class="st6" x1="210.27" y1="344.98" x2="190.91" y2="332.73"/>
+<line class="st6" x1="215.23" y1="336.43" x2="210.61" y2="320.39"/>
 </svg>

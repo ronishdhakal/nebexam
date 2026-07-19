@@ -1,4 +1,5 @@
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://nebexam.com';
+import { SITE_URL as BASE_URL } from '@/lib/siteUrl';
+
 const API_URL =
   process.env.INTERNAL_API_URL ||
   process.env.NEXT_PUBLIC_API_URL ||
@@ -24,6 +25,13 @@ function parseSubjectSlug(slug) {
   return { subjectSlug: match[1], classSlug: `class-${match[2]}` };
 }
 
+function flattenChapters(subject) {
+  if (subject.areas?.length > 0) {
+    return subject.areas.flatMap((area) => area.chapters || []);
+  }
+  return subject.direct_chapters || [];
+}
+
 export default async function sitemap() {
   const now = new Date();
 
@@ -37,43 +45,109 @@ export default async function sitemap() {
     { url: `${BASE_URL}/referral-program`, priority: 0.5, changeFrequency: 'monthly' },
     { url: `${BASE_URL}/blog`, priority: 0.8, changeFrequency: 'daily' },
     { url: `${BASE_URL}/news`, priority: 0.8, changeFrequency: 'daily' },
-    { url: `${BASE_URL}/class-8`,  priority: 0.9, changeFrequency: 'weekly' },
-    { url: `${BASE_URL}/class-9`,  priority: 0.9, changeFrequency: 'weekly' },
-    { url: `${BASE_URL}/class-10`, priority: 0.9, changeFrequency: 'weekly' },
-    { url: `${BASE_URL}/class-11`, priority: 0.9, changeFrequency: 'weekly' },
-    { url: `${BASE_URL}/class-12`, priority: 0.9, changeFrequency: 'weekly' },
     { url: `${BASE_URL}/disclaimer`, priority: 0.3, changeFrequency: 'yearly' },
     { url: `${BASE_URL}/privacy-policy`, priority: 0.3, changeFrequency: 'yearly' },
     { url: `${BASE_URL}/terms`, priority: 0.3, changeFrequency: 'yearly' },
   ].map((r) => ({ ...r, lastModified: now }));
 
-  // ── Subjects ──────────────────────────────────────────────────────────────
+  // ── Classes, subjects, tabs & chapters ──────────────────────────────────────
+  const classEntries = [];
   const subjectEntries = [];
+  const chapterEntries = [];
+  const questionPaperEntries = [];
+
   for (const level of ['8', '9', '10', '11', '12']) {
     const data = await fetchJson(`/content/subjects/?class_level=${level}&page_size=100`);
     const subjects = data?.results ?? data ?? [];
-    for (const subject of subjects) {
-      const parsed = parseSubjectSlug(subject.slug);
+
+    // Class page — only if it has subjects
+    if (subjects.length > 0) {
+      classEntries.push({
+        url: `${BASE_URL}/class-${level}`,
+        lastModified: now,
+        priority: 0.9,
+        changeFrequency: 'weekly',
+      });
+      if (level === '11' || level === '12') {
+        classEntries.push({ url: `${BASE_URL}/class-${level}/science`, lastModified: now, priority: 0.8, changeFrequency: 'weekly' });
+        classEntries.push({ url: `${BASE_URL}/class-${level}/management`, lastModified: now, priority: 0.8, changeFrequency: 'weekly' });
+      }
+    }
+
+    for (const subjectStub of subjects) {
+      const parsed = parseSubjectSlug(subjectStub.slug);
       if (!parsed) continue;
       const { classSlug, subjectSlug } = parsed;
+      const base = `${BASE_URL}/${classSlug}/${subjectSlug}`;
+
+      const subject = await fetchJson(`/content/subjects/${subjectStub.slug}/`);
+      const chapters = subject ? flattenChapters(subject) : [];
+      const hasChapters = chapters.length > 0;
+      const hasSyllabus = !!subject?.syllabus;
+      const hasTextbook = !!(subject?.book_text || subject?.book_pdf);
+
+      const entries = await fetchJson(`/questionbank/entries/?subject=${subjectStub.slug}&page_size=200`);
+      const papers = entries?.results ?? entries ?? [];
+
+      // Skip subjects with no content at all (chapters, syllabus, or papers)
+      if (!hasChapters && !hasSyllabus && papers.length === 0) continue;
+
       subjectEntries.push({
-        url: `${BASE_URL}/${classSlug}/${subjectSlug}`,
-        lastModified: subject.updated_at ? new Date(subject.updated_at) : now,
+        url: base,
+        lastModified: subjectStub.updated_at ? new Date(subjectStub.updated_at) : now,
         priority: 0.85,
         changeFrequency: 'weekly',
       });
       subjectEntries.push({
-        url: `${BASE_URL}/${classSlug}/${subjectSlug}/question-bank`,
+        url: `${base}/question-bank`,
         lastModified: now,
         priority: 0.75,
         changeFrequency: 'weekly',
       });
-      subjectEntries.push({
-        url: `${BASE_URL}/${classSlug}/${subjectSlug}/syllabus`,
-        lastModified: now,
-        priority: 0.65,
-        changeFrequency: 'monthly',
-      });
+      if (hasSyllabus) {
+        subjectEntries.push({
+          url: `${base}/syllabus`,
+          lastModified: now,
+          priority: 0.65,
+          changeFrequency: 'monthly',
+        });
+      }
+      if (hasChapters) {
+        subjectEntries.push({
+          url: `${base}/chapter-questions`,
+          lastModified: now,
+          priority: 0.65,
+          changeFrequency: 'weekly',
+        });
+      }
+      if (hasTextbook) {
+        subjectEntries.push({
+          url: `${base}/textbook`,
+          lastModified: now,
+          priority: 0.6,
+          changeFrequency: 'monthly',
+        });
+      }
+
+      for (const chapter of chapters) {
+        if (!chapter.slug) continue;
+        chapterEntries.push({
+          url: `${base}/${chapter.slug}`,
+          lastModified: chapter.updated_at ? new Date(chapter.updated_at) : now,
+          priority: 0.8,
+          changeFrequency: 'weekly',
+        });
+      }
+
+      for (const paper of papers) {
+        if (!paper.slug) continue;
+        questionPaperEntries.push({
+          url: `${base}/question-bank/${paper.slug}`,
+          lastModified: paper.updated_at ? new Date(paper.updated_at) : now,
+          priority: 0.7,
+          changeFrequency: 'monthly',
+        });
+      }
     }
   }
 
@@ -105,5 +179,13 @@ export default async function sitemap() {
     });
   }
 
-  return [...staticRoutes, ...subjectEntries, ...blogEntries, ...newsEntries];
+  return [
+    ...staticRoutes,
+    ...classEntries,
+    ...subjectEntries,
+    ...chapterEntries,
+    ...questionPaperEntries,
+    ...blogEntries,
+    ...newsEntries,
+  ];
 }

@@ -1,6 +1,7 @@
 import Link from 'next/link';
 import { redirect } from 'next/navigation';
-import { subjectsService } from '@/services/subjects.service';
+import { getSubject, getQuestionBankEntries } from '@/lib/cachedContent';
+import { absoluteUrl } from '@/lib/siteUrl';
 
 function ChapterCard({ chapter, idx, classSlug, subjectSlug }) {
   const hasNotes = !!chapter.rich_text_notes;
@@ -48,32 +49,37 @@ function ChapterCard({ chapter, idx, classSlug, subjectSlug }) {
   );
 }
 
+export const revalidate = 3600;
+
 export async function generateMetadata({ params }) {
   const { classSlug, subjectSlug } = await params;
   const level = classSlug.replace('class-', '');
-  try {
-    const res = await subjectsService.getOne(`${subjectSlug}-class-${level}`);
-    const title = `Class ${res.data.class_level} ${res.data.name} Notes, Important Questions, Syllabus — NEB Exam`;
-    const description = `Class ${res.data.class_level} ${res.data.name} notes, important questions and syllabus for NEB exam preparation.`;
-    return {
-      title,
-      description,
-      openGraph: { title, description, type: 'website' },
-      twitter: { card: 'summary', title, description },
-    };
-  } catch {
-    return { title: 'Subject — NEB Exam' };
-  }
+  const backendSlug = `${subjectSlug}-class-${level}`;
+  const subject = await getSubject(backendSlug);
+  if (!subject) return { title: 'Subject — NEB Exam' };
+
+  const title = `Class ${subject.class_level} ${subject.name} Notes, Important Questions, Syllabus — NEB Exam`;
+  const description = `Class ${subject.class_level} ${subject.name} notes, important questions and syllabus for NEB exam preparation.`;
+  const canonical = `/${classSlug}/${subjectSlug}`;
+
+  const totalChapters = (subject.areas?.reduce((s, a) => s + (a.chapters?.length || 0), 0) || 0) + (subject.direct_chapters?.length || 0);
+  const entries = await getQuestionBankEntries(backendSlug);
+
+  return {
+    title,
+    description,
+    alternates: { canonical },
+    ...(totalChapters === 0 && entries.length === 0 ? { robots: { index: false, follow: true } } : {}),
+    openGraph: { title, description, type: 'website', url: canonical },
+    twitter: { card: 'summary_large_image', title, description },
+  };
 }
 
 export default async function SubjectPage({ params }) {
   const { classSlug, subjectSlug } = await params;
   const level = classSlug.replace('class-', '');
-  let subject = null;
-  try {
-    const res = await subjectsService.getOne(`${subjectSlug}-class-${level}`);
-    subject = res.data;
-  } catch {}
+  const backendSlug = `${subjectSlug}-class-${level}`;
+  const subject = await getSubject(backendSlug);
 
   if (!subject) return (
     <div className="max-w-7xl mx-auto px-6 py-20 text-center text-slate-400 text-sm">
@@ -89,8 +95,45 @@ export default async function SubjectPage({ params }) {
     redirect(`/${classSlug}/${subjectSlug}/question-bank`);
   }
 
+  const introText = subject.description
+    || `Class ${subject.class_level} ${subject.name} notes, important questions and syllabus for NEB exam preparation. Browse chapter-wise notes${hasSyllabus ? ', the official syllabus' : ''} and past question papers for ${subject.name}, all aligned with the NEB curriculum for Class ${subject.class_level} students.`;
+
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: absoluteUrl('/') },
+      { '@type': 'ListItem', position: 2, name: `Class ${level}`, item: absoluteUrl(`/${classSlug}`) },
+      { '@type': 'ListItem', position: 3, name: subject.name, item: absoluteUrl(`/${classSlug}/${subjectSlug}`) },
+    ],
+  };
+
+  const courseJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'Course',
+    name: `Class ${subject.class_level} ${subject.name}`,
+    description: introText,
+    educationalLevel: `Grade ${subject.class_level}`,
+    provider: {
+      '@type': 'Organization',
+      name: 'NEB Exam',
+      url: absoluteUrl('/'),
+    },
+  };
+
   return (
     <div className="max-w-7xl mx-auto px-6 py-10 space-y-10">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(courseJsonLd) }} />
+      <div>
+        <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-3">
+          Class {subject.class_level} {subject.name} Notes
+        </h1>
+        <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed max-w-3xl">
+          {introText}
+        </p>
+      </div>
+
       {!hasAreas && !hasDirectChapters && (
         <p className="text-slate-400 text-sm text-center py-16">No chapters available yet.</p>
       )}

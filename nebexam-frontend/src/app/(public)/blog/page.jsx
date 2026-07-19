@@ -11,10 +11,17 @@ function fmt(dateStr) {
 export const metadata = {
   title: 'Blog — NEB Exam',
   description: 'Articles, tips and guides for NEB students in Nepal.',
+  alternates: { canonical: '/blog' },
   openGraph: {
     title: 'Blog — NEB Exam',
     description: 'Articles, tips and guides for NEB students in Nepal.',
     type: 'website',
+    url: '/blog',
+  },
+  twitter: {
+    card: 'summary_large_image',
+    title: 'Blog — NEB Exam',
+    description: 'Articles, tips and guides for NEB students in Nepal.',
   },
 };
 

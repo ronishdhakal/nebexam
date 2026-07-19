@@ -21,14 +21,20 @@ function PageSkeleton() {
   );
 }
 
+// A4-ish ratio (595:842pt) — close enough for a placeholder before a page has actually rendered.
+const PAGE_ASPECT_RATIO = 595 / 842;
+
 export default function PdfViewer({ url }) {
   const [numPages, setNumPages] = useState(null);
   const [scale, setScale] = useState(1.0);
   const [containerWidth, setContainerWidth] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [retryKey, setRetryKey] = useState(0);
+  const [isFullscreen, setIsFullscreen] = useState(false);
+  const [visiblePages, setVisiblePages] = useState(() => new Set([1]));
   const containerRef = useRef(null);
   const scrollRef = useRef(null);
+  const pageRefs = useRef(new Map());
 
   useEffect(() => {
     if (!scrollRef.current) return;
@@ -37,6 +43,43 @@ export default function PdfViewer({ url }) {
     });
     observer.observe(scrollRef.current);
     return () => observer.disconnect();
+  }, []);
+
+  // Lazily mount pages as they scroll near the viewport instead of rendering
+  // every page's canvas at once — large notes PDFs can have 30-40+ pages, and
+  // rasterizing all of them on load is what makes big files hang/fail to render.
+  useEffect(() => {
+    if (!numPages || !scrollRef.current) return;
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const newlyVisible = entries
+          .filter((entry) => entry.isIntersecting)
+          .map((entry) => Number(entry.target.dataset.pageNumber));
+        if (newlyVisible.length === 0) return;
+        setVisiblePages((prev) => {
+          const next = new Set(prev);
+          newlyVisible.forEach((page) => next.add(page));
+          return next;
+        });
+      },
+      { root: scrollRef.current, rootMargin: '1000px 0px', threshold: 0 }
+    );
+    pageRefs.current.forEach((el) => observer.observe(el));
+    return () => observer.disconnect();
+  }, [numPages, retryKey]);
+
+  useEffect(() => {
+    const handleFullscreenChange = () => {
+      const fsElement =
+        document.fullscreenElement || document.webkitFullscreenElement || null;
+      setIsFullscreen(fsElement === containerRef.current);
+    };
+    document.addEventListener('fullscreenchange', handleFullscreenChange);
+    document.addEventListener('webkitfullscreenchange', handleFullscreenChange);
+    return () => {
+      document.removeEventListener('fullscreenchange', handleFullscreenChange);
+      document.removeEventListener('webkitfullscreenchange', handleFullscreenChange);
+    };
   }, []);
 
   if (!url) return null;
@@ -56,10 +99,17 @@ export default function PdfViewer({ url }) {
   const handleRetry = () => {
     setNumPages(null);
     setLoadError(null);
+    setVisiblePages(new Set([1]));
+    pageRefs.current.clear();
     setRetryKey((k) => k + 1);
   };
 
   const handleFullscreen = () => {
+    if (isFullscreen) {
+      if (document.exitFullscreen) document.exitFullscreen();
+      else if (document.webkitExitFullscreen) document.webkitExitFullscreen();
+      return;
+    }
     const el = containerRef.current;
     if (!el) return;
     if (el.requestFullscreen) el.requestFullscreen();
@@ -72,7 +122,9 @@ export default function PdfViewer({ url }) {
   return (
     <div
       ref={containerRef}
-      className="w-full rounded-lg overflow-hidden border border-gray-200 dark:border-slate-700 flex flex-col bg-slate-100 dark:bg-slate-800"
+      className={`w-full rounded-lg overflow-hidden border border-gray-200 dark:border-slate-700 flex flex-col bg-slate-100 dark:bg-slate-800 ${
+        isFullscreen ? 'h-screen' : ''
+      }`}
     >
       {/* ── Toolbar ── */}
       <div className="flex items-center justify-between px-4 py-2 bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-700 shrink-0">
@@ -98,12 +150,19 @@ export default function PdfViewer({ url }) {
           <button
             onClick={handleFullscreen}
             className="w-7 h-7 flex items-center justify-center rounded-lg hover:bg-slate-100 dark:hover:bg-slate-700 text-slate-500 hover:text-[#1CA3FD] transition-colors"
-            title="Fullscreen"
+            title={isFullscreen ? 'Exit fullscreen' : 'Fullscreen'}
           >
-            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
-              <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
-            </svg>
+            {isFullscreen ? (
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="4 14 10 14 10 20"/><polyline points="20 10 14 10 14 4"/>
+                <line x1="14" y1="10" x2="21" y2="3"/><line x1="3" y1="21" x2="10" y2="14"/>
+              </svg>
+            ) : (
+              <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
+                <polyline points="15 3 21 3 21 9"/><polyline points="9 21 3 21 3 15"/>
+                <line x1="21" y1="3" x2="14" y2="10"/><line x1="3" y1="21" x2="10" y2="14"/>
+              </svg>
+            )}
           </button>
         </div>
       </div>
@@ -111,7 +170,9 @@ export default function PdfViewer({ url }) {
       {/* ── Scrollable pages ── */}
       <div
         ref={scrollRef}
-        className="overflow-y-auto overflow-x-auto h-[82vh] flex flex-col items-center py-4 gap-3"
+        className={`overflow-y-auto overflow-x-auto flex flex-col items-center py-4 gap-3 ${
+          isFullscreen ? 'flex-1 min-h-0' : 'h-[82vh]'
+        }`}
       >
         {!containerWidth ? (
           <PageSkeleton />
@@ -138,25 +199,48 @@ export default function PdfViewer({ url }) {
             }
             className="flex flex-col items-center gap-3"
           >
-            {Array.from({ length: numPages ?? 0 }, (_, i) => (
-              <div key={i} className="relative shadow-md">
-                <Page
-                  pageNumber={i + 1}
-                  width={pageWidth}
-                  renderAnnotationLayer={false}
-                  renderTextLayer={false}
-                />
-                <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
-                  <Image
-                    src="/assets/logo.svg"
-                    alt=""
-                    width={180}
-                    height={65}
-                    className="opacity-[0.07] -rotate-12"
-                  />
+            {Array.from({ length: numPages ?? 0 }, (_, i) => {
+              const pageNumber = i + 1;
+              const isVisible = visiblePages.has(pageNumber);
+              return (
+                <div
+                  key={pageNumber}
+                  ref={(el) => {
+                    if (el) pageRefs.current.set(pageNumber, el);
+                    else pageRefs.current.delete(pageNumber);
+                  }}
+                  data-page-number={pageNumber}
+                  className="relative shadow-md"
+                  style={
+                    !isVisible && pageWidth
+                      ? { width: pageWidth, height: Math.round(pageWidth / PAGE_ASPECT_RATIO) }
+                      : undefined
+                  }
+                >
+                  {isVisible ? (
+                    <>
+                      <Page
+                        pageNumber={pageNumber}
+                        width={pageWidth}
+                        renderAnnotationLayer={false}
+                        renderTextLayer={false}
+                      />
+                      <div className="absolute inset-0 flex items-center justify-center pointer-events-none select-none">
+                        <Image
+                          src="/assets/logo.svg"
+                          alt=""
+                          width={129}
+                          height={65}
+                          className="opacity-[0.07] -rotate-12"
+                        />
+                      </div>
+                    </>
+                  ) : (
+                    <div className="w-full h-full rounded bg-slate-200 dark:bg-slate-700 animate-pulse" />
+                  )}
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </Document>
         )}
       </div>

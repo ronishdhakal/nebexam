@@ -3,6 +3,7 @@ import Image from 'next/image';
 import { notFound } from 'next/navigation';
 import { newsService } from '@/services/news.service';
 import { mediaUrl } from '@/lib/utils';
+import { absoluteUrl } from '@/lib/siteUrl';
 import RichTextRenderer from '@/components/ui/RichTextRenderer';
 
 function fmt(dateStr) {
@@ -10,17 +11,37 @@ function fmt(dateStr) {
   return new Date(dateStr).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
 }
 
+export const revalidate = 3600;
+
 export async function generateMetadata({ params }) {
   const { slug } = await params;
   try {
     const res = await newsService.getOne(slug);
     const item = res.data;
+    const title = `${item.title} — NEB Exam`;
+    const description = item.excerpt || '';
+    const canonical = `/news/${slug}`;
+    const image = item.featured_image ? mediaUrl(item.featured_image) : undefined;
+
     return {
-      title: `${item.title} — NEB Exam`,
-      description: item.excerpt || '',
-      openGraph: item.featured_image
-        ? { images: [{ url: mediaUrl(item.featured_image) }] }
-        : undefined,
+      title,
+      description,
+      alternates: { canonical },
+      openGraph: {
+        title,
+        description,
+        type: 'article',
+        url: canonical,
+        publishedTime: item.published_at || item.created_at,
+        modifiedTime: item.updated_at,
+        images: image ? [{ url: image }] : undefined,
+      },
+      twitter: {
+        card: image ? 'summary_large_image' : 'summary',
+        title,
+        description,
+        images: image ? [image] : undefined,
+      },
     };
   } catch {
     return { title: 'News — NEB Exam' };
@@ -51,8 +72,30 @@ export default async function NewsDetailPage({ params }) {
   const modifiedDate = fmt(item.updated_at);
   const showModified = item.updated_at && item.updated_at !== item.created_at;
 
+  const articleJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'NewsArticle',
+    headline: item.title,
+    image: image ? [image] : undefined,
+    datePublished: item.published_at || item.created_at,
+    dateModified: item.updated_at || item.published_at || item.created_at,
+    publisher: { '@type': 'Organization', name: 'NEB Exam', url: absoluteUrl('/') },
+  };
+
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: absoluteUrl('/') },
+      { '@type': 'ListItem', position: 2, name: 'News', item: absoluteUrl('/news') },
+      { '@type': 'ListItem', position: 3, name: item.title, item: absoluteUrl(`/news/${slug}`) },
+    ],
+  };
+
   return (
     <div className="bg-white dark:bg-slate-950 min-h-screen">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(articleJsonLd) }} />
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       <div className="max-w-7xl mx-auto px-4 sm:px-6 py-8">
 
         {/* Breadcrumb */}

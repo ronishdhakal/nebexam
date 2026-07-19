@@ -81,6 +81,10 @@ else
   BACKEND_PORT=8055
 fi
 sudo sed -i "s|proxy_pass http://127.0.0.1:805[56];|proxy_pass http://127.0.0.1:${BACKEND_PORT};|g" /etc/nginx/sites-available/nebexam
+# Ensure upload size limit is set (idempotent)
+if ! sudo grep -q "client_max_body_size" /etc/nginx/sites-available/nebexam; then
+  sudo sed -i 's/server {/server {\n    client_max_body_size 100M;/' /etc/nginx/sites-available/nebexam
+fi
 sudo nginx -t && sudo systemctl reload nginx
 echo "  ✓ host nginx backend port updated to $BACKEND_PORT"
 

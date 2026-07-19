@@ -1,16 +1,31 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { subjectsService } from '@/services/subjects.service';
+import { getSubjectsForLevel } from '@/lib/cachedContent';
+import { absoluteUrl } from '@/lib/siteUrl';
 import SubjectCard from '@/components/subject/SubjectCard';
 
 const VALID_STREAMED = ['11', '12'];
 
+export const revalidate = 3600;
+
 export async function generateMetadata({ params }) {
   const { classSlug } = await params;
   const level = classSlug.replace('class-', '');
+  if (!VALID_STREAMED.includes(level)) return {};
+
+  const title = `Class ${level} Management Notes (Subject Wise) — NEB Exam`;
+  const description = `Class ${level} Management stream — chapter notes, past papers and model question sets for NEB exam preparation.`;
+  const canonical = `/${classSlug}/management`;
+  const all = await getSubjectsForLevel(level);
+  const subjects = all.filter((s) => s.streams?.includes('management') || !s.streams?.length);
+
   return {
-    title: `Class ${level} Management Notes (Subject Wise) — NEB Exam`,
-    description: `Class ${level} Management stream — chapter notes, past papers and model question sets for NEB exam preparation.`,
+    title,
+    description,
+    alternates: { canonical },
+    ...(subjects.length === 0 ? { robots: { index: false, follow: true } } : {}),
+    openGraph: { title, description, type: 'website', url: canonical },
+    twitter: { card: 'summary_large_image', title, description },
   };
 }
 
@@ -19,15 +34,22 @@ export default async function ManagementPage({ params }) {
   const level = classSlug.replace('class-', '');
   if (!VALID_STREAMED.includes(level)) notFound();
 
-  let subjects = [];
-  try {
-    const res = await subjectsService.getAll({ class_level: level });
-    const all = res.data.results || res.data;
-    subjects = all.filter((s) => s.streams?.includes('management') || !s.streams?.length);
-  } catch {}
+  const all = await getSubjectsForLevel(level);
+  const subjects = all.filter((s) => s.streams?.includes('management') || !s.streams?.length);
+
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: absoluteUrl('/') },
+      { '@type': 'ListItem', position: 2, name: `Class ${level}`, item: absoluteUrl(`/${classSlug}`) },
+      { '@type': 'ListItem', position: 3, name: 'Management', item: absoluteUrl(`/${classSlug}/management`) },
+    ],
+  };
 
   return (
     <div className="bg-slate-50 dark:bg-slate-900 min-h-screen">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       <div className="bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-6 py-8">
           <div className="flex items-center gap-2 text-sm text-slate-400 mb-3">
@@ -62,6 +84,12 @@ export default async function ManagementPage({ params }) {
             </div>
           </div>
         </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6 pt-6">
+        <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed max-w-3xl">
+          Class {level} Management stream notes, syllabus, question banks and past papers for every subject, organized to match the official NEB curriculum.
+        </p>
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-10">

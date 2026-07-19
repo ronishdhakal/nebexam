@@ -1,4 +1,4 @@
-const BASE_URL = process.env.NEXT_PUBLIC_SITE_URL || 'https://nebexam.com';
+import { SITE_URL as BASE_URL } from '@/lib/siteUrl';
 
 export default function robots() {
   return {

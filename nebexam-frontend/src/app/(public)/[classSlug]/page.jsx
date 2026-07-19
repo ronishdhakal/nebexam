@@ -1,6 +1,8 @@
 import Link from 'next/link';
 import { notFound } from 'next/navigation';
-import { subjectsService } from '@/services/subjects.service';
+import { getSubjectsForLevel } from '@/lib/cachedContent';
+import { classMetaCopy } from '@/lib/classLevelCopy';
+import { absoluteUrl } from '@/lib/siteUrl';
 import SubjectCard from '@/components/subject/SubjectCard';
 import TextAdBanner from '@/components/TextAdBanner';
 
@@ -36,16 +38,24 @@ function StreamSection({ stream, subjects, level }) {
   );
 }
 
+export const revalidate = 3600;
+
 export async function generateMetadata({ params }) {
   const { classSlug } = await params;
   const level = classSlug.replace('class-', '');
-  const title = `Class ${level} Notes (Subject & Stream Wise) — NEB Exam`;
-  const description = `Class ${level} notes, past papers and model questions — Science & Management streams. Browse all subjects for NEB exam preparation.`;
+  if (!VALID_LEVELS.includes(level)) return {};
+
+  const { title, description } = classMetaCopy(level);
+  const canonical = `/${classSlug}`;
+  const subjects = await getSubjectsForLevel(level);
+
   return {
     title,
     description,
-    openGraph: { title, description, type: 'website' },
-    twitter: { card: 'summary', title, description },
+    alternates: { canonical },
+    ...(subjects.length === 0 ? { robots: { index: false, follow: true } } : {}),
+    openGraph: { title, description, type: 'website', url: canonical },
+    twitter: { card: 'summary_large_image', title, description },
   };
 }
 
@@ -55,12 +65,16 @@ export default async function ClassSlugPage({ params }) {
   if (!VALID_LEVELS.includes(level)) notFound();
 
   const isStreamed = level === '11' || level === '12';
+  const subjects = await getSubjectsForLevel(level);
 
-  let subjects = [];
-  try {
-    const res = await subjectsService.getAll({ class_level: level });
-    subjects = res.data.results || res.data;
-  } catch {}
+  const breadcrumbJsonLd = {
+    '@context': 'https://schema.org',
+    '@type': 'BreadcrumbList',
+    itemListElement: [
+      { '@type': 'ListItem', position: 1, name: 'Home', item: absoluteUrl('/') },
+      { '@type': 'ListItem', position: 2, name: `Class ${level}`, item: absoluteUrl(`/${classSlug}`) },
+    ],
+  };
 
   let scienceSubjects    = [];
   let managementSubjects = [];
@@ -74,8 +88,15 @@ export default async function ClassSlugPage({ params }) {
     });
   }
 
+  const introText = level === '10'
+    ? `Class 10 marks the SEE (Secondary Education Examination) under NEB. Browse chapter-wise notes, important questions and past question papers for every Class 10 subject, all organized to match the official NEB curriculum.`
+    : isStreamed
+      ? `Class ${level} students follow the Science or Management stream under NEB. Browse notes, syllabus, question banks and past papers for every subject in both streams, organized to match the official NEB curriculum.`
+      : `Class ${level} notes, important questions and study resources for every subject, organized to match the official NEB curriculum.`;
+
   return (
     <div className="bg-slate-50 dark:bg-slate-900 min-h-screen">
+      <script type="application/ld+json" dangerouslySetInnerHTML={{ __html: JSON.stringify(breadcrumbJsonLd) }} />
       <TextAdBanner page={`class-${level}`} />
       <div className="bg-white dark:bg-slate-900 border-b border-gray-100 dark:border-slate-800">
         <div className="max-w-7xl mx-auto px-6 py-8">
@@ -108,6 +129,10 @@ export default async function ClassSlugPage({ params }) {
             )}
           </div>
         </div>
+      </div>
+
+      <div className="max-w-7xl mx-auto px-6 pt-6">
+        <p className="text-sm text-slate-600 dark:text-slate-400 leading-relaxed max-w-3xl">{introText}</p>
       </div>
 
       <div className="max-w-7xl mx-auto px-6 py-10 space-y-12">

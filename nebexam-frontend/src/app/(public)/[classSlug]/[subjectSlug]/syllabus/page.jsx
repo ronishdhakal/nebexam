@@ -1,14 +1,22 @@
 import { subjectsService } from '@/services/subjects.service';
 import RichTextRenderer from '@/components/chapter/RichTextRenderer';
 
+export const revalidate = 3600;
+
 export async function generateMetadata({ params }) {
   const { classSlug, subjectSlug } = await params;
   const level = classSlug.replace('class-', '');
   try {
     const res = await subjectsService.getOne(`${subjectSlug}-class-${level}`);
+    const title = `Class ${res.data.class_level} ${res.data.name} Syllabus — NEB Exam`;
+    const description = `Official syllabus for Class ${res.data.class_level} ${res.data.name} as per NEB curriculum.`;
+    const canonical = `/${classSlug}/${subjectSlug}/syllabus`;
     return {
-      title: `Class ${res.data.class_level} ${res.data.name} Syllabus — NEB Exam`,
-      description: `Official syllabus for Class ${res.data.class_level} ${res.data.name} as per NEB curriculum.`,
+      title,
+      description,
+      alternates: { canonical },
+      openGraph: { title, description, type: 'website', url: canonical },
+      twitter: { card: 'summary_large_image', title, description },
     };
   } catch {
     return { title: 'Syllabus — NEB Exam' };
@@ -38,7 +46,9 @@ function SyllabusHeader({ subject }) {
         <p className="font-bold text-base tracking-wide">
           NEB — GRADE {grade}
         </p>
-        <p className="text-2xl font-extrabold tracking-tight mt-2">{subject.name}</p>
+        <h1 className="text-2xl font-extrabold tracking-tight mt-2">
+          Class {subject.class_level} {subject.name} Syllabus
+        </h1>
         <p className="text-sm font-semibold text-slate-500 dark:text-slate-400 mt-1">Syllabus</p>
       </div>
 

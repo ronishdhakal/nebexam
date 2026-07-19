@@ -70,12 +70,18 @@ function ChapterSidebar({ chapters, activeSlug, onSelect, mobileOpen, onClose })
   );
 }
 
-function QuestionsList({ chapterSlug }) {
-  const [questions, setQuestions] = useState([]);
-  const [loading, setLoading] = useState(true);
+function QuestionsList({ chapterSlug, initialQuestions }) {
+  const hasInitial = Array.isArray(initialQuestions);
+  const [questions, setQuestions] = useState(hasInitial ? initialQuestions : []);
+  const [loading, setLoading] = useState(!hasInitial);
+  const skipNextFetch = useRef(hasInitial);
 
   useEffect(() => {
     if (!chapterSlug) return;
+    if (skipNextFetch.current) {
+      skipNextFetch.current = false;
+      return;
+    }
     setLoading(true);
     setQuestions([]);
     chaptersService.getImportantQuestions(chapterSlug)
@@ -120,7 +126,7 @@ function QuestionsList({ chapterSlug }) {
   );
 }
 
-export default function ChapterQuestionsClient({ chapters, subjectSlug }) {
+export default function ChapterQuestionsClient({ chapters, subjectSlug, initialQuestions }) {
   const [activeSlug, setActiveSlug] = useState(chapters[0]?.slug ?? null);
   const [mobileOpen, setMobileOpen] = useState(false);
 
@@ -196,7 +202,7 @@ export default function ChapterQuestionsClient({ chapters, subjectSlug }) {
 
         {/* Scrollable questions */}
         <div className="flex-1 overflow-y-auto bg-slate-50 dark:bg-slate-900">
-          {activeSlug && <QuestionsList chapterSlug={activeSlug} />}
+          {activeSlug && <QuestionsList chapterSlug={activeSlug} initialQuestions={initialQuestions} />}
         </div>
       </div>
     </div>

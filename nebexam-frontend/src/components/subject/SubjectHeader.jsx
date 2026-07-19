@@ -109,14 +109,17 @@ export default function SubjectHeader({ subject, slug, hasChapters = true, hasSy
                 </span>
               )}
               {subject?.streams?.map((s) => (
-                <span key={s} className="text-xs capitalize font-semibold bg-[#1CA3FD]/10 text-[#1CA3FD] px-2.5 py-0.5 rounded-full">
-                  {s}
+                <span key={s}>
+                  {' '}
+                  <span className="text-xs capitalize font-semibold bg-[#1CA3FD]/10 text-[#1CA3FD] px-2.5 py-0.5 rounded-full">
+                    {s}
+                  </span>
                 </span>
               ))}
             </div>
-            <h1 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
+            <h2 className="text-2xl font-extrabold text-slate-900 dark:text-white tracking-tight">
               {subject?.name ?? '—'}
-            </h1>
+            </h2>
             <p className="text-sm text-slate-500 mt-0.5">
               Class {subject?.class_level} · {totalChapters} chapter{totalChapters !== 1 ? 's' : ''}
             </p>

@@ -16,6 +16,7 @@ export default function SubjectCard({ subject }) {
   return (
     <Link
       href={subjectPath(subject) ?? `/subject/${subject.slug}`}
+      aria-label={`Class ${subject.class_level} ${subject.name} Notes`}
       className="group block bg-white dark:bg-slate-800 rounded-2xl border border-gray-100 dark:border-slate-700 hover:border-transparent hover:shadow-xl hover:shadow-slate-200/60 dark:hover:shadow-slate-900/60 transition-all duration-200 overflow-hidden"
     >
       {/* Top accent bar */}
@@ -29,7 +30,7 @@ export default function SubjectCard({ subject }) {
               <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20"/><path d="M6.5 2H20v20H6.5A2.5 2.5 0 0 1 4 19.5v-15A2.5 2.5 0 0 1 6.5 2z"/>
             </svg>
           </div>
-          <span className="text-[10px] font-mono text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-700/50 px-2 py-0.5 rounded-md mt-0.5">
+          <span aria-hidden="true" className="text-[10px] font-mono text-slate-400 dark:text-slate-500 bg-slate-50 dark:bg-slate-700/50 px-2 py-0.5 rounded-md mt-0.5">
             {subject.subject_code}
           </span>
         </div>
@@ -41,7 +42,7 @@ export default function SubjectCard({ subject }) {
 
         {/* Stream badges */}
         {subject.streams?.length > 0 && (
-          <div className="flex flex-wrap gap-1.5 mb-4">
+          <div aria-hidden="true" className="flex flex-wrap gap-1.5 mb-4">
             {subject.streams.map((s) => (
               <span key={s} className={`text-[10px] font-semibold px-2.5 py-0.5 rounded-full capitalize tracking-wide ${STREAM_PILL[s] || 'bg-gray-100 text-gray-600 dark:bg-slate-700 dark:text-slate-300'}`}>
                 {s}

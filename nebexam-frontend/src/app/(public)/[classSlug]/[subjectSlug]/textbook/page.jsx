@@ -3,14 +3,22 @@ import RichTextRenderer from '@/components/chapter/RichTextRenderer';
 import PdfViewer from '@/components/chapter/PdfViewerClient';
 import { mediaUrl } from '@/lib/utils';
 
+export const revalidate = 3600;
+
 export async function generateMetadata({ params }) {
   const { classSlug, subjectSlug } = await params;
   const level = classSlug.replace('class-', '');
   try {
     const res = await subjectsService.getOne(`${subjectSlug}-class-${level}`);
+    const title = `Class ${level} ${res.data.name} Textbook — NEB Exam`;
+    const description = `Read the official Class ${level} ${res.data.name} textbook notes and PDF for NEB students.`;
+    const canonical = `/${classSlug}/${subjectSlug}/textbook`;
     return {
-      title: `Class ${level} ${res.data.name} Textbook — NEB Exam`,
-      description: `Read the official Class ${level} ${res.data.name} textbook notes and PDF for NEB students.`,
+      title,
+      description,
+      alternates: { canonical },
+      openGraph: { title, description, type: 'website', url: canonical },
+      twitter: { card: 'summary_large_image', title, description },
     };
   } catch {
     return { title: 'Textbook — NEB Exam' };

@@ -10,6 +10,8 @@ function currentBsYear() {
   return now.getFullYear() + (m > 4 || (m === 4 && d >= 14) ? 57 : 56);
 }
 
+export const revalidate = 3600;
+
 export async function generateMetadata({ params }) {
   const { classSlug, subjectSlug } = await params;
   const level = classSlug.replace('class-', '');
@@ -20,11 +22,13 @@ export async function generateMetadata({ params }) {
     const bsYear = currentBsYear();
     const title = `Class ${subject.class_level} ${subject.name} Model & Old Question ${bsYear} — NEB Exam`;
     const description = `Class ${subject.class_level} ${subject.name} model questions and old question papers ${bsYear} with solutions — NEB exam preparation.`;
+    const canonical = `/${classSlug}/${subjectSlug}/question-bank`;
     return {
       title,
       description,
-      openGraph: { title, description, type: 'website' },
-      twitter: { card: 'summary', title, description },
+      alternates: { canonical },
+      openGraph: { title, description, type: 'website', url: canonical },
+      twitter: { card: 'summary_large_image', title, description },
     };
   } catch {
     return { title: 'Question Bank — NEB Exam' };
@@ -72,17 +76,26 @@ export default async function QuestionBankListPage({ params }) {
   const backendSlug = `${subjectSlug}-class-${level}`;
 
   let entries = [];
+  let subjectName = null;
   try {
     const res = await entriesService.getAll({ subject: backendSlug });
     entries = res.data.results || res.data;
+  } catch {}
+  try {
+    const subjRes = await subjectsService.getOne(backendSlug);
+    subjectName = subjRes.data.name;
   } catch {}
 
   const oldQuestions   = entries.filter((e) => e.type === 'old_question');
   const modelQuestions = entries.filter((e) => e.type === 'model_question');
 
+  const bsYear = currentBsYear();
+  const heading = `Class ${level} ${subjectName ?? ''} Model & Old Question ${bsYear}`.replace(/\s+/g, ' ').trim();
+
   if (entries.length === 0) {
     return (
       <div className="max-w-4xl mx-auto px-6 py-24 text-center">
+        <h1 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight mb-4">{heading}</h1>
         <p className="text-slate-400 text-sm">No question papers available yet.</p>
       </div>
     );
@@ -90,6 +103,7 @@ export default async function QuestionBankListPage({ params }) {
 
   return (
     <div className="max-w-4xl mx-auto px-6 py-10 space-y-10">
+      <h1 className="text-xl font-extrabold text-slate-900 dark:text-white tracking-tight">{heading}</h1>
       {oldQuestions.length > 0 && (
         <section>
           <div className="flex items-center gap-3 mb-3">

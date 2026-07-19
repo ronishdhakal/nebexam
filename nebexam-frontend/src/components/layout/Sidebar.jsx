@@ -142,7 +142,7 @@ export default function Sidebar() {
             <Image
               src="/assets/logo/light-logo.svg"
               alt="NEB Exam"
-              width={130}
+              width={65}
               height={33}
               priority
             />

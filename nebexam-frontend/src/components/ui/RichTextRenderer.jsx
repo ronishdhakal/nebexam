@@ -1,46 +1,26 @@
 'use client';
 
-import { useEditor, EditorContent } from '@tiptap/react';
-import StarterKit from '@tiptap/starter-kit';
-import Image from '@tiptap/extension-image';
-import Youtube from '@tiptap/extension-youtube';
-import Link from '@tiptap/extension-link';
-import Underline from '@tiptap/extension-underline';
-import { Table } from '@tiptap/extension-table';
-import { TableRow } from '@tiptap/extension-table-row';
-import { TableHeader } from '@tiptap/extension-table-header';
-import { TableCell } from '@tiptap/extension-table-cell';
-import Mathematics, { migrateMathStrings } from '@tiptap/extension-mathematics';
-import { useEffect, useRef, useState, useMemo } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
+import { renderToHTMLString } from '@tiptap/static-renderer';
+import { tiptapExtensions } from '@/lib/tiptapExtensions';
 import ImageLightbox from '@/components/ui/ImageLightbox';
-import { migrateCustomLatexDelimiters } from '@/lib/latexMigration';
 
+// Renders Tiptap JSON to real HTML via a pure JSON->HTML walk (no DOM
+// required), so the same markup is produced on the server during SSR and on
+// the client during hydration — content is present in the initial response
+// instead of waiting for a client-only editor to mount.
 export default function RichTextRenderer({ value }) {
-  const extensions = useMemo(() => [
-    StarterKit,
-    Image,
-    Youtube,
-    Link,
-    Underline,
-    Table.configure({ resizable: false }),
-    TableRow,
-    TableHeader,
-    TableCell,
-    Mathematics,
-  ], []);
   const wrapperRef = useRef(null);
   const [lightbox, setLightbox] = useState(null);
 
-  const editor = useEditor({
-    immediatelyRender: false,
-    extensions,
-    content: value || '',
-    editable: false,
-  });
-
-  useEffect(() => {
-    if (editor) { migrateCustomLatexDelimiters(editor); migrateMathStrings(editor); }
-  }, [editor]);
+  const html = useMemo(() => {
+    if (!value) return '';
+    try {
+      return renderToHTMLString({ extensions: tiptapExtensions, content: value });
+    } catch {
+      return '';
+    }
+  }, [value]);
 
   useEffect(() => {
     const wrapper = wrapperRef.current;
@@ -52,7 +32,7 @@ export default function RichTextRenderer({ value }) {
     };
     wrapper.addEventListener('click', handler);
     return () => wrapper.removeEventListener('click', handler);
-  }, [editor]);
+  }, [html]);
 
   // Wrap images in a zoomable container with a visible expand badge
   useEffect(() => {
@@ -117,16 +97,16 @@ export default function RichTextRenderer({ value }) {
     `;
     wrapper.appendChild(style);
     return () => style.remove();
-  }, [editor]);
+  }, [html]);
 
-  if (!editor) return null;
+  if (!html) return null;
 
   return (
-    <div ref={wrapperRef} className="prose-render">
-      <EditorContent editor={editor} />
+    <>
+      <div ref={wrapperRef} className="prose-render" dangerouslySetInnerHTML={{ __html: html }} />
       {lightbox && (
         <ImageLightbox src={lightbox.src} alt={lightbox.alt} onClose={() => setLightbox(null)} />
       )}
-    </div>
+    </>
   );
 }

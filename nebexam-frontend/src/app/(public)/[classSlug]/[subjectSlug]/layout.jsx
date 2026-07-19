@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { subjectsService } from '@/services/subjects.service';
+import { getSubject } from '@/lib/cachedContent';
 import SubjectHeader from '@/components/subject/SubjectHeader';
 import StudyAbroadModal from '@/components/leads/StudyAbroadModal';
 
@@ -11,11 +11,7 @@ export default async function SubjectLayout({ children, params }) {
   if (!VALID_LEVELS.includes(level)) notFound();
 
   const backendSlug = `${subjectSlug}-class-${level}`;
-  let subject = null;
-  try {
-    const res = await subjectsService.getOne(backendSlug);
-    subject = res.data;
-  } catch {}
+  const subject = await getSubject(backendSlug);
 
   if (!subject) notFound();
 
